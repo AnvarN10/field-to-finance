@@ -13,3 +13,4 @@ test-ledger/
 id.json
 .DS_Store
 .superpowers/
+*.tsbuildinfo

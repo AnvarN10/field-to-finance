@@ -1,0 +1,62 @@
+import { describe, expect, it } from "vitest";
+import { MAX_PUBLIC_BASE_URL_LEN, parsePublicEnv, parseServerEnv } from "../src/lib/env";
+
+describe("parseServerEnv", () => {
+  it("fills devnet defaults", () => {
+    const env = parseServerEnv({});
+    expect(env.SOLANA_RPC_URL).toBe("https://api.devnet.solana.com");
+    expect(env.F2F_PROGRAM_ID).toBe("9syreF6kWfmMfoCkTSE8f7p3kRY1Bh7TSDjGAr9s6Jfm");
+    expect(env.USDC_MINT).toBe("Fhfr7QZ6PpZF4ug1kVdnA7dfMGaSJawGL6dhwNMFvTjv");
+    expect(env.PUBLIC_BASE_URL).toBe("http://localhost:3000");
+    expect(env.BUCKET_FORCE_PATH_STYLE).toBe(false);
+    expect(env.ADMIN_PASSWORD).toBeUndefined();
+  });
+
+  it("treats blank strings as unset", () => {
+    const env = parseServerEnv({ ADMIN_PASSWORD: "  ", SOLANA_RPC_URL: "" });
+    expect(env.ADMIN_PASSWORD).toBeUndefined();
+    expect(env.SOLANA_RPC_URL).toBe("https://api.devnet.solana.com");
+  });
+
+  it("strips a trailing slash from PUBLIC_BASE_URL", () => {
+    expect(parseServerEnv({ PUBLIC_BASE_URL: "https://f2f.example/" }).PUBLIC_BASE_URL).toBe("https://f2f.example");
+  });
+
+  it("rejects a PUBLIC_BASE_URL that would push evidence URIs past 128 bytes", () => {
+    const long = `https://${"a".repeat(MAX_PUBLIC_BASE_URL_LEN)}.app`;
+    expect(() => parseServerEnv({ PUBLIC_BASE_URL: long })).toThrow(/PUBLIC_BASE_URL/);
+  });
+
+  it("rejects a short ADMIN_PASSWORD without echoing it", () => {
+    let message = "";
+    try {
+      parseServerEnv({ ADMIN_PASSWORD: "hunter2" });
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toMatch(/ADMIN_PASSWORD/);
+    expect(message).not.toContain("hunter2");
+  });
+
+  it("rejects a malformed program id", () => {
+    expect(() => parseServerEnv({ F2F_PROGRAM_ID: "not-a-key" })).toThrow(/F2F_PROGRAM_ID/);
+  });
+
+  it("parses BUCKET_FORCE_PATH_STYLE", () => {
+    expect(parseServerEnv({ BUCKET_FORCE_PATH_STYLE: "true" }).BUCKET_FORCE_PATH_STYLE).toBe(true);
+  });
+});
+
+describe("parsePublicEnv", () => {
+  it("defaults to devnet, EU PostHog and app_env dev", () => {
+    const env = parsePublicEnv({});
+    expect(env.NEXT_PUBLIC_SOLANA_RPC_URL).toBe("https://api.devnet.solana.com");
+    expect(env.NEXT_PUBLIC_POSTHOG_HOST).toBe("https://eu.i.posthog.com");
+    expect(env.NEXT_PUBLIC_APP_ENV).toBe("dev");
+    expect(env.NEXT_PUBLIC_PRIVY_APP_ID).toBeUndefined();
+  });
+
+  it("rejects an unknown app env", () => {
+    expect(() => parsePublicEnv({ NEXT_PUBLIC_APP_ENV: "staging" })).toThrow(/NEXT_PUBLIC_APP_ENV/);
+  });
+});
