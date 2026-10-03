@@ -135,7 +135,11 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
       <Button type="submit" size="lg" disabled={tx.busy} className="h-11 self-start px-5 text-base">
         Register fields
       </Button>
-      <TxStatus state={tx.state} onAction={(a) => a === "faucet" && void balance.reload()} successLabel={`Registered. Requested ${requestedLabel}`} />
+      <TxStatus state={tx.state} onAction={(a) => {
+          // "faucet": reloading the balance brings up the SOL faucet block above; "retry": re-send the registration.
+          if (a === "faucet") void balance.reload();
+          if (a === "retry") void tx.retry();
+        }} successLabel={`Registered. Requested ${requestedLabel}`} />
     </form>
   );
 }

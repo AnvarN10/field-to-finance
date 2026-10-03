@@ -32,7 +32,7 @@ export function ProjectsTable({ projects }: { projects: ProjectWithFields[] }) {
                 <ul className="flex flex-col gap-1">
                   {p.fields.map((f) => (
                     <li key={f.address}>
-                      <Link href={`/fields/${f.address}`} className="rounded-sm underline decoration-border underline-offset-4 [@media(hover:hover)]:hover:decoration-foreground">
+                      <Link href={`/fields/${f.address}`} className="rounded-sm underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-foreground">
                         Field {f.index + 1}
                       </Link>{" "}
                       <span className="text-muted-foreground">{formatHa(f.areaHaX100)}</span>
@@ -41,7 +41,8 @@ export function ProjectsTable({ projects }: { projects: ProjectWithFields[] }) {
                 </ul>
               </td>
               <td className="px-2.5 py-3">{p.disbursed ? "Yes" : "Not yet"}</td>
-              <td className="px-2.5 py-3">{p.settlement ? SETTLEMENT_LABELS[p.settlement] : "Pending"}</td>
+              {/* Wraps instead of running past the scroll edge, so the full rule is visible without scrolling. */}
+              <td className="min-w-48 px-2.5 py-3 whitespace-normal">{p.settlement ? SETTLEMENT_LABELS[p.settlement] : "Pending"}</td>
             </tr>
           ))}
         </tbody>

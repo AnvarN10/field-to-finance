@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fundedPercent, payoutPer, remaining, seasonAttestationBlocker, termDays } from "../src/lib/pool-math";
+import { closeSubscriptionBlocker, disburseBlocker, fundRedemptionBlocker, fundedPercent, payoutPer, remaining, seasonAttestationBlocker, termDays } from "../src/lib/pool-math";
 import type { PoolView } from "../src/lib/chain/views";
 
 const p = (o: Partial<PoolView> = {}) =>
@@ -34,5 +34,29 @@ describe("seasonAttestationBlocker", () => {
     expect(seasonAttestationBlocker("Funded", 1)).toBeUndefined();
     expect(seasonAttestationBlocker("Redeeming", 2)).toBeUndefined();
     expect(seasonAttestationBlocker("Funded", 0)).toBe("No projects in this pool");
+  });
+});
+
+describe("admin lifecycle reasons name what already happened", () => {
+  it("close subscription", () => {
+    expect(closeSubscriptionBlocker("Draft", false)).toBe("Open the pool first");
+    expect(closeSubscriptionBlocker("Open", false)).toBe("Available when the pool is full or after the close time");
+    expect(closeSubscriptionBlocker("Open", true)).toBeUndefined();
+    expect(closeSubscriptionBlocker("Redeeming", false)).toBe("Subscription already closed");
+    expect(closeSubscriptionBlocker("Funded", false)).toBe("Subscription already closed");
+  });
+
+  it("disburse", () => {
+    expect(disburseBlocker("Open", false)).toBe("Needs a Funded pool");
+    expect(disburseBlocker("Funded", false)).toBeUndefined();
+    expect(disburseBlocker("Funded", true)).toBe("Every project is paid");
+    expect(disburseBlocker("Redeeming", true)).toBe("Every project is paid");
+    expect(disburseBlocker("Refunding", false)).toBe("The pool did not fund; investors refund instead");
+  });
+
+  it("fund redemption", () => {
+    expect(fundRedemptionBlocker("Open")).toBe("Needs a Funded pool");
+    expect(fundRedemptionBlocker("Funded")).toBeUndefined();
+    expect(fundRedemptionBlocker("Redeeming")).toBe("Redemption already funded");
   });
 });

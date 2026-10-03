@@ -19,7 +19,7 @@ export function ExplorerLink({
       target="_blank"
       rel="noreferrer"
       title={value}
-      className="inline-flex items-center gap-1 rounded-sm font-mono text-[13px] text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
+      className="inline-flex items-center gap-1 rounded-sm font-mono text-[13px] text-foreground underline decoration-muted-foreground underline-offset-4 hover:decoration-foreground"
     >
       {label ?? shortKey(value)}
       <ExternalLink aria-hidden strokeWidth={1.5} className="size-3.5 text-muted-foreground" />

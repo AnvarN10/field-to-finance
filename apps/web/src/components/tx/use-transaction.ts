@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { track } from "../../lib/analytics";
 import type { TxAction } from "../../lib/chain/user-tx";
 import { executeTx, postJson, type TxPhase, type TxSigner } from "../../lib/tx-client";
@@ -14,9 +14,11 @@ export function useTransaction(
   const [state, setState] = useState<TxPhase>({ phase: "idle" });
   const router = useRouter();
   const { onSuccess } = opts;
+  const lastBody = useRef<Record<string, unknown> | null>(null);
 
   const run = useCallback(
     async (body: Record<string, unknown>): Promise<TxPhase> => {
+      lastBody.current = body;
       if (!signer) {
         const s: TxPhase = { phase: "error", error: { code: "NoWallet", title: "Connect a wallet first", detail: "", action: "none" }, logs: [] };
         setState(s);
@@ -37,5 +39,7 @@ export function useTransaction(
   );
 
   const busy = state.phase === "building" || state.phase === "signing" || state.phase === "confirming";
-  return { state, busy, run, reset: () => setState({ phase: "idle" }) };
+  /** "Try again": re-sends the last request with a fresh blockhash. */
+  const retry = useCallback(async (): Promise<TxPhase | null> => (lastBody.current ? run(lastBody.current) : null), [run]);
+  return { state, busy, run, retry, reset: () => setState({ phase: "idle" }) };
 }

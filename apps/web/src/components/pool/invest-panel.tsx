@@ -2,11 +2,11 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { CircleAlert, CircleCheck } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ErrorAction } from "../../lib/chain/explain";
 import type { InvestorState, PoolView } from "../../lib/chain/views";
 import { formatDateUtc, formatUsd, formatYield, withYield } from "../../lib/format";
-import { panelMode, positionFor, validateAmount } from "../../lib/invest";
+import { disconnectedCopy, panelMode, positionFor, validateAmount } from "../../lib/invest";
 import { remaining } from "../../lib/pool-math";
 import { TxStatus } from "../tx/tx-status";
 import { useTransaction } from "../tx/use-transaction";
@@ -26,6 +26,7 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
   const [amountError, setAmountError] = useState<string | null>(null);
   const [kycOpen, setKycOpen] = useState(false);
   const [showFaucet, setShowFaucet] = useState(false);
+  const amountRef = useRef<HTMLInputElement>(null);
   const subscribe = useTransaction("subscribe", signer, { onSuccess: investor.reload });
   const refund = useTransaction("refund", signer, { onSuccess: investor.reload });
   const redeem = useTransaction("redeem", signer, { onSuccess: investor.reload });
@@ -37,15 +38,17 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
   const symbol = pool.instrument?.symbol ?? `POOL-${pool.poolId}`;
   const usdc = BigInt(investor.data?.usdcBalance ?? "0");
 
-  const onAction = (a: ErrorAction) => {
+  // Each transaction gets its own handler so "Try again" re-sends that transaction.
+  const handlerFor = (tx: { retry: () => Promise<unknown> }) => (a: ErrorAction) => {
     if (a === "kyc") setKycOpen(true);
     if (a === "faucet") setShowFaucet(true);
+    if (a === "retry") void tx.retry();
   };
 
   if (!wallet) {
     return (
       <Panel title="Invest">
-        <p className="text-sm text-muted-foreground">{`Connect a Solana wallet on devnet to subscribe. Fixed yield ${formatYield(pool.yieldBps)}, paid at maturity.`}</p>
+        <p className="text-sm text-muted-foreground">{disconnectedCopy(mode, pool.yieldBps)}</p>
         <div>
           <ConnectButton />
         </div>
@@ -84,6 +87,15 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
         </p>
       ) : null}
 
+      {mode === "subscribe" && investor.data && !kycDone ? (
+        <div className="flex flex-col items-start gap-2 border-t border-border pt-4">
+          <p className="text-sm text-muted-foreground">KYC comes first: one approval covers every pool.</p>
+          <Button type="button" size="lg" className="text-base" onClick={() => setKycOpen(true)}>
+            Complete KYC
+          </Button>
+        </div>
+      ) : null}
+
       {mode === "subscribe" ? (
         <form
           noValidate
@@ -93,6 +105,7 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
             const v = validateAmount(amount, remaining(pool));
             if (!v.ok) {
               setAmountError(v.message);
+              amountRef.current?.focus();
               return;
             }
             setAmountError(null);
@@ -103,6 +116,7 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
             Amount (USD)
           </label>
           <input
+            ref={amountRef}
             id="amount"
             inputMode="decimal"
             autoComplete="off"
@@ -125,7 +139,7 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
           <Button type="submit" size="lg" disabled={subscribe.busy} className="mt-2 text-base">
             Subscribe
           </Button>
-          <TxStatus state={subscribe.state} onAction={onAction} successLabel={`Subscribed. ${symbol} is in your wallet.`} />
+          <TxStatus state={subscribe.state} onAction={handlerFor(subscribe)} successLabel={`Subscribed. ${symbol} is in your wallet.`} />
         </form>
       ) : null}
 
@@ -142,7 +156,7 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
           note="The pool closed under target. Refunds return your USDC and burn the Instrument."
           onClick={() => void refund.run({ poolId: pool.poolId, amount: balance.toString() })}
         >
-          <TxStatus state={refund.state} onAction={onAction} successLabel="Refunded" />
+          <TxStatus state={refund.state} onAction={handlerFor(refund)} successLabel="Refunded" />
         </HolderAction>
       ) : null}
 
@@ -153,17 +167,12 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
           note="Burns your Instrument and pays principal plus the fixed yield."
           onClick={() => void redeem.run({ poolId: pool.poolId, amount: balance.toString() })}
         >
-          <TxStatus state={redeem.state} onAction={onAction} successLabel="Redeemed" />
+          <TxStatus state={redeem.state} onAction={handlerFor(redeem)} successLabel="Redeemed" />
         </HolderAction>
       ) : null}
 
-      {(investor.data && !kycDone) || showFaucet || (investor.data && usdc === 0n) ? (
+      {showFaucet || (investor.data && usdc === 0n) ? (
         <div className="flex flex-col items-start gap-3 border-t border-border pt-4">
-          {investor.data && !kycDone ? (
-            <Button type="button" variant="link" className="h-auto px-0" onClick={() => setKycOpen(true)}>
-              Complete KYC
-            </Button>
-          ) : null}
           {showFaucet || (investor.data && usdc === 0n) ? <FaucetButton wallet={wallet} usdc onDone={investor.reload} /> : null}
         </div>
       ) : null}

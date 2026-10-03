@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Single light mode (style-lock): dark: utilities only apply under a .dark ancestor, which the app never sets. */
+@custom-variant dark (&:is(.dark *));
+
 @theme inline {
   --font-sans: var(--font-brand), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, SFMono-Regular, monospace;

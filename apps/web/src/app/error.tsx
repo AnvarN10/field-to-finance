@@ -8,5 +8,5 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
-  return <ErrorState title="Something went wrong" body="The error was reported. Try again; if it keeps failing, Solana devnet may be slow, so wait a minute." onRetry={reset} />;
+  return <ErrorState level={1} title="Something went wrong" body="The error was reported. Try again; if it keeps failing, Solana devnet may be slow, so wait a minute." onRetry={reset} />;
 }

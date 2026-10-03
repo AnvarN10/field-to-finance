@@ -57,3 +57,12 @@ describe("SkipLink", () => {
     expect(link.className).toContain("focus:not-sr-only");
   });
 });
+
+describe("page-level states", () => {
+  it("render the title as the page h1 when level is 1", () => {
+    render(<ErrorState level={1} title="Pool not found" body="b" />);
+    expect(screen.getByRole("heading", { level: 1, name: "Pool not found" })).toBeInTheDocument();
+    render(<EmptyState level={1} title="No pools yet" body="b" />);
+    expect(screen.getByRole("heading", { level: 1, name: "No pools yet" })).toBeInTheDocument();
+  });
+});

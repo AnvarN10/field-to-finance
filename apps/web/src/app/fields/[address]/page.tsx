@@ -19,7 +19,7 @@ export default async function FieldPage({ params }: { params: Promise<{ address:
   try {
     detail = await getReader().getField(address);
   } catch {
-    return <ErrorState title="Could not load this field" body="Solana devnet did not answer." retryHref={`/fields/${address}`} />;
+    return <ErrorState level={1} title="Could not load this field" body="Solana devnet did not answer." retryHref={`/fields/${address}`} />;
   }
   if (!detail) notFound();
   const polygon = await loadPolygon(getStore(), detail.field.polygonHash).catch(() => null);

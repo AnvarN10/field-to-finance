@@ -2,7 +2,7 @@
 
 import { CircleCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import type { ActionResult } from "../../app/admin/actions";
 import { ExplorerLink } from "../explorer-link";
 import { TxStatus } from "../tx/tx-status";
@@ -28,6 +28,11 @@ export function ActionButton({
   const [pending, start] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  // Move focus into the confirmation so keyboard and screen-reader users know it opened.
+  useEffect(() => {
+    if (confirming) confirmRef.current?.focus();
+  }, [confirming]);
 
   const go = () =>
     start(async () => {
@@ -61,7 +66,7 @@ export function ActionButton({
       {confirming ? (
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted p-3 text-sm">
           <span className="mr-auto">{confirmText}</span>
-          <Button type="button" variant="destructive" size="sm" onClick={go}>
+          <Button ref={confirmRef} type="button" variant="destructive" size="sm" onClick={go}>
             {`Yes, ${label.charAt(0).toLowerCase()}${label.slice(1)}`}
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)}>

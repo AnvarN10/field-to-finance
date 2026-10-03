@@ -21,3 +21,12 @@ describe("PoolSummaryCard", () => {
     expect(screen.getByRole("link", { name: /WHEAT-2027/ })).toHaveAttribute("href", "/pools/7");
   });
 });
+
+describe("PoolSummaryCard heading level", () => {
+  it("can be an h2 where it sits directly under the page h1 (landing hero)", async () => {
+    const { render, screen } = await import("@testing-library/react");
+    const pool = { address: "A", poolId: "1", crop: "wheat", season: 2027, targetAmount: "100", raisedAmount: "0", yieldBps: 800, premiumBps: 550, subscriptionCloseTs: 0, maturityTs: 0, status: "Open", instrument: { symbol: "WHEAT-2027", name: "Wheat", uri: "", supply: "0", decimals: 6 } } as never;
+    render(<PoolSummaryCard pool={pool} headingLevel="h2" />);
+    expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
+  });
+});

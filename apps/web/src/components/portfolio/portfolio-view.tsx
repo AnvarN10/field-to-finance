@@ -13,7 +13,7 @@ import { useJson } from "../use-json";
 import { ConnectButton } from "../wallet/connect-button";
 import { FaucetButton } from "../wallet/faucet-button";
 
-const link = "rounded-sm text-gold-text underline decoration-border underline-offset-4 [@media(hover:hover)]:hover:decoration-current";
+const link = "rounded-sm text-gold-text underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current";
 
 const positionAction = (status: string) => (status === "Redeeming" ? "Redeem" : status === "Refunding" ? "Refund" : "View pool");
 

@@ -52,7 +52,7 @@ export default async function Home() {
                 <span aria-hidden className="size-2 rounded-full bg-gold" />
                 Live on Solana devnet
               </p>
-              <PoolSummaryCard pool={featured} />
+              <PoolSummaryCard pool={featured} headingLevel="h2" />
               <p className="text-sm text-pretty">
                 {featured.projectCount} {featured.projectCount === 1 ? "farm project" : "farm projects"} in this pool, each field
                 attested on chain.

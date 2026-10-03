@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { InvestorState, PoolView } from "../src/lib/chain/views";
-import { panelMode, positionFor, validateAmount } from "../src/lib/invest";
+import { disconnectedCopy, panelMode, positionFor, validateAmount } from "../src/lib/invest";
 
 const pool = (o: Partial<PoolView>) => ({ status: "Open", subscriptionCloseTs: 1000, targetAmount: "10", raisedAmount: "0", ...o }) as PoolView;
 
@@ -33,5 +33,15 @@ describe("positionFor", () => {
     expect(positionFor(state, "7")?.balance).toBe("5");
     expect(positionFor(state, "8")).toBeNull();
     expect(positionFor(null, "7")).toBeNull();
+  });
+});
+
+describe("disconnectedCopy", () => {
+  it("matches what the pool allows instead of always inviting a subscription", () => {
+    expect(disconnectedCopy("subscribe", 800)).toBe("Connect a Solana wallet on devnet to subscribe. Fixed yield 8.0%, paid at maturity.");
+    expect(disconnectedCopy("redeem", 800)).toBe("This pool is paying out. Connect the wallet that holds its Instrument to redeem principal plus 8.0%.");
+    expect(disconnectedCopy("refund", 800)).toBe("This pool did not reach its target. Connect the wallet you subscribed with to get your USDC back.");
+    expect(disconnectedCopy("closed-funded", 800)).toBe("Subscription is closed. Connect a wallet to see your position.");
+    expect(disconnectedCopy("draft", 800)).toBe("This pool is not open yet. Connect a wallet to be ready when it opens.");
   });
 });

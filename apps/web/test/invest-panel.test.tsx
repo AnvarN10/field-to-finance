@@ -42,7 +42,10 @@ describe("InvestPanel", () => {
   it("names KYC the same way everywhere: Not completed, with a Complete KYC action", async () => {
     render(<InvestPanel pool={POOL} />);
     expect(await screen.findByText("Not completed")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Complete KYC" })).toBeInTheDocument();
+    const kyc = screen.getByRole("button", { name: "Complete KYC" });
+    const subscribe = screen.getByRole("button", { name: "Subscribe" });
+    // The required first step comes before the subscribe form.
+    expect(kyc.compareDocumentPosition(subscribe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("shows the KYC rejection with a way out when an unapproved wallet subscribes", async () => {
@@ -63,6 +66,7 @@ describe("InvestPanel", () => {
     await userEvent.type(screen.getByLabelText("Amount (USD)"), "5");
     await userEvent.click(screen.getByRole("button", { name: "Subscribe" }));
     expect(screen.getByText("The pool needs at most $1.00 more")).toBeInTheDocument();
+    expect(screen.getByLabelText("Amount (USD)")).toHaveFocus();
     expect(vi.mocked(fetch).mock.calls.some(([u]) => u === "/api/tx/subscribe")).toBe(false);
   });
 });

@@ -61,11 +61,11 @@ export function KycDialog({
           <div role="status" className="flex flex-col items-start gap-3 text-sm">
             <p className="flex items-center gap-2 font-medium text-success">
               <CircleCheck aria-hidden strokeWidth={1.5} className="size-4" />
-              Verified. You can subscribe to any pool.
+              KYC approved. You can subscribe to any pool.
             </p>
             <ExplorerLink kind="tx" value={signature} />
             <Button type="button" size="lg" onClick={() => onOpenChange(false)}>
-              Back to subscription
+              Done
             </Button>
           </div>
         ) : (

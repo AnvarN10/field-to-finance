@@ -11,7 +11,7 @@ export default async function PoolsPage() {
   try {
     pools = await getReader().listPools();
   } catch {
-    return <ErrorState title="Could not load pools" body="Solana devnet did not answer. This is usually brief." retryHref="/pools" />;
+    return <ErrorState level={1} title="Could not load pools" body="Solana devnet did not answer. This is usually brief." retryHref="/pools" />;
   }
   const open = pools.filter((p) => p.status === "Open");
   const rest = pools.filter((p) => p.status !== "Open");

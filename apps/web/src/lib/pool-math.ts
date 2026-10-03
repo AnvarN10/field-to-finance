@@ -28,3 +28,21 @@ export function seasonAttestationBlocker(status: PoolStatusName, projectCount: n
   if (projectCount === 0) return "No projects in this pool";
   return undefined;
 }
+
+/** Admin "Close subscription": past states say what already happened instead of the Open-pool rule. */
+export function closeSubscriptionBlocker(status: PoolStatusName, closeReady: boolean): string | undefined {
+  if (status === "Draft") return "Open the pool first";
+  if (status !== "Open") return "Subscription already closed";
+  return closeReady ? undefined : "Available when the pool is full or after the close time";
+}
+
+export function disburseBlocker(status: PoolStatusName, allDisbursed: boolean): string | undefined {
+  if (status === "Refunding") return "The pool did not fund; investors refund instead";
+  if (allDisbursed && (status === "Funded" || status === "Redeeming")) return "Every project is paid";
+  return status === "Funded" ? undefined : "Needs a Funded pool";
+}
+
+export function fundRedemptionBlocker(status: PoolStatusName): string | undefined {
+  if (status === "Redeeming") return "Redemption already funded";
+  return status === "Funded" ? undefined : "Needs a Funded pool";
+}

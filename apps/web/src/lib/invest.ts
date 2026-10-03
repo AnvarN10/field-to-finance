@@ -1,5 +1,5 @@
 import type { InvestorState, PoolView, PositionView } from "./chain/views";
-import { formatUsd, parseUsd } from "./format";
+import { formatUsd, formatYield, parseUsd } from "./format";
 
 export type PanelMode = "draft" | "subscribe" | "closed-funded" | "refund" | "redeem" | "closed";
 
@@ -32,3 +32,20 @@ export function validateAmount(input: string, max: bigint): { ok: true; amount: 
 
 export const positionFor = (state: InvestorState | null, poolId: string): PositionView | null =>
   state?.positions.find((p) => p.poolId === poolId) ?? null;
+
+/** Invest panel text before a wallet is connected, matched to what the pool allows right now. */
+export function disconnectedCopy(mode: PanelMode, yieldBps: number): string {
+  const y = formatYield(yieldBps);
+  switch (mode) {
+    case "subscribe":
+      return `Connect a Solana wallet on devnet to subscribe. Fixed yield ${y}, paid at maturity.`;
+    case "redeem":
+      return `This pool is paying out. Connect the wallet that holds its Instrument to redeem principal plus ${y}.`;
+    case "refund":
+      return "This pool did not reach its target. Connect the wallet you subscribed with to get your USDC back.";
+    case "draft":
+      return "This pool is not open yet. Connect a wallet to be ready when it opens.";
+    default:
+      return "Subscription is closed. Connect a wallet to see your position.";
+  }
+}

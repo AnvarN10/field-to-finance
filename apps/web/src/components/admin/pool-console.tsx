@@ -10,7 +10,7 @@ import {
 import { SETTLEMENT_LABELS } from "../../lib/chain/enums";
 import type { PoolDetail, ProjectWithFields } from "../../lib/chain/views";
 import { formatDateUtc, formatUsd, relativeTime, shortKey } from "../../lib/format";
-import { seasonAttestationBlocker } from "../../lib/pool-math";
+import { closeSubscriptionBlocker, disburseBlocker, fundRedemptionBlocker, seasonAttestationBlocker } from "../../lib/pool-math";
 import { ExplorerLink } from "../explorer-link";
 import { PoolStatusBadge } from "../status-badge";
 import { ActionButton } from "./action-button";
@@ -27,6 +27,9 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
   const allDisbursed = projects.length > 0 && projects.every((p) => p.disbursed);
   const supply = BigInt(pool.instrument?.supply ?? "1");
   const seasonBlocker = seasonAttestationBlocker(s, projects.length);
+  const closeBlocker = closeSubscriptionBlocker(s, closeReady);
+  const disburseReason = disburseBlocker(s, allDisbursed);
+  const fundReason = fundRedemptionBlocker(s);
 
   return (
     <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6">
@@ -41,7 +44,8 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
         {`${formatUsd(pool.raisedAmount)} of ${formatUsd(pool.targetAmount)}. Closes ${formatDateUtc(pool.subscriptionCloseTs)} (${relativeTime(pool.subscriptionCloseTs, now * 1000)}). Matures ${formatDateUtc(pool.maturityTs)} (${relativeTime(pool.maturityTs, now * 1000)}).`}
       </p>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* min-w-0 lets long select options and inputs shrink instead of widening the page at 390px. */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 [&>*]:min-w-0">
         <div className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold">1. Build the pool</h3>
           {eligible.length === 0 ? <p className="text-xs text-muted-foreground">No verified project with this crop and season is waiting.</p> : null}
@@ -65,12 +69,12 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
         <div className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold">2. Investors</h3>
           <WalletActionForm poolId={id} mode="approve" />
-          <ActionButton label="Close subscription" role="Anyone" action={closeSubscriptionAction.bind(null, id)} disabled={!closeReady} disabledReason={closeReady ? undefined : "Available when the pool is full or after the close time"} />
+          <ActionButton label="Close subscription" role="Anyone" action={closeSubscriptionAction.bind(null, id)} disabled={closeBlocker !== undefined} disabledReason={closeBlocker} />
         </div>
 
         <div className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold">3. Pay farmers and attest the season</h3>
-          <ActionButton label="Disburse to every project" role="Issuer" action={disburseAllAction.bind(null, id)} disabled={s !== "Funded" || allDisbursed} disabledReason={s !== "Funded" ? "Needs a Funded pool" : allDisbursed ? "Every project is paid" : undefined} />
+          <ActionButton label="Disburse to every project" role="Issuer" action={disburseAllAction.bind(null, id)} disabled={disburseReason !== undefined} disabledReason={disburseReason} />
           {(["Sowing", "Vegetation", "Harvest"] as const).map((k) => (
             <ActionButton key={k} label={`Attest ${k.toLowerCase()} for all fields`} role="SCAS stub" action={attestStageAction.bind(null, id, k)} disabled={seasonBlocker !== undefined} disabledReason={seasonBlocker} />
           ))}
@@ -91,7 +95,7 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
               />
             </div>
           ))}
-          <ActionButton label="Fund redemption" role="Issuer" action={fundRedemptionAction.bind(null, id)} disabled={s !== "Funded"} disabledReason={s !== "Funded" ? "Needs a Funded pool" : undefined} />
+          <ActionButton label="Fund redemption" role="Issuer" action={fundRedemptionAction.bind(null, id)} disabled={fundReason !== undefined} disabledReason={fundReason} />
           <ActionButton label="Sweep vault remainder" role="Issuer" action={sweepAction.bind(null, id)} confirmText="Return the vault remainder to the Issuer?" disabled={s !== "Redeeming" || supply !== 0n} disabledReason={s !== "Redeeming" ? "Needs a Redeeming pool" : supply !== 0n ? "Investors still hold the Instrument" : undefined} />
           <WalletActionForm poolId={id} mode="revoke" />
         </div>

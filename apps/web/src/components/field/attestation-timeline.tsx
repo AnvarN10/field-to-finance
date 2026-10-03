@@ -40,7 +40,7 @@ export function AttestationTimeline({ attestations, cluster = "devnet" }: { atte
                     <span>{formatDateUtc(latest.recordedAt)}</span>
                     {all.length > 1 ? <span>{all.length} attestations</span> : null}
                     <ExplorerLink kind="address" value={latest.address} cluster={cluster} />
-                    <a href={latest.evidenceUri} target="_blank" rel="noreferrer" className="rounded-sm underline decoration-border underline-offset-4 [@media(hover:hover)]:hover:decoration-foreground">
+                    <a href={latest.evidenceUri} target="_blank" rel="noreferrer" className="rounded-sm underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-foreground">
                       Evidence JSON
                     </a>
                   </div>

@@ -19,7 +19,7 @@ export default async function PoolPage({ params }: { params: Promise<{ poolId: s
   try {
     detail = await getReader().getPool(poolId);
   } catch {
-    return <ErrorState title="Could not load this pool" body="Solana devnet did not answer." retryHref={`/pools/${poolId}`} />;
+    return <ErrorState level={1} title="Could not load this pool" body="Solana devnet did not answer." retryHref={`/pools/${poolId}`} />;
   }
   if (!detail) notFound();
   const symbol = detail.pool.instrument?.symbol ?? `POOL-${poolId}`;

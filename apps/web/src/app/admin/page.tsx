@@ -27,7 +27,7 @@ function safeKey(role: "issuer" | "compliance" | "scas"): string | undefined {
 }
 
 export default async function AdminPage() {
-  if (!serverEnv().ADMIN_PASSWORD) return <ErrorState title="Demo console is disabled" body="Set ADMIN_PASSWORD on the server to enable it." />;
+  if (!serverEnv().ADMIN_PASSWORD) return <ErrorState level={1} title="Demo console is disabled" body="Set ADMIN_PASSWORD on the server to enable it." />;
   if (!isAdminToken(serverEnv().ADMIN_PASSWORD, (await cookies()).get(ADMIN_COOKIE)?.value)) redirect("/admin/login");
 
   const reader = getReader();
@@ -37,7 +37,7 @@ export default async function AdminPage() {
     const details = (await Promise.all(pools.map((p) => reader.getPool(p.poolId)))).filter((d) => d !== null);
     data = { config, pools, unpooled, details };
   } catch {
-    return <ErrorState title="Could not load devnet state" body="Solana devnet did not answer." retryHref="/admin" />;
+    return <ErrorState level={1} title="Could not load devnet state" body="Solana devnet did not answer." retryHref="/admin" />;
   }
   const keys = { issuer: safeKey("issuer"), compliance: safeKey("compliance"), scas: safeKey("scas") };
   const mismatches = roleMismatches(data.config, keys);

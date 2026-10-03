@@ -44,7 +44,7 @@ export function ProjectList({ wallet, refreshKey }: { wallet: string; refreshKey
                 <li key={f.address}>
                   <Link
                     href={`/fields/${f.address}`}
-                    className="rounded-sm underline decoration-border underline-offset-4 [@media(hover:hover)]:hover:decoration-foreground"
+                    className="rounded-sm underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-foreground"
                   >
                     {`Field ${f.index + 1}, ${formatHa(f.areaHaX100)}${f.verified ? ", verified" : ""}`}
                   </Link>

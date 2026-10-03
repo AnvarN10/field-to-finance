@@ -38,6 +38,7 @@ describe("ActionButton", () => {
     await userEvent.click(screen.getByRole("button", { name: "Sweep vault remainder" }));
     expect(action).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "Confirm" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Yes, sweep vault remainder" })).toHaveFocus();
     await userEvent.click(screen.getByRole("button", { name: "Yes, sweep vault remainder" }));
     expect(action).toHaveBeenCalledOnce();
   });
