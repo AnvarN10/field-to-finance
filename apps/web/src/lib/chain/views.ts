@@ -173,3 +173,5 @@ export function toAttestationView(address: PublicKey, a: AttestationAccount): At
     recordedAt: a.recordedAt.toNumber(),
   };
 }
+
+export type ProducerProject = ProjectWithFields & { poolId: string | null; poolStatus: PoolStatusName | null; symbol: string | null };
