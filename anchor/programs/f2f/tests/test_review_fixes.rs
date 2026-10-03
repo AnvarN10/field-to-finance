@@ -62,9 +62,10 @@ fn revoke_freezes_account_and_blocks_subscription() {
     seed_open_pool(&mut env);
     let investor = env.investor.insecure_clone();
     let compliance = env.compliance.insecure_clone();
-    fund_usdc(&mut env, &investor.pubkey(), 1_000 * USDC);
-    env.send(&[approve_ix(&env, 1, investor.pubkey())], &compliance, &[]).unwrap();
-    env.send(&[approve_ix(&env, 1, investor.pubkey())], &compliance, &[]).unwrap();
+    fund_usdc(&mut env, &investor.pubkey(), 2_000 * USDC);
+    env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[subscribe_ix(&env, 1, investor.pubkey(), 1_000 * USDC)], &investor, &[]).unwrap();
     env.send(&[revoke_ix(&env, 1, investor.pubkey())], &compliance, &[]).unwrap();
     let rec: f2f::InvestorRecord = fetch(&env.svm, &pda_investor(&investor.pubkey()));
     assert!(!rec.approved);
@@ -72,6 +73,22 @@ fn revoke_freezes_account_and_blocks_subscription() {
     assert_eq!(acc.data[108], 2);
     let err = env.send_err(&[subscribe_ix(&env, 1, investor.pubkey(), 1_000 * USDC)], &investor, &[]);
     assert!(err.contains("InvestorNotApproved"), "{err}");
+}
+
+#[test]
+fn revoke_without_a_position_only_clears_approval() {
+    let mut env = setup_configured();
+    seed_open_pool(&mut env);
+    let wallet = env.investor.pubkey();
+    let compliance = env.compliance.insecure_clone();
+    env.send(&[approve_ix(&env, wallet)], &compliance, &[]).unwrap();
+    let mut r = revoke_ix(&env, 1, wallet);
+    // Anchor encodes a missing optional account as the program id.
+    r.accounts[6].pubkey = f2f::id();
+    r.accounts[6].is_writable = false;
+    env.send(&[r], &compliance, &[]).unwrap();
+    let rec: f2f::InvestorRecord = fetch(&env.svm, &pda_investor(&wallet));
+    assert!(!rec.approved);
 }
 
 #[test]
@@ -106,7 +123,7 @@ fn another_pools_vault_cannot_be_substituted() {
     let investor = env.investor.insecure_clone();
     let compliance = env.compliance.insecure_clone();
     fund_usdc(&mut env, &investor.pubkey(), 1_000 * USDC);
-    env.send(&[approve_ix(&env, 1, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
     let mut i = subscribe_ix(&env, 1, investor.pubkey(), 1_000 * USDC);
     i.accounts[7].pubkey = ata(&pda_pool(2), &env.usdc_mint.pubkey(), &SPL_TOKEN);
     let err = env.send_err(&[i], &investor, &[]);

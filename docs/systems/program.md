@@ -29,7 +29,7 @@ Pool, Instrument, Farm Project, Field, Attestation, KYC Thaw, Shortfall, Tokeniz
 
 Roles are keys stored in Config: admin, Issuer, SCAS and compliance. Every privileged instruction checks its signer against Config with an `address` constraint, so one wallet may hold several roles.
 
-The Instrument mint is a Token-2022 mint created in `create_pool`. Anchor has no constraint for the Default Account State extension, so the mint is built by hand: allocate the account with room for Default Account State and Metadata Pointer, fund rent for the metadata that is appended later, initialize both extensions, initialize the mint with the Pool PDA as mint and freeze authority, then write name, symbol and URI with `token_metadata_initialize`. Every new token account of the Instrument starts frozen; `approve_investor` creates the investor's account if needed and thaws it.
+The Instrument mint is a Token-2022 mint created in `create_pool`. Anchor has no constraint for the Default Account State extension, so the mint is built by hand: allocate the account with room for Default Account State and Metadata Pointer, fund rent for the metadata that is appended later, initialize both extensions, initialize the mint with the Pool PDA as mint and freeze authority, then write name, symbol and URI with `token_metadata_initialize`. Every new token account of the Instrument starts frozen. KYC is platform-level: `approve_investor` marks the wallet approved once for every Pool, and `subscribe` creates and thaws the investor's account for that Pool in the same transaction ([ADR 0011](../architecture/decisions/0011-platform-level-kyc.md)).
 
 `subscribe` moves USDC from the investor to the Pool vault and mints the same amount of Instrument in one transaction. One Instrument base unit equals one USDC base unit.
 
@@ -101,7 +101,7 @@ The SCAS worker and the web app build transactions from the IDL. Renaming an ins
 - Settlement is recorded at most once per project, only after disbursement and a Harvest Attestation. The one exception is `CashRepaidWithPremium` after maturity, so a missing Harvest Attestation cannot lock investor money in Funded.
 - Redemption deposits are accepted only after every project is disbursed, so `disburse` never spends them.
 - `sweep` returns the vault remainder to the Issuer only when the Pool is Redeeming and Instrument supply is zero.
-- `revoke_investor` sets the record to not approved and freezes the investor's Instrument account.
+- `revoke_investor` sets the record to not approved and freezes the investor's Instrument account in the given Pool if it exists.
 - Redemption opens only when every project is disbursed and settled, maturity has passed, and the vault holds `with_yield(raised_amount, yield_bps)`.
 
 ## Error handling
@@ -110,7 +110,7 @@ All failures are `F2fError` variants in `src/error.rs` or standard Anchor constr
 
 ## Security and privacy notes
 
-- The Pool PDA is the freeze authority, so the program can thaw any Instrument account; only `approve_investor` does it, and only for the compliance key.
+- The Pool PDA is the freeze authority, so the program can thaw any Instrument account; only `subscribe` does it, and only for a wallet whose InvestorRecord is approved by the compliance key.
 - Evidence stays off-chain. Only its hash and URI are stored.
 - No personal data on-chain.
 

@@ -1,19 +1,15 @@
-// Gives a wallet everything it needs to subscribe on devnet: KYC approval (thaws its
-// WHEAT account), test USDC and a little SOL for fees.
+// Gives a wallet everything it needs to subscribe on devnet: platform-level KYC approval
+// (valid for every pool), test USDC and a little SOL for fees.
 //
 //   scripts/inf.sh ./node_modules/.bin/tsx scripts/devnet-onboard-investor.ts <wallet> [usdc=10000]
-import { F2F_PROGRAM_ID, investorPda, mintPda, poolPda } from "@f2f/sdk";
-import { getOrCreateAssociatedTokenAccount, mintTo, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { F2F_PROGRAM_ID, investorPda } from "@f2f/sdk";
+import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 import { connection, explorerTx, keypairFromEnv, programAs, usdcMint } from "./lib/env";
-
-const POOL_ID = Number(process.env.POOL_ID ?? 1);
 
 export async function onboardInvestor(wallet: PublicKey, usdcAmount: number) {
   const deployer = keypairFromEnv("F2F_DEPLOYER_KEYPAIR");
   const compliance = keypairFromEnv("F2F_COMPLIANCE_KEYPAIR");
-  const pool = poolPda(F2F_PROGRAM_ID, POOL_ID);
-  const mint = mintPda(F2F_PROGRAM_ID, pool);
   const out: string[] = [];
 
   if ((await connection.getBalance(compliance.publicKey)) < 0.1 * LAMPORTS_PER_SOL) {
@@ -21,7 +17,7 @@ export async function onboardInvestor(wallet: PublicKey, usdcAmount: number) {
   }
   const sig = await programAs(compliance).methods
     .approveInvestor()
-    .accountsPartial({ compliance: compliance.publicKey, pool, mint, investor: wallet, investorRecord: investorPda(F2F_PROGRAM_ID, wallet), tokenProgram: TOKEN_2022_PROGRAM_ID })
+    .accountsPartial({ compliance: compliance.publicKey, investor: wallet, investorRecord: investorPda(F2F_PROGRAM_ID, wallet) })
     .rpc();
   out.push(`approve_investor ${explorerTx(sig)}`);
 

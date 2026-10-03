@@ -8,8 +8,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import BN from "bn.js";
 import { F2F_PROGRAM_ID, investorPda, mintPda, poolPda } from "@f2f/sdk";
-import { getAccount, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { PublicKey, Transaction } from "@solana/web3.js";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { onboardInvestor } from "../devnet-onboard-investor";
 import { connection, explorerTx, keypairFromEnv, programAs, usdcMint } from "../lib/env";
 
@@ -60,6 +60,7 @@ const routes: Record<string, (req: http.IncomingMessage, url: URL) => Promise<un
         usdcMint: usdc, investorUsdc: getAssociatedTokenAddressSync(usdc, w, false, TOKEN_PROGRAM_ID),
         vault: getAssociatedTokenAddressSync(usdc, pool, true, TOKEN_PROGRAM_ID),
         tokenProgram: TOKEN_2022_PROGRAM_ID, usdcTokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
       })
       .transaction();
     tx.feePayer = w;

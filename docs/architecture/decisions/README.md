@@ -6,7 +6,7 @@ Only `Accepted` ADRs are current guidance. Decisions are human-owned; agents dra
 | --- | --- | --- |
 | [0001](0001-nx-monorepo.md) | Accepted | Nx monorepo |
 | [0002](0002-anchor-and-nextjs.md) | Accepted | Anchor for the program, Next.js for the web app |
-| [0003](0003-token-2022-frozen-accounts-kyc-thaw.md) | Accepted | Token-2022 Instrument with frozen-by-default accounts and KYC Thaw |
+| [0003](0003-token-2022-frozen-accounts-kyc-thaw.md) | Superseded by 0011 | Token-2022 Instrument with frozen-by-default accounts and KYC Thaw |
 | [0004](0004-usdc-settlement-usd-display.md) | Accepted | USDC settlement, USD-only display |
 | [0005](0005-wallet-model.md) | Accepted | Investors bring wallets, farmers get embedded wallets |
 | [0006](0006-pooled-instrument-and-shortfall-rules.md) | Accepted | Pooled fixed-yield Instrument, 30% Tokenized Share, Shortfall rules |
@@ -14,3 +14,4 @@ Only `Accepted` ADRs are current guidance. Decisions are human-owned; agents dra
 | [0008](0008-scas-sentinel2-signed-attestations.md) | Accepted | SCAS uses real Sentinel-2 NDVI and signs Attestations |
 | [0009](0009-worker-language.md) | Accepted | TypeScript for the SCAS worker and backend |
 | [0010](0010-deploy-on-railway.md) | Accepted | Deploy web app and SCAS worker on Railway |
+| [0011](0011-platform-level-kyc.md) | Accepted | Platform-level KYC; Instrument account thawed on first subscription |

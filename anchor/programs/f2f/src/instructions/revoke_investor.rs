@@ -17,26 +17,30 @@ pub struct RevokeInvestor<'info> {
     pub investor: UncheckedAccount<'info>,
     #[account(mut, seeds = [INVESTOR_SEED, investor.key().as_ref()], bump = investor_record.bump)]
     pub investor_record: Account<'info, InvestorRecord>,
+    /// The investor's Instrument account in this pool, if they ever subscribed to it.
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = investor,
         associated_token::token_program = token_program
     )]
-    pub investor_instrument: InterfaceAccount<'info, TokenAccount>,
+    pub investor_instrument: Option<InterfaceAccount<'info, TokenAccount>>,
     pub token_program: Program<'info, Token2022>,
 }
 
 pub fn handle_revoke_investor(ctx: Context<RevokeInvestor>) -> Result<()> {
     ctx.accounts.investor_record.approved = false;
-    if !ctx.accounts.investor_instrument.is_frozen() {
+    let Some(account) = ctx.accounts.investor_instrument.as_ref() else {
+        return Ok(());
+    };
+    if !account.is_frozen() {
         let pool = &ctx.accounts.pool;
         let pool_id_bytes = pool.pool_id.to_le_bytes();
         let seeds: &[&[u8]] = &[POOL_SEED, &pool_id_bytes, &[pool.bump]];
         freeze_account(CpiContext::new_with_signer(
             ctx.accounts.token_program.key(),
             FreezeAccount {
-                account: ctx.accounts.investor_instrument.to_account_info(),
+                account: account.to_account_info(),
                 mint: ctx.accounts.mint.to_account_info(),
                 authority: ctx.accounts.pool.to_account_info(),
             },

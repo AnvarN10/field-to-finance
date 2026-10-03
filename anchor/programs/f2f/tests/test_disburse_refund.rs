@@ -31,7 +31,7 @@ fn refund_returns_usdc_and_burns_instrument() {
     let investor = env.investor.insecure_clone();
     let compliance = env.compliance.insecure_clone();
     let usdc = fund_usdc(&mut env, &investor.pubkey(), 40_000 * USDC);
-    env.send(&[approve_ix(&env, 1, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
     env.send(&[subscribe_ix(&env, 1, investor.pubkey(), 40_000 * USDC)], &investor, &[]).unwrap();
     let close_ts = fetch::<f2f::Pool>(&env.svm, &pool).subscription_close_ts;
     warp_to(&mut env.svm, close_ts);

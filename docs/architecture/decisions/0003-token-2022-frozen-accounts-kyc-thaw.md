@@ -1,6 +1,7 @@
 ---
-status: Accepted
+status: Superseded
 date: "2026-10-03"
+superseded_by: docs/architecture/decisions/0011-platform-level-kyc.md
 ---
 
 # Token-2022 Instrument with frozen-by-default accounts and KYC Thaw

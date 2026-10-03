@@ -3,17 +3,49 @@ use common::*;
 use solana_signer::Signer;
 
 #[test]
-fn approval_thaws_investor_account() {
+fn approval_is_platform_level_and_touches_no_pool() {
     let mut env = setup_configured();
     seed_open_pool(&mut env);
     let compliance = env.compliance.insecure_clone();
     let wallet = env.investor.pubkey();
-    env.send(&[approve_ix(&env, 1, wallet)], &compliance, &[]).unwrap();
+    env.send(&[approve_ix(&env, wallet)], &compliance, &[]).unwrap();
     let rec: f2f::InvestorRecord = fetch(&env.svm, &pda_investor(&wallet));
     assert!(rec.approved);
-    let acc = env.svm.get_account(&ata(&wallet, &pda_mint(&pda_pool(1)), &TOKEN_2022)).unwrap();
+    assert!(env.svm.get_account(&ata(&wallet, &pda_mint(&pda_pool(1)), &TOKEN_2022)).is_none());
+}
+
+#[test]
+fn first_subscription_creates_and_thaws_the_instrument_account() {
+    let mut env = setup_configured();
+    seed_open_pool(&mut env);
+    let investor = env.investor.insecure_clone();
+    let compliance = env.compliance.insecure_clone();
+    fund_usdc(&mut env, &investor.pubkey(), 500 * USDC);
+    env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[subscribe_ix(&env, 1, investor.pubkey(), 500 * USDC)], &investor, &[]).unwrap();
+    let acc = env.svm.get_account(&ata(&investor.pubkey(), &pda_mint(&pda_pool(1)), &TOKEN_2022)).unwrap();
     // Token account state byte sits at offset 108: 1 = Initialized, 2 = Frozen.
     assert_eq!(acc.data[108], 1);
+    assert_eq!(token_balance(&env.svm, &ata(&investor.pubkey(), &pda_mint(&pda_pool(1)), &TOKEN_2022)), 500 * USDC);
+}
+
+#[test]
+fn one_approval_covers_every_pool() {
+    let mut env = setup_configured();
+    seed_open_pool(&mut env);
+    let p2 = seed_project(&mut env, 2, 1);
+    verify_all_fields(&mut env, p2, 1);
+    let issuer = env.issuer.insecure_clone();
+    let args = default_pool_args(&env);
+    env.send(&[create_pool_ix(&env, 2, args)], &issuer, &[]).unwrap();
+    env.send(&[add_project_ix(&env, 2, p2), open_pool_ix(&env, 2)], &issuer, &[]).unwrap();
+    let investor = env.investor.insecure_clone();
+    let compliance = env.compliance.insecure_clone();
+    fund_usdc(&mut env, &investor.pubkey(), 2_000 * USDC);
+    env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[subscribe_ix(&env, 1, investor.pubkey(), 1_000 * USDC)], &investor, &[]).unwrap();
+    env.send(&[subscribe_ix(&env, 2, investor.pubkey(), 1_000 * USDC)], &investor, &[]).unwrap();
+    assert_eq!(token_balance(&env.svm, &ata(&investor.pubkey(), &pda_mint(&pda_pool(2)), &TOKEN_2022)), 1_000 * USDC);
 }
 
 #[test]
@@ -33,7 +65,7 @@ fn subscribe_moves_usdc_and_mints_instrument_one_to_one() {
     let investor = env.investor.insecure_clone();
     let compliance = env.compliance.insecure_clone();
     let usdc = fund_usdc(&mut env, &investor.pubkey(), 30_000 * USDC);
-    env.send(&[approve_ix(&env, 1, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
     env.send(&[subscribe_ix(&env, 1, investor.pubkey(), 30_000 * USDC)], &investor, &[]).unwrap();
     assert_eq!(token_balance(&env.svm, &usdc), 0);
     assert_eq!(token_balance(&env.svm, &ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN)), 30_000 * USDC);
@@ -49,7 +81,7 @@ fn subscription_above_target_is_rejected() {
     let investor = env.investor.insecure_clone();
     let compliance = env.compliance.insecure_clone();
     fund_usdc(&mut env, &investor.pubkey(), 200_000 * USDC);
-    env.send(&[approve_ix(&env, 1, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
     let err = env.send_err(&[subscribe_ix(&env, 1, investor.pubkey(), 100_001 * USDC)], &investor, &[]);
     assert!(err.contains("ExceedsTarget"), "{err}");
 }
@@ -69,7 +101,7 @@ fn subscription_after_close_time_is_rejected() {
     let investor = env.investor.insecure_clone();
     let compliance = env.compliance.insecure_clone();
     fund_usdc(&mut env, &investor.pubkey(), 1_000 * USDC);
-    env.send(&[approve_ix(&env, 1, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
     let close_ts = fetch::<f2f::Pool>(&env.svm, &pool).subscription_close_ts;
     warp_to(&mut env.svm, close_ts);
     let err = env.send_err(&[subscribe_ix(&env, 1, investor.pubkey(), 1_000 * USDC)], &investor, &[]);
@@ -99,5 +131,5 @@ fn same_key_as_issuer_and_compliance_still_works() {
     env.compliance = env.issuer.insecure_clone();
     seed_open_pool(&mut env);
     let issuer = env.issuer.insecure_clone();
-    env.send(&[approve_ix(&env, 1, env.investor.pubkey())], &issuer, &[]).unwrap();
+    env.send(&[approve_ix(&env, env.investor.pubkey())], &issuer, &[]).unwrap();
 }
