@@ -9,6 +9,8 @@ export const SEED = {
   field: "field",
   attestation: "attestation",
   investor: "investor",
+  fees: "fees",
+  terms: "terms",
 } as const;
 
 const utf8 = (s: string) => Buffer.from(s, "utf8");
@@ -53,3 +55,9 @@ export const mintPda = (programId: PublicKey, pool: PublicKey) => find([utf8(SEE
 
 export const investorPda = (programId: PublicKey, wallet: PublicKey) =>
   find([utf8(SEED.investor), wallet.toBuffer()], programId);
+
+/** FeeConfig singleton. Fees are charged only while it exists. */
+export const feesPda = (programId: PublicKey) => find([utf8(SEED.fees)], programId);
+
+/** PoolTerms of a pool; absent for pools created before fees (arrangement fee 0). */
+export const termsPda = (programId: PublicKey, pool: PublicKey) => find([utf8(SEED.terms), pool.toBuffer()], programId);

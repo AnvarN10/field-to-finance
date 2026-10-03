@@ -489,6 +489,48 @@ export type F2f = {
           }
         },
         {
+          "name": "poolTerms",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  114,
+                  109,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "feeConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasuryUsdc",
+          "writable": true,
+          "optional": true
+        },
+        {
           "name": "usdcTokenProgram"
         },
         {
@@ -638,6 +680,149 @@ export type F2f = {
         {
           "name": "compliance",
           "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initFeeConfig",
+      "discriminator": [
+        212,
+        138,
+        200,
+        114,
+        73,
+        176,
+        7,
+        197
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "feeConfig",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "usdcMint"
+        },
+        {
+          "name": "treasuryUsdc",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "usdcTokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "usdcMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "usdcTokenProgram"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "networkFee",
+          "type": "u64"
+        },
+        {
+          "name": "mintFee",
+          "type": "u64"
+        },
+        {
+          "name": "maxArrangementBps",
+          "type": "u16"
         }
       ]
     },
@@ -1056,11 +1241,18 @@ export type F2f = {
       "accounts": [
         {
           "name": "producer",
-          "writable": true,
           "signer": true,
           "relations": [
             "project"
           ]
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays rent for the field account: the platform gas sponsor, or the producer themself."
+          ],
+          "writable": true,
+          "signer": true
         },
         {
           "name": "project",
@@ -1106,8 +1298,33 @@ export type F2f = {
       "accounts": [
         {
           "name": "producer",
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays rent for the project account: the platform gas sponsor, or the producer themself."
+          ],
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "project",
@@ -1136,6 +1353,43 @@ export type F2f = {
               }
             ]
           }
+        },
+        {
+          "name": "feeConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcMint",
+          "optional": true
+        },
+        {
+          "name": "producerUsdc",
+          "docs": [
+            "Producer's USDC account that pays the mint fee; the producer signs the transfer."
+          ],
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "treasuryUsdc",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "usdcTokenProgram",
+          "optional": true
         },
         {
           "name": "systemProgram",
@@ -1321,6 +1575,113 @@ export type F2f = {
       "args": []
     },
     {
+      "name": "setArrangementFee",
+      "discriminator": [
+        154,
+        108,
+        238,
+        20,
+        149,
+        200,
+        85,
+        46
+      ],
+      "accounts": [
+        {
+          "name": "issuer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.poolId",
+                "account": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "feeConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "poolTerms",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  101,
+                  114,
+                  109,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "subscribe",
       "discriminator": [
         254,
@@ -1335,6 +1696,13 @@ export type F2f = {
       "accounts": [
         {
           "name": "investor",
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Pays rent for the Instrument account: the platform gas sponsor, or the investor themself."
+          ],
           "writable": true,
           "signer": true
         },
@@ -1457,6 +1825,27 @@ export type F2f = {
           "writable": true
         },
         {
+          "name": "feeConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasuryUsdc",
+          "writable": true,
+          "optional": true
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
@@ -1554,6 +1943,149 @@ export type F2f = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "updateFeeConfig",
+      "discriminator": [
+        104,
+        184,
+        103,
+        242,
+        88,
+        151,
+        107,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "feeConfig",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  115
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "usdcMint"
+        },
+        {
+          "name": "treasuryUsdc",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "usdcTokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "usdcMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "usdcTokenProgram"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "networkFee",
+          "type": "u64"
+        },
+        {
+          "name": "mintFee",
+          "type": "u64"
+        },
+        {
+          "name": "maxArrangementBps",
+          "type": "u16"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1597,6 +2129,19 @@ export type F2f = {
       ]
     },
     {
+      "name": "feeConfig",
+      "discriminator": [
+        143,
+        52,
+        146,
+        187,
+        219,
+        123,
+        76,
+        155
+      ]
+    },
+    {
       "name": "field",
       "discriminator": [
         76,
@@ -1633,6 +2178,60 @@ export type F2f = {
         177,
         109,
         188
+      ]
+    },
+    {
+      "name": "poolTerms",
+      "discriminator": [
+        110,
+        146,
+        28,
+        28,
+        109,
+        155,
+        128,
+        76
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "arrangementFeeWithheld",
+      "discriminator": [
+        124,
+        217,
+        128,
+        0,
+        84,
+        189,
+        26,
+        130
+      ]
+    },
+    {
+      "name": "mintFeeCharged",
+      "discriminator": [
+        87,
+        110,
+        14,
+        192,
+        49,
+        0,
+        49,
+        99
+      ]
+    },
+    {
+      "name": "networkFeeCharged",
+      "discriminator": [
+        199,
+        33,
+        60,
+        75,
+        174,
+        202,
+        113,
+        219
       ]
     }
   ],
@@ -1796,9 +2395,52 @@ export type F2f = {
       "code": 6031,
       "name": "mathOverflow",
       "msg": "Math overflow"
+    },
+    {
+      "code": 6032,
+      "name": "feeTooHigh",
+      "msg": "Fee is above the allowed cap"
+    },
+    {
+      "code": 6033,
+      "name": "invalidTreasury",
+      "msg": "Treasury account is not the fee treasury's USDC account"
+    },
+    {
+      "code": 6034,
+      "name": "missingFeeAccount",
+      "msg": "A fee is due but its accounts were not provided"
     }
   ],
   "types": [
+    {
+      "name": "arrangementFeeWithheld",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "requested",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "net",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "attestation",
       "type": {
@@ -2037,6 +2679,50 @@ export type F2f = {
       }
     },
     {
+      "name": "feeConfig",
+      "docs": [
+        "Platform fee settings. Singleton PDA `[\"fees\"]`, controlled by `Config.admin`.",
+        "Fees are charged only while this account exists; old deployments without it charge nothing."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "docs": [
+              "Wallet that receives every fee; fees land in its USDC associated token account."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "networkFee",
+            "docs": [
+              "USDC base units added to each subscription, paid by the investor."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "mintFee",
+            "docs": [
+              "USDC base units prepaid by the producer at `register_project`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "maxArrangementBps",
+            "docs": [
+              "Upper bound for `PoolTerms.arrangement_fee_bps`, itself at most `MAX_ARRANGEMENT_BPS`."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "field",
       "type": {
         "kind": "struct",
@@ -2097,6 +2783,50 @@ export type F2f = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "mintFeeCharged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "producer",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "networkFeeCharged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "investor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
           }
         ]
       }
@@ -2209,6 +2939,29 @@ export type F2f = {
       }
     },
     {
+      "name": "poolTerms",
+      "docs": [
+        "Per-pool commercial terms, PDA `[\"terms\", pool]`. Set by the Issuer while the pool is Draft.",
+        "A pool without this account (every pool created before fees) has a zero arrangement fee."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "arrangementFeeBps",
+            "docs": [
+              "Share of each project's requested amount withheld for the treasury at disbursement."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "settlementRule",
       "type": {
         "kind": "enum",
@@ -2258,6 +3011,11 @@ export type F2f = {
       "value": "[99, 111, 110, 102, 105, 103]"
     },
     {
+      "name": "feesSeed",
+      "type": "bytes",
+      "value": "[102, 101, 101, 115]"
+    },
+    {
       "name": "fieldSeed",
       "type": "bytes",
       "value": "[102, 105, 101, 108, 100]"
@@ -2266,6 +3024,30 @@ export type F2f = {
       "name": "investorSeed",
       "type": "bytes",
       "value": "[105, 110, 118, 101, 115, 116, 111, 114]"
+    },
+    {
+      "name": "maxArrangementBps",
+      "docs": [
+        "Hard ceiling for any pool's arrangement fee, whatever FeeConfig says (10%)."
+      ],
+      "type": "u16",
+      "value": "1000"
+    },
+    {
+      "name": "maxMintFee",
+      "docs": [
+        "Hard ceiling for the project mint fee: 50 USDC."
+      ],
+      "type": "u64",
+      "value": "50000000"
+    },
+    {
+      "name": "maxNetworkFee",
+      "docs": [
+        "Hard ceiling for the per-subscription network fee: 10 USDC."
+      ],
+      "type": "u64",
+      "value": "10000000"
     },
     {
       "name": "mintSeed",
@@ -2281,6 +3063,11 @@ export type F2f = {
       "name": "projectSeed",
       "type": "bytes",
       "value": "[112, 114, 111, 106, 101, 99, 116]"
+    },
+    {
+      "name": "termsSeed",
+      "type": "bytes",
+      "value": "[116, 101, 114, 109, 115]"
     }
   ]
 };
