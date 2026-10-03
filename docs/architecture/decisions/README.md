@@ -16,3 +16,4 @@ Only `Accepted` ADRs are current guidance. Decisions are human-owned; agents dra
 | [0010](0010-deploy-on-railway.md) | Accepted | Deploy web app and SCAS worker on Railway |
 | [0011](0011-platform-level-kyc.md) | Accepted | Platform-level KYC; Instrument account thawed on first subscription |
 | [0012](0012-scas-external-provider-stub.md) | Accepted | SCAS is an external provider; the MVP uses a stub |
+| [0013](0013-platform-fees-and-gas-sponsorship.md) | Accepted | Platform fees (arrangement, network, mint) and gas sponsorship |

@@ -13,7 +13,7 @@ The `f2f` Solana program holds the on-chain state of Field-to-Finance and moves 
 
 ## Scope
 
-Config, Farm Projects, Fields, Attestations, Pools, Instrument mints, investor approval, subscription, disbursement, refunds, settlement records and redemption.
+Config, Farm Projects, Fields, Attestations, Pools, Instrument mints, investor approval, subscription, disbursement, refunds, settlement records, redemption, platform fees and the rent payer for gas sponsorship.
 
 ## Non-scope
 
@@ -35,6 +35,13 @@ The Instrument mint is a Token-2022 mint created in `create_pool`. Anchor has no
 
 Amounts with yield use `math::with_yield`, which computes in u128 and fails on overflow.
 
+**Fees and gas sponsorship** ([ADR 0013](../architecture/decisions/0013-platform-fees-and-gas-sponsorship.md)). `FeeConfig` names the treasury wallet and the flat fees; `PoolTerms` holds a pool's arrangement fee. Both are passed at their fixed PDA addresses as unchecked accounts and read only when initialized (`fees.rs`): an uninitialized FeeConfig or PoolTerms means no fee, and a client cannot swap in another address because of the seeds constraint. When a fee is due the `treasury_usdc` account must equal the USDC associated token account of `FeeConfig.treasury` (`InvalidTreasury` otherwise, `MissingFeeAccount` if absent).
+
+- `disburse` splits `requested_amount` with `math::split_fee` (u128, rounded down for the farmer): the fee to the treasury, the rest to the producer. Emits `ArrangementFeeWithheld`.
+- `subscribe` moves `network_fee` from the investor's USDC to the treasury after the vault transfer. Emits `NetworkFeeCharged`. The fee never touches the vault, `raised_amount` or supply.
+- `register_project` moves `mint_fee` from the producer's USDC to the treasury. Emits `MintFeeCharged`.
+- `subscribe`, `register_project` and `register_field` take a `payer` signer for the rent of accounts they create (Instrument account, project, field). The investor or producer stays the signer and authority for their own USDC and Instrument; `payer` may be the same wallet or the platform's gas sponsor.
+
 ## Important flows
 
 - [Pool lifecycle](../flows/pool-lifecycle.md): from field registration to redemption.
@@ -51,6 +58,9 @@ Amounts with yield use `math::with_yield`, which computes in u128 and fails on o
 | Instrument mint | `mint`, pool | Token-2022 mint with Default Account State and Token Metadata |
 | Vault | associated token account of the Pool for USDC | investor money |
 | InvestorRecord | `investor`, wallet | approved flag and time. No personal data. |
+| FeeConfig | `fees` | treasury wallet, network fee and mint fee (USDC base units), arrangement fee cap (bps) |
+| PoolTerms | `terms`, pool | arrangement fee (bps); absent for pools created before fees |
+| Treasury USDC | associated token account of `FeeConfig.treasury` for USDC | collected fees; created by `init_fee_config` / `update_fee_config` |
 
 Pool status:
 
@@ -64,14 +74,14 @@ Draft --open_pool--> Open --close_subscription--> Funded --fund_redemption--> Re
 | Instruction | Signer |
 | --- | --- |
 | `init_config(issuer, scas, compliance)` | admin |
-| `register_project(project_id, crop, season, expected_kg, requested_amount)` | Producer |
-| `register_field(polygon_hash, area_ha_x100)` | Producer |
+| `register_project(project_id, crop, season, expected_kg, requested_amount)` | Producer, plus `payer` for rent |
+| `register_field(polygon_hash, area_ha_x100)` | Producer, plus `payer` for rent |
 | `record_attestation(kind, verdict, evidence_hash, evidence_uri, ndvi_mean_x10k, scene_date)` | SCAS |
 | `create_pool(pool_id, args)` | Issuer |
 | `add_project()`, `open_pool()` | Issuer |
 | `approve_investor()` | compliance |
 | `revoke_investor()` | compliance |
-| `subscribe(amount)` | investor |
+| `subscribe(amount)` | investor, plus `payer` for rent |
 | `close_subscription()` | anyone |
 | `disburse()` | Issuer |
 | `refund(amount)` | investor |
@@ -79,6 +89,9 @@ Draft --open_pool--> Open --close_subscription--> Funded --fund_redemption--> Re
 | `fund_redemption(amount)` | Issuer |
 | `redeem(amount)` | investor |
 | `sweep()` | Issuer |
+| `init_fee_config(network_fee, mint_fee, max_arrangement_bps)` | admin (`Config.admin`) |
+| `update_fee_config(network_fee, mint_fee, max_arrangement_bps)` | admin; the `treasury` account becomes the new treasury |
+| `set_arrangement_fee(bps)` | Issuer, pool in Draft |
 
 The IDL is generated at `anchor/target/idl/f2f.json` and TypeScript types at `anchor/target/types/f2f.ts` by `anchor build`.
 
@@ -103,6 +116,10 @@ The SCAS worker and the web app build transactions from the IDL. Renaming an ins
 - `sweep` returns the vault remainder to the Issuer only when the Pool is Redeeming and Instrument supply is zero.
 - `revoke_investor` sets the record to not approved and freezes the investor's Instrument account in the given Pool if it exists.
 - Redemption opens only when every project is disbursed and settled, maturity has passed, and the vault holds `with_yield(raised_amount, yield_bps)`.
+- Arrangement fee: `PoolTerms.arrangement_fee_bps <= FeeConfig.max_arrangement_bps <= MAX_ARRANGEMENT_BPS` (1,000) at the time it is set, and it can change only while the pool is Draft. At disbursement fee + net = requested amount.
+- Flat fees: `network_fee <= MAX_NETWORK_FEE` (10 USDC), `mint_fee <= MAX_MINT_FEE` (50 USDC).
+- Fees go only to the USDC ATA of `FeeConfig.treasury`; without FeeConfig no fee is charged; without PoolTerms the arrangement fee is 0.
+- Existing account layouts never change for fees; fee data lives in FeeConfig and PoolTerms.
 
 ## Error handling
 
@@ -131,6 +148,7 @@ Run `cd anchor && anchor build && cargo test -p f2f`. Tests are LiteSVM integrat
 - litesvm must be 0.17 or newer to load sbpf v3 programs; the 0.10 pin from the Anchor template fails with `InvalidAccountData`.
 - `spl-token-metadata-interface` must be 0.8.0, the version Token-2022 interface 2.1.0 uses; 1.x types do not implement `Extension`.
 - In Anchor 1.x `CpiContext::new` takes a program id, not an `AccountInfo`.
+- `anchor deploy` of a larger program auto-extends the program data account; the upgrade buffer needs about 2.9 SOL of rent up front (refunded after the upgrade), so keep the deployer above 3.5 SOL.
 
 ## Source map
 
@@ -140,9 +158,12 @@ Run `cd anchor && anchor build && cargo test -p f2f`. Tests are LiteSVM integrat
 - [approve_investor.rs](../../anchor/programs/f2f/src/instructions/approve_investor.rs) — KYC Thaw
 - [subscribe.rs](../../anchor/programs/f2f/src/instructions/subscribe.rs) — atomic subscription
 - [fund_redemption.rs](../../anchor/programs/f2f/src/instructions/fund_redemption.rs) — redemption gate
+- [fees.rs](../../anchor/programs/f2f/src/fees.rs) — optional FeeConfig/PoolTerms reads and the treasury check
+- [fee_config.rs](../../anchor/programs/f2f/src/instructions/fee_config.rs), [set_arrangement_fee.rs](../../anchor/programs/f2f/src/instructions/set_arrangement_fee.rs) — fee settings
+- [tests/test_fees.rs](../../anchor/programs/f2f/tests/test_fees.rs) — fees and sponsorship
 - [tests/common/mod.rs](../../anchor/programs/f2f/tests/common/mod.rs) — test harness
 
 ## Related docs
 
 - [MVP design](../specs/2026-10-03-mvp-design.md)
-- [ADR 0003](../architecture/decisions/0003-token-2022-frozen-accounts-kyc-thaw.md), [ADR 0006](../architecture/decisions/0006-pooled-instrument-and-shortfall-rules.md), [ADR 0007](../architecture/decisions/0007-program-replaces-exchange-clearing-registrar.md)
+- [ADR 0013](../architecture/decisions/0013-platform-fees-and-gas-sponsorship.md), [ADR 0003](../architecture/decisions/0003-token-2022-frozen-accounts-kyc-thaw.md), [ADR 0006](../architecture/decisions/0006-pooled-instrument-and-shortfall-rules.md), [ADR 0007](../architecture/decisions/0007-program-replaces-exchange-clearing-registrar.md)

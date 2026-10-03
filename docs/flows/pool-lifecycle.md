@@ -16,15 +16,15 @@ Producer, SCAS (stub in the web app), Issuer, compliance, investors, the [progra
 
 | # | Step | Instruction | Signer |
 | --- | --- | --- | --- |
-| 1 | Producer registers the Farm Project | `register_project` | Producer |
-| 2 | Producer adds each Field | `register_field` | Producer |
+| 1 | Producer registers the Farm Project and prepays the mint fee (3 USDC) | `register_project` | Producer; gas sponsor pays fee and rent |
+| 2 | Producer adds each Field | `register_field` | Producer; gas sponsor pays fee and rent |
 | 3 | SCAS (stub until the external provider) attests each Field | `record_attestation(FieldVerified, Pass)` | SCAS |
-| 4 | Issuer creates the Pool and its Instrument | `create_pool` | Issuer |
+| 4 | Issuer creates the Pool and its Instrument and, while Draft, sets the arrangement fee | `create_pool`, `set_arrangement_fee` | Issuer |
 | 5 | Issuer adds verified projects and opens the Pool | `add_project`, `open_pool` | Issuer |
 | 6 | Compliance approves an investor once for every pool | `approve_investor` | compliance |
-| 7 | Investor pays USDC; the Instrument account is created, thawed and credited | `subscribe` | investor |
+| 7 | Investor pays USDC plus the network fee; the Instrument account is created, thawed and credited | `subscribe` | investor; gas sponsor pays fee and rent |
 | 8 | Subscription closes at target or after the close time | `close_subscription` | anyone |
-| 9 | Issuer pays each Producer | `disburse` | Issuer |
+| 9 | Issuer pays each Producer, withholding the arrangement fee for the treasury | `disburse` | Issuer |
 | 10 | SCAS (stub) attests the season | `record_attestation(Sowing, Vegetation, Harvest)` | SCAS |
 | 11 | Issuer records the Shortfall rule per project | `record_settlement` | Issuer |
 | 12 | Issuer deposits principal plus yield; after maturity the Pool opens for redemption | `fund_redemption` | Issuer |
@@ -34,7 +34,7 @@ If the Pool is under target at the close time, step 8 moves it to Refunding and 
 
 ## Data and state changes
 
-Pool status moves Draft, Open, Funded or Refunding, then Redeeming. Field and project counters change in steps 2, 3 and 10. USDC moves in steps 7, 9, 12, 13 and in refunds.
+Pool status moves Draft, Open, Funded or Refunding, then Redeeming. Field and project counters change in steps 2, 3 and 10. USDC moves in steps 1 (mint fee), 7 (amount and network fee), 9 (net to the Producer, arrangement fee to the treasury), 12, 13 and in refunds. Fees follow [ADR 0013](../architecture/decisions/0013-platform-fees-and-gas-sponsorship.md); a refund returns the amount, not the network fee.
 
 ## Success behavior
 

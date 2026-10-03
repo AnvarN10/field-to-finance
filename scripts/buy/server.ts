@@ -11,7 +11,7 @@ import { F2F_PROGRAM_ID, investorPda, mintPda, poolPda } from "@f2f/sdk";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { onboardInvestor } from "../devnet-onboard-investor";
-import { connection, explorerTx, keypairFromEnv, programAs, usdcMint } from "../lib/env";
+import { connection, explorerTx, feeAccounts, keypairFromEnv, programAs, usdcMint } from "../lib/env";
 
 const POOL_ID = Number(process.env.POOL_ID ?? 1);
 const pool = poolPda(F2F_PROGRAM_ID, POOL_ID);
@@ -52,13 +52,15 @@ const routes: Record<string, (req: http.IncomingMessage, url: URL) => Promise<un
   "POST /api/subscribe-tx": async (req) => {
     const { wallet, amount } = await body(req);
     const w = new PublicKey(wallet);
+    const fees = await feeAccounts(reader);
     const tx: Transaction = await reader.methods
       .subscribe(new BN(Math.round(Number(amount) * 1e6)))
       .accountsPartial({
-        investor: w, pool, investorRecord: investorPda(F2F_PROGRAM_ID, w), mint,
+        investor: w, payer: w, pool, investorRecord: investorPda(F2F_PROGRAM_ID, w), mint,
         investorInstrument: getAssociatedTokenAddressSync(mint, w, false, TOKEN_2022_PROGRAM_ID),
         usdcMint: usdc, investorUsdc: getAssociatedTokenAddressSync(usdc, w, false, TOKEN_PROGRAM_ID),
         vault: getAssociatedTokenAddressSync(usdc, pool, true, TOKEN_PROGRAM_ID),
+        feeConfig: fees.feeConfig, treasuryUsdc: fees.treasuryUsdc,
         tokenProgram: TOKEN_2022_PROGRAM_ID, usdcTokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
       })

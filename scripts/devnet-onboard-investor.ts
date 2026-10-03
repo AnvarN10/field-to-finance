@@ -1,5 +1,6 @@
 // Gives a wallet everything it needs to subscribe on devnet: platform-level KYC approval
-// (valid for every pool), test USDC and a little SOL for fees.
+// (valid for every pool) and test USDC. The web app's gas sponsor pays fees (ADR 0013); set
+// ONBOARD_SOL=true to also send SOL, e.g. for the self-paying scripts/buy page.
 //
 //   scripts/inf.sh ./node_modules/.bin/tsx scripts/devnet-onboard-investor.ts <wallet> [usdc=10000]
 import { F2F_PROGRAM_ID, investorPda } from "@f2f/sdk";
@@ -25,7 +26,7 @@ export async function onboardInvestor(wallet: PublicKey, usdcAmount: number) {
   const m = await mintTo(connection, deployer, usdcMint(), ata.address, deployer, BigInt(usdcAmount) * 1_000_000n);
   out.push(`mint ${usdcAmount} test USDC ${explorerTx(m)}`);
 
-  if ((await connection.getBalance(wallet)) < 0.2 * LAMPORTS_PER_SOL) {
+  if (process.env.ONBOARD_SOL === "true" && (await connection.getBalance(wallet)) < 0.2 * LAMPORTS_PER_SOL) {
     const s = await sendAndConfirmTransaction(connection, new Transaction().add(SystemProgram.transfer({ fromPubkey: deployer.publicKey, toPubkey: wallet, lamports: 0.5 * LAMPORTS_PER_SOL })), [deployer]);
     out.push(`send 0.5 SOL for fees ${explorerTx(s)}`);
   }

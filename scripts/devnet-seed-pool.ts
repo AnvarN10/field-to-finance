@@ -22,9 +22,9 @@ import {
   toAnchorEnum,
   toHex,
 } from "@f2f/sdk";
-import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getAssociatedTokenAddressSync, getOrCreateAssociatedTokenAccount, mintTo, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
-import { connection, explorerAddr, explorerTx, keypairFromEnv, programAs, usdcMint } from "./lib/env";
+import { connection, explorerAddr, explorerTx, feeAccounts, keypairFromEnv, programAs, usdcMint } from "./lib/env";
 
 const POOL_ID = Number(process.env.POOL_ID ?? 1);
 const PROJECT_ID = 1;
@@ -62,9 +62,25 @@ async function main() {
 
   const project = projectPda(F2F_PROGRAM_ID, producer.publicKey, PROJECT_ID);
   if (!(await exists(project))) {
+    // ADR 0013: with FeeConfig present the producer prepays the mint fee in USDC (the deployer mints it here).
+    const fees = await feeAccounts(programAs(producer));
+    const producerUsdc = getAssociatedTokenAddressSync(usdcMint(), producer.publicKey, false, TOKEN_PROGRAM_ID);
+    if (fees.treasuryUsdc) {
+      const ata = await getOrCreateAssociatedTokenAccount(connection, deployer, usdcMint(), producer.publicKey);
+      await mintTo(connection, deployer, usdcMint(), ata.address, deployer, 3_000_000n);
+    }
     const sig = await programAs(producer).methods
       .registerProject(new BN(PROJECT_ID), "wheat", 2027, new BN(4_000_000), new BN(100_000 * USDC))
-      .accountsPartial({ producer: producer.publicKey, project })
+      .accountsPartial({
+        producer: producer.publicKey,
+        payer: producer.publicKey,
+        project,
+        feeConfig: fees.feeConfig,
+        usdcMint: fees.treasuryUsdc ? usdcMint() : null,
+        producerUsdc: fees.treasuryUsdc ? producerUsdc : null,
+        treasuryUsdc: fees.treasuryUsdc,
+        usdcTokenProgram: fees.treasuryUsdc ? TOKEN_PROGRAM_ID : null,
+      })
       .rpc();
     console.log("register_project", explorerTx(sig));
   }
@@ -74,7 +90,7 @@ async function main() {
     if (!(await exists(field))) {
       const sig = await programAs(producer).methods
         .registerField(Array.from(polygonHash(FIELDS[i])), 100_000)
-        .accountsPartial({ producer: producer.publicKey, project, field })
+        .accountsPartial({ producer: producer.publicKey, payer: producer.publicKey, project, field })
         .rpc();
       console.log(`register_field ${i}`, explorerTx(sig));
     }

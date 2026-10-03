@@ -1,6 +1,6 @@
 import { Keypair, SystemProgram, VersionedTransaction } from "@solana/web3.js";
 import { describe, expect, it, vi } from "vitest";
-import { ChainTxError, buildV0, bytesToBase64, sendServerTx, simulate } from "../src/lib/chain/send";
+import { ChainTxError, buildV0, bytesToBase64, sendServerTx, sendSkippingPreflight, simulate } from "../src/lib/chain/send";
 
 const blockhash = Keypair.generate().publicKey.toBase58();
 const ix = (from = Keypair.generate().publicKey) => SystemProgram.transfer({ fromPubkey: from, toPubkey: Keypair.generate().publicKey, lamports: 1 });
@@ -53,5 +53,18 @@ describe("send", () => {
     expect(err).toBeInstanceOf(ChainTxError);
     expect(err.signature).toBe("5sig");
     expect(err.logs[0]).toContain("PoolNotOpen");
+  });
+
+  it("sendSkippingPreflight reports an on-chain failure even when confirmation throws the raw error", async () => {
+    const payer = Keypair.generate();
+    const err = { InstructionError: [0, { Custom: 3012 }] };
+    const conn = {
+      getLatestBlockhash: async () => ({ blockhash, lastValidBlockHeight: 1 }),
+      sendRawTransaction: vi.fn(async () => "5sig"),
+      confirmTransaction: vi.fn(async () => Promise.reject(err)),
+      getTransaction: vi.fn(async () => ({ meta: { logMessages: ["Program log: AccountNotInitialized"] } })),
+    };
+    const r = await sendSkippingPreflight(conn as never, [payer], [ix(payer.publicKey)]);
+    expect(r).toEqual({ signature: "5sig", err, logs: ["Program log: AccountNotInitialized"] });
   });
 });

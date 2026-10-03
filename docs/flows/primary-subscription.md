@@ -10,22 +10,22 @@ The investor presses Subscribe on an Open pool's page.
 
 ## Participants
 
-Investor wallet (Phantom), web app (`/api/tx/subscribe`, `/api/tx/confirm`, `/api/kyc`, `/api/faucet`), compliance key on the server, the Program, Token-2022, devnet.
+Investor wallet (Phantom), web app (`/api/tx/subscribe`, `/api/tx/send`, `/api/tx/confirm`, `/api/kyc`, `/api/faucet`), compliance and gas-sponsor keys on the server, the Program, Token-2022, devnet.
 
 ## Step-by-step flow
 
 1. The investor connects a devnet wallet. The invest panel reads `/api/investor/<wallet>`: KYC status, test USDC, positions.
-2. Optional: "Get 1,000 test USDC" posts to `/api/faucet`; the deployer mints test USDC and tops up SOL.
-3. The investor enters an amount up to the pool's remaining capacity and presses Subscribe.
-4. The server builds `subscribe(amount)` and simulates it.
+2. Optional: "Get 1,000 test USDC" posts to `/api/faucet`; the deployer mints test USDC. No SOL is needed ([ADR 0013](../architecture/decisions/0013-platform-fees-and-gas-sponsorship.md)).
+3. The investor enters an amount up to the pool's remaining capacity. The panel shows amount, the network fee (0.50 USDC on devnet) and the total, and checks the wallet's USDC covers the total. The button reads "Subscribe · <total>".
+4. The server builds `subscribe(amount)` with the gas sponsor as fee payer and rent payer and the FeeConfig/treasury accounts, and simulates it.
    - No InvestorRecord: simulation fails with `AccountNotInitialized` on `investor_record`. The panel shows "This wallet hasn't passed KYC" with "Complete KYC". The wallet never opens.
 5. KYC: the mock form posts to `/api/kyc`. The server validates and discards the values and signs `approve_investor` with the compliance key. One approval covers every pool ([ADR 0011](../architecture/decisions/0011-platform-level-kyc.md)).
-6. Subscribe again. Simulation passes; the wallet signs and sends. In one transaction the Program creates the investor's Token-2022 Instrument account if needed, thaws it because the record is approved, moves USDC to the vault and mints the same amount of Instrument.
+6. Subscribe again. Simulation passes; the wallet signs only. The browser posts the signed transaction to `/api/tx/send`; the server validates it (sponsor validator), adds the sponsor's fee-payer signature and submits. In one transaction the Program creates the investor's Token-2022 Instrument account if needed (rent paid by the sponsor), thaws it because the record is approved, moves USDC to the vault, moves the network fee to the treasury and mints Instrument equal to the amount.
 7. The browser posts the signature to `/api/tx/confirm`; the server confirms, clears its read cache, and the panel shows the explorer link.
 
 ## Data and state changes
 
-InvestorRecord created or set approved (step 5); Instrument account created and thawed, USDC moved, Instrument minted, `raised_amount` increased (step 6).
+InvestorRecord created or set approved (step 5); Instrument account created and thawed, USDC moved, network fee moved to the treasury, Instrument minted, `raised_amount` increased by the amount only (step 6).
 
 ## Success behavior
 
@@ -35,7 +35,9 @@ The investor holds Instrument equal to the USDC paid; the pool page shows the ne
 
 - `InvestorNotApproved` (revoked): same KYC message.
 - `ExceedsTarget`, `SubscriptionClosed`, `PoolNotOpen`: plain messages; the amount field is pre-checked against remaining capacity.
-- Missing USDC or SOL: "Get test funds".
+- Not enough USDC for amount plus fee: blocked in the panel with the faucet; on-chain "Not enough test USDC".
+- Sponsor validator rejects the signed transaction: 400, nothing signed or sent.
+- Sponsor out of SOL: "Gas sponsorship is out of devnet SOL"; nothing charged.
 - Wallet on mainnet: "Your wallet is on a different network".
 - Cancelled signature: nothing sent.
 

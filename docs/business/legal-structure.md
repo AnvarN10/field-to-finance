@@ -69,9 +69,11 @@ USDT, USDC, SOL and TRX are on the National Bank of RK list of permitted unsecur
 
 | Fee | Payer | Mechanism | Status |
 | --- | --- | --- | --- |
-| Arrangement fee | farmer | withheld on-chain at disbursement, per-pool bps with a program-enforced cap | decided; size TBD |
-| Network fee | investor | fixed USDC amount added to each subscription; platform sponsors gas | decided; amount TBD |
-| Mint fee (~USD 3) | farmer | prepaid in USDC at project registration | decided |
+| Arrangement fee | farmer | withheld on-chain at disbursement, per-pool bps with a program-enforced cap | implemented on devnet ([ADR 0013](../architecture/decisions/0013-platform-fees-and-gas-sponsorship.md)); cap 10%, size TBD (demo 2%) |
+| Network fee | investor | fixed USDC amount added to each subscription; platform sponsors gas | implemented on devnet; 0.50 USDC (admin-tunable), amount TBD |
+| Mint fee (~USD 3) | farmer | prepaid in USDC at project registration; platform sponsors rent | implemented on devnet; 3 USDC |
+
+All three fees go to the F2F treasury wallet named in the on-chain FeeConfig. Investors and farmers need no SOL: a platform sponsor key pays transaction fees and account rent.
 
 ## Chains
 

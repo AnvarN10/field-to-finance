@@ -27,9 +27,11 @@ Pool, Instrument, Farm Project, Field, Attestation, KYC Thaw, Shortfall. See the
 ## How the system works
 
 - **Reads.** Server components call a `ChainReader` that uses `program.account.*.all()` with memcmp filters (projects by producer or pool, fields by project, attestations by field) and decodes Token-2022 metadata for the Instrument name and symbol. Results are cached in process for 5 seconds; every server-sent transaction and every confirmed browser transaction clears the cache (a signature that does not confirm leaves it alone).
-- **User transactions.** The browser posts intent to `/api/tx/<action>` (`register-project`, `subscribe`, `refund`, `redeem`). The server builds a v0 transaction with `accountsStrict`, simulates it without signatures, and returns either the unsigned transaction or a plain-language error. The wallet signs and sends; the browser posts the signature to `/api/tx/confirm`, which confirms on the server's RPC and refreshes reads. A program rejection, such as a subscribe from a wallet without KYC, is shown before the wallet opens.
+- **User transactions, sponsored gas** ([ADR 0013](../architecture/decisions/0013-platform-fees-and-gas-sponsorship.md)). The browser posts intent to `/api/tx/<action>` (`register-project`, `subscribe`, `refund`, `redeem`). The server builds a v0 transaction with `accountsStrict`, the gas sponsor (`F2F_SPONSOR_KEYPAIR`) as fee payer and as the program's rent `payer`, and the FeeConfig/treasury accounts when fees are configured; it simulates without signatures and returns either the unsigned transaction or a plain-language error. The wallet only signs (`signTransaction`; Privy `useSignTransaction`). The browser posts the signed transaction to `/api/tx/send`, which runs `validateSponsoredTx` (`src/lib/chain/sponsor.ts`) and only then adds the sponsor's signature and submits with preflight; the browser then posts the signature to `/api/tx/confirm`, which confirms and refreshes reads. Users need no SOL. A program rejection, such as a subscribe from a wallet without KYC, is shown before the wallet opens.
+- **Sponsor validator.** The sponsor signs only a message that holds exactly the f2f instructions `/api/tx` builds for the action (`subscribe`; `register_project` + 1 to 4 `register_field`; `refund`/`redeem`, optionally after an idempotent USDC ATA create paid by the sponsor) plus at most one compute unit limit and one price instruction (price capped at 50,000 micro-lamports per CU). It checks: fee payer is the sponsor; exactly two required signatures; no address lookup tables; no other program; the sponsor appears only as fee payer and in the `payer` account; the wallet is the investor/producer; every PDA, ATA, mint and program account is the expected one, including the treasury account. Anything else is a 400 and is never signed.
+- **Fees in the UI.** The invest panel shows amount, network fee and total, says no SOL is needed and blocks a subscription the wallet cannot pay including the fee. Farmer registration shows the mint fee, the arrangement fee cap and a test-USDC faucet when the wallet cannot pay the fee. The Instrument card has a Fees row (arrangement fee %, farmer's net). The admin console shows FeeConfig, the treasury USDC balance and the sponsor's SOL, and the create-pool form sets the arrangement fee in the same transaction as `create_pool`.
 - **Wallets.** Investors use the Solana wallet adapter (Phantom and other Wallet Standard wallets). Producers sign in with email through Privy and get an embedded Solana wallet; without `NEXT_PUBLIC_PRIVY_APP_ID` the farmer view falls back to the wallet adapter.
-- **Server-signed actions.** Admin server actions and the KYC and faucet routes sign with keys from the environment: Issuer (pool lifecycle), compliance (`approve_investor`, `revoke_investor`), SCAS (stub attestations), deployer (test-USDC mint authority, SOL top-ups).
+- **Server-signed actions.** Admin server actions and the KYC and faucet routes sign with keys from the environment: Issuer (pool lifecycle), compliance (`approve_investor`, `revoke_investor`), SCAS (stub attestations), deployer (test-USDC mint authority; SOL top-ups only with `FAUCET_SOL=true`), sponsor (fee payer and rent payer for user transactions, co-signs only after validation).
 - **Admin console rules.** Every action shows why it is unavailable. "Verify all fields" works before pooling; the season attestations (`Sowing`, `Vegetation`, `Harvest`) open only once the pool is Funded or Redeeming (`seasonAttestationBlocker` in `src/lib/pool-math.ts`, checked again in the server action). Irreversible actions (sweep, revoke) ask for an inline confirmation whose button names the consequence.
 - **SCAS stub.** See [ADR 0012](../architecture/decisions/0012-scas-external-provider-stub.md) and the [field verification flow](../flows/field-verification.md).
 
@@ -56,7 +58,7 @@ Pool, Instrument, Farm Project, Field, Attestation, KYC Thaw, Shortfall. See the
 | `POST /api/polygons`, `GET /api/polygons/[hash]` | farmer view, field page | polygon upload and hashed read |
 | `GET /api/evidence/[hash]` | anyone | stub evidence, hash-checked |
 | `GET /api/instrument/[poolId]` | wallets | Token-2022 metadata URI target |
-| `POST /api/tx/[action]`, `POST /api/tx/confirm` | browser | server-built user transactions |
+| `POST /api/tx/[action]`, `POST /api/tx/send`, `POST /api/tx/confirm` | browser | server-built user transactions, sponsor co-sign and submit, confirmation |
 | `POST /api/kyc`, `POST /api/faucet` | investor and farmer views | mock KYC approval, test funds |
 | `GET /api/producer/[wallet]`, `GET /api/investor/[wallet]` | browser | wallet-scoped reads |
 
@@ -87,14 +89,15 @@ Program and wallet errors go through `explainChainError` into a title, a detail 
 - The demo console is protected by `ADMIN_PASSWORD` (HMAC session cookie, httpOnly, SameSite strict). It is a demo control, not production auth.
 - Mock KYC values are validated and discarded; nothing personal is stored, logged or sent to analytics.
 - Evidence and polygons are public. Do not upload real pilot contours without the farmers' consent.
-- The faucet mints only test USDC. Limits: 60 s per wallet, 3 requests per IP per 10 minutes, 30 per hour in total. Mock KYC: 5 approvals per IP per 10 minutes, 60 per hour in total, and an already approved wallet costs nothing. Both protect the deployer and compliance balances from fresh-wallet loops.
+- The gas sponsor key only co-signs validated user transactions (see above). `/api/tx/send` allows 20 requests per IP per 10 minutes and 300 per hour in total; preflight keeps failing transactions from costing fees. Each new Instrument, project or field account costs the sponsor rent, so its balance is on the admin console with a low-balance warning.
+- The faucet mints only test USDC (SOL top-up off unless `FAUCET_SOL=true`). Limits: 60 s per wallet, 3 requests per IP per 10 minutes, 30 per hour in total. Mock KYC: 5 approvals per IP per 10 minutes, 60 per hour in total, and an already approved wallet costs nothing. Both protect the deployer and compliance balances from fresh-wallet loops.
 - A set but malformed role key fails the server boot (`assertRoleKeys` in `src/instrumentation.ts`), so the Railway healthcheck fails instead of serving a broken console; the admin console names a missing or malformed key by variable.
 
 ## Observability and debugging
 
 - GlitchTip `f2f-web`: `GET /api/0/projects/personal/f2f-web/issues/?query=is:unresolved`.
 - PostHog events: `tx_succeeded`, `tx_failed` (with the explained error code), `kyc_approved`, `faucet_used`, `fields_uploaded`, `farmer_login`; person property `app_env`.
-- The admin console warns when a role key in the environment differs from Config.
+- The admin console warns when a role key in the environment differs from Config, when `F2F_TREASURY` differs from `FeeConfig.treasury`, and when the sponsor is low on SOL.
 
 ## Testing notes
 
@@ -117,6 +120,7 @@ Program and wallet errors go through `explainChainError` into a title, a detail 
 - [src/lib/chain/reader.ts](../../apps/web/src/lib/chain/reader.ts) — reads and cache
 - [src/lib/chain/ix.ts](../../apps/web/src/lib/chain/ix.ts) — instruction builders
 - [src/lib/chain/user-tx.ts](../../apps/web/src/lib/chain/user-tx.ts) — server-built user transactions
+- [src/lib/chain/sponsor.ts](../../apps/web/src/lib/chain/sponsor.ts) — sponsor validator and co-sign
 - [src/lib/chain/admin-ops.ts](../../apps/web/src/lib/chain/admin-ops.ts) — Issuer and compliance operations
 - [src/lib/chain/explain.ts](../../apps/web/src/lib/chain/explain.ts) — plain-language errors
 - [src/lib/scas-stub.ts](../../apps/web/src/lib/scas-stub.ts) — SCAS stub
@@ -128,4 +132,4 @@ Program and wallet errors go through `explainChainError` into a title, a detail 
 
 ## Related docs
 
-- [Program](program.md), [MVP design](../specs/2026-10-03-mvp-design.md), [ADR 0005](../architecture/decisions/0005-wallet-model.md), [ADR 0011](../architecture/decisions/0011-platform-level-kyc.md), [ADR 0012](../architecture/decisions/0012-scas-external-provider-stub.md)
+- [Program](program.md), [MVP design](../specs/2026-10-03-mvp-design.md), [ADR 0005](../architecture/decisions/0005-wallet-model.md), [ADR 0011](../architecture/decisions/0011-platform-level-kyc.md), [ADR 0012](../architecture/decisions/0012-scas-external-provider-stub.md), [ADR 0013](../architecture/decisions/0013-platform-fees-and-gas-sponsorship.md)

@@ -79,9 +79,15 @@ export async function sendSkippingPreflight(
   const { tx, blockhash, lastValidBlockHeight } = await buildV0(connection, payer.publicKey, ixs);
   tx.sign(signers);
   const signature = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true, maxRetries: 3 });
-  const res = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
+  let err: unknown | null;
+  try {
+    err = (await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed")).value.err;
+  } catch (e) {
+    // Under RPC rate limits web3.js can reject with the raw transaction error instead of resolving with it.
+    err = e;
+  }
   const t = await connection.getTransaction(signature, { commitment: "confirmed", maxSupportedTransactionVersion: 0 });
-  return { signature, err: res.value.err, logs: t?.meta?.logMessages ?? [] };
+  return { signature, err, logs: t?.meta?.logMessages ?? [] };
 }
 
 export const bytesToBase64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64");

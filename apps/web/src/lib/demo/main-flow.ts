@@ -47,6 +47,7 @@ const ROLE_TARGET = 300_000_000;
 /** Lamports the deployer sends a role key (Issuer, compliance, SCAS pay rent too): up to 0.3 SOL when below 0.2 SOL. */
 export const roleTopUp = (balance: number) => (balance < ROLE_FLOOR ? ROLE_TARGET - balance : 0);
 
+const RPC_BREATHER_MS = 4_000;
 const sleep =(ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function runFromEnv(source: Record<string, string | undefined> = process.env, log: (line: string) => void = console.log) {
@@ -225,8 +226,11 @@ export async function runFromEnv(source: Record<string, string | undefined> = pr
   }
 
   // 6. SCAS (stub) attests the season.
+  // Public devnet RPC rate-limits bursts (getProgramAccounts especially); give it room between heavy reads.
+  await sleep(RPC_BREATHER_MS);
   const detail = await reader.getPool(poolId);
   for (const kind of ["Sowing", "Vegetation", "Harvest"] as const) {
+    await sleep(RPC_BREATHER_MS);
     const r = await attestStage(stub, detail?.projects ?? [], kind);
     if (r.failures.length) throw new Error(`${kind}: ${r.failures[0]?.error}`);
     scene(`SCAS stub attests ${kind} for ${r.results.length} fields`, tx(r.results[0]!.signature));

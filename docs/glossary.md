@@ -1,5 +1,9 @@
 # Glossary
 
+## Arrangement Fee
+
+Share of a Farm Project's requested amount, in basis points per Pool, that the Producer pays for arranging the financing. Withheld on-chain at disbursement and sent to the Treasury. Set by the Issuer while the Pool is Draft, capped by FeeConfig and by the Program at 10%.
+
 ## Attestation
 
 A statement about a Field signed by the SCAS key: the field exists with given boundaries, sowing happened, the vegetation index is in a given range, or the harvest was delivered. The full evidence lives off-chain; its hash, the signer and the verdict are recorded on Solana.
@@ -20,6 +24,10 @@ One Producer's financing request for one season: fields, crop, expected yield an
 
 A plot of land with a polygon boundary that a Producer owns or has the legal right to use.
 
+## Gas Sponsor
+
+The platform key that pays Solana transaction fees and the rent of accounts created for users, so investors and Producers need no SOL. It co-signs a user transaction only after the server checks it holds exactly the expected instructions.
+
 ## Instrument
 
 The investment token issued for a Pool, for example `WHEAT-2027`. An investor buys the Instrument, not specific tonnes of grain from a specific farmer.
@@ -32,9 +40,17 @@ The legal entity that issues the Instrument and carries the obligations under it
 
 Unfreezing an investor's token account after KYC passes. Token accounts of the Instrument are created frozen by default.
 
+## Mint Fee
+
+Flat USDC fee (3 USDC on devnet) the Producer prepays to the Treasury when registering a Farm Project.
+
 ## NDVI
 
 Normalized Difference Vegetation Index, computed from Sentinel-2 red and near-infrared bands. Used by SCAS to confirm sowing and track crop health.
+
+## Network Fee
+
+Flat USDC fee (0.50 USDC on devnet) the investor pays to the Treasury on top of each subscription. It buys no Instrument.
 
 ## Pool
 
@@ -75,3 +91,7 @@ The harvest delivered against a Farm Project is below the tokenized volume or be
 ## Tokenized Share
 
 The part of a Farm Project's expected harvest that backs the Instrument. Fixed at 30% of expected harvest.
+
+## Treasury
+
+The Field-to-Finance wallet named in FeeConfig; every fee goes to its USDC account.
