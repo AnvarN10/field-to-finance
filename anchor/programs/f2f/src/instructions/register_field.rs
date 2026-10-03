@@ -4,13 +4,15 @@ use crate::{constants::*, error::F2fError, state::{FarmProject, Field}};
 
 #[derive(Accounts)]
 pub struct RegisterField<'info> {
-    #[account(mut)]
     pub producer: Signer<'info>,
+    /// Pays rent for the field account: the platform gas sponsor, or the producer themself.
+    #[account(mut)]
+    pub payer: Signer<'info>,
     #[account(mut, has_one = producer @ F2fError::Unauthorized)]
     pub project: Account<'info, FarmProject>,
     #[account(
         init,
-        payer = producer,
+        payer = payer,
         space = 8 + Field::INIT_SPACE,
         seeds = [FIELD_SEED, project.key().as_ref(), &[project.field_count]],
         bump

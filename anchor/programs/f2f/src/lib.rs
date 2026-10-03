@@ -1,5 +1,7 @@
 pub mod constants;
 pub mod error;
+pub mod events;
+pub mod fees;
 pub mod instructions;
 pub mod math;
 pub mod state;
@@ -7,6 +9,7 @@ pub mod state;
 use anchor_lang::prelude::*;
 
 pub use constants::*;
+pub use events::*;
 pub use instructions::*;
 pub use state::*;
 
@@ -97,5 +100,17 @@ pub mod f2f {
 
     pub fn sweep(ctx: Context<Sweep>) -> Result<()> {
         instructions::sweep::handle_sweep(ctx)
+    }
+
+    pub fn init_fee_config(ctx: Context<InitFeeConfig>, network_fee: u64, mint_fee: u64, max_arrangement_bps: u16) -> Result<()> {
+        instructions::fee_config::handle_init_fee_config(ctx, network_fee, mint_fee, max_arrangement_bps)
+    }
+
+    pub fn update_fee_config(ctx: Context<UpdateFeeConfig>, network_fee: u64, mint_fee: u64, max_arrangement_bps: u16) -> Result<()> {
+        instructions::fee_config::handle_update_fee_config(ctx, network_fee, mint_fee, max_arrangement_bps)
+    }
+
+    pub fn set_arrangement_fee(ctx: Context<SetArrangementFee>, bps: u16) -> Result<()> {
+        instructions::set_arrangement_fee::handle_set_arrangement_fee(ctx, bps)
     }
 }

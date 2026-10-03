@@ -33,7 +33,9 @@ fn only_the_producer_can_add_fields() {
     let mut env = setup_configured();
     let project = seed_project(&mut env, 1, 0);
     let stranger = env.investor.insecure_clone();
-    let mut i = register_field_ix(&env, project, 0, [9; 32], 100);
+    // The stranger signs as producer and pays the rent.
+    let i = register_field_full_ix(&env, project, 0, [9; 32], 100, stranger.pubkey());
+    let mut i = i;
     i.accounts[0].pubkey = stranger.pubkey();
     let err = env.send_err(&[i], &stranger, &[]);
     assert!(err.contains("ConstraintHasOne") || err.contains("Unauthorized"), "{err}");

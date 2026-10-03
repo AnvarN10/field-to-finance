@@ -26,6 +26,10 @@ pub struct Env {
     pub producer: Keypair,
     pub investor: Keypair,
     pub usdc_mint: Keypair,
+    /// Platform gas sponsor: pays transaction fees and rent for user accounts.
+    pub sponsor: Keypair,
+    /// Fee treasury wallet. Holds no SOL; its USDC ATA is created by `init_fee_config`.
+    pub treasury: Keypair,
 }
 
 impl Env {
@@ -84,6 +88,8 @@ pub fn pda_attestation(field: &Pubkey, seq: u32) -> Pubkey {
     pda(&[f2f::ATTESTATION_SEED, field.as_ref(), &seq.to_le_bytes()])
 }
 pub fn pda_investor(wallet: &Pubkey) -> Pubkey { pda(&[f2f::INVESTOR_SEED, wallet.as_ref()]) }
+pub fn pda_fees() -> Pubkey { pda(&[f2f::FEES_SEED]) }
+pub fn pda_terms(pool: &Pubkey) -> Pubkey { pda(&[f2f::TERMS_SEED, pool.as_ref()]) }
 
 pub fn ata(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
     get_associated_token_address_with_program_id(owner, mint, token_program)
@@ -126,7 +132,7 @@ pub fn warp_to(svm: &mut LiteSVM, unix_timestamp: i64) {
 pub fn setup() -> Env {
     let mut svm = LiteSVM::new();
     svm.add_program(program_id(), include_bytes!(concat!(env!("CARGO_TARGET_TMPDIR"), "/../deploy/f2f.so"))).unwrap();
-    let env_keys: Vec<Keypair> = (0..7).map(|_| Keypair::new()).collect();
+    let env_keys: Vec<Keypair> = (0..9).map(|_| Keypair::new()).collect();
     for k in &env_keys[..6] {
         svm.airdrop(&k.pubkey(), 100_000_000_000).unwrap();
     }
@@ -139,8 +145,11 @@ pub fn setup() -> Env {
         producer: it.next().unwrap(),
         investor: it.next().unwrap(),
         usdc_mint: it.next().unwrap(),
+        sponsor: it.next().unwrap(),
+        treasury: it.next().unwrap(),
         svm,
     };
+    env.svm.airdrop(&env.sponsor.pubkey(), 100_000_000_000).unwrap();
     create_usdc_mint(&mut env.svm, &env.admin, &env.usdc_mint);
     env
 }
@@ -170,22 +179,50 @@ pub const SPL_TOKEN: Pubkey = spl_token::ID;
 pub const TOKEN_2022: Pubkey = spl_token_2022::ID;
 
 pub fn register_project_ix(env: &Env, project_id: u64, crop: &str, season: u16, expected_kg: u64, requested: u64) -> Instruction {
+    register_project_full_ix(env, project_id, crop, season, expected_kg, requested, env.producer.pubkey(), None, false)
+}
+
+/// `payer` pays rent for the project account; `with_usdc` passes the producer's USDC accounts for the mint fee.
+#[allow(clippy::too_many_arguments)]
+pub fn register_project_full_ix(
+    env: &Env,
+    project_id: u64,
+    crop: &str,
+    season: u16,
+    expected_kg: u64,
+    requested: u64,
+    payer: Pubkey,
+    treasury_usdc: Option<Pubkey>,
+    with_usdc: bool,
+) -> Instruction {
     let producer = env.producer.pubkey();
     ix(
         f2f::instruction::RegisterProject { project_id, crop: crop.to_string(), season, expected_kg, requested_amount: requested },
         f2f::accounts::RegisterProject {
             producer,
+            payer,
+            config: pda_config(),
             project: pda_project(&producer, project_id),
+            fee_config: pda_fees(),
+            usdc_mint: with_usdc.then(|| env.usdc_mint.pubkey()),
+            producer_usdc: with_usdc.then(|| ata(&producer, &env.usdc_mint.pubkey(), &SPL_TOKEN)),
+            treasury_usdc,
+            usdc_token_program: with_usdc.then_some(SPL_TOKEN),
             system_program: system_program::ID,
         },
     )
 }
 
 pub fn register_field_ix(env: &Env, project: Pubkey, index: u8, polygon_hash: [u8; 32], area_ha_x100: u32) -> Instruction {
+    register_field_full_ix(env, project, index, polygon_hash, area_ha_x100, env.producer.pubkey())
+}
+
+pub fn register_field_full_ix(env: &Env, project: Pubkey, index: u8, polygon_hash: [u8; 32], area_ha_x100: u32, payer: Pubkey) -> Instruction {
     ix(
         f2f::instruction::RegisterField { polygon_hash, area_ha_x100 },
         f2f::accounts::RegisterField {
             producer: env.producer.pubkey(),
+            payer,
             project,
             field: pda_field(&project, index),
             system_program: system_program::ID,
@@ -197,7 +234,14 @@ pub fn register_field_ix(env: &Env, project: Pubkey, index: u8, polygon_hash: [u
 pub fn seed_project(env: &mut Env, project_id: u64, fields: u8) -> Pubkey {
     let producer = env.producer.insecure_clone();
     let project = pda_project(&producer.pubkey(), project_id);
-    env.send(&[register_project_ix(env, project_id, "wheat", 2027, 4_000_000, 100_000 * USDC)], &producer, &[]).unwrap();
+    // With fees configured the producer prepays the mint fee in USDC.
+    let rp = if env.svm.get_account(&pda_fees()).is_some() {
+        fund_usdc(env, &producer.pubkey(), MINT_FEE);
+        register_project_full_ix(env, project_id, "wheat", 2027, 4_000_000, 100_000 * USDC, producer.pubkey(), Some(treasury_usdc(env)), true)
+    } else {
+        register_project_ix(env, project_id, "wheat", 2027, 4_000_000, 100_000 * USDC)
+    };
+    env.send(&[rp], &producer, &[]).unwrap();
     for i in 0..fields {
         env.send(&[register_field_ix(env, project, i, [i + 1; 32], 100_000)], &producer, &[]).unwrap();
     }
@@ -309,12 +353,18 @@ pub fn approve_ix(env: &Env, wallet: Pubkey) -> Instruction {
 }
 
 pub fn subscribe_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64) -> Instruction {
+    subscribe_full_ix(env, pool_id, investor, amount, investor, None)
+}
+
+/// `payer` pays rent for the Instrument account (the gas sponsor, or the investor themself).
+pub fn subscribe_full_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64, payer: Pubkey, treasury_usdc: Option<Pubkey>) -> Instruction {
     let pool = pda_pool(pool_id);
     let mint = pda_mint(&pool);
     ix(
         f2f::instruction::Subscribe { amount },
         f2f::accounts::Subscribe {
             investor,
+            payer,
             pool,
             investor_record: pda_investor(&investor),
             mint,
@@ -322,6 +372,8 @@ pub fn subscribe_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64) -> I
             usdc_mint: env.usdc_mint.pubkey(),
             investor_usdc: ata(&investor, &env.usdc_mint.pubkey(), &SPL_TOKEN),
             vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            fee_config: pda_fees(),
+            treasury_usdc,
             token_program: TOKEN_2022,
             usdc_token_program: SPL_TOKEN,
             associated_token_program: spl_associated_token_account_interface::program::ID,
@@ -347,6 +399,10 @@ pub fn seed_funded_pool(env: &mut Env) -> (Pubkey, Pubkey) {
 }
 
 pub fn disburse_ix(env: &Env, pool_id: u64, project: Pubkey) -> Instruction {
+    disburse_full_ix(env, pool_id, project, None)
+}
+
+pub fn disburse_full_ix(env: &Env, pool_id: u64, project: Pubkey, treasury_usdc: Option<Pubkey>) -> Instruction {
     let pool = pda_pool(pool_id);
     let producer = env.producer.pubkey();
     ix(
@@ -360,6 +416,9 @@ pub fn disburse_ix(env: &Env, pool_id: u64, project: Pubkey) -> Instruction {
             usdc_mint: env.usdc_mint.pubkey(),
             vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
             producer_usdc: ata(&producer, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            pool_terms: pda_terms(&pool),
+            fee_config: pda_fees(),
+            treasury_usdc,
             usdc_token_program: SPL_TOKEN,
             associated_token_program: spl_associated_token_account_interface::program::ID,
             system_program: system_program::ID,
@@ -459,6 +518,79 @@ pub fn sweep_ix(env: &Env, pool_id: u64) -> Instruction {
             vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
             issuer_usdc: ata(&env.issuer.pubkey(), &env.usdc_mint.pubkey(), &SPL_TOKEN),
             usdc_token_program: SPL_TOKEN,
+        },
+    )
+}
+
+pub fn treasury_usdc(env: &Env) -> Pubkey {
+    ata(&env.treasury.pubkey(), &env.usdc_mint.pubkey(), &SPL_TOKEN)
+}
+
+pub const NETWORK_FEE: u64 = 500_000;
+pub const MINT_FEE: u64 = 3 * USDC;
+
+pub struct FeeArgs {
+    pub network_fee: u64,
+    pub mint_fee: u64,
+    pub max_arrangement_bps: u16,
+}
+
+pub fn default_fee_args() -> FeeArgs {
+    FeeArgs { network_fee: NETWORK_FEE, mint_fee: MINT_FEE, max_arrangement_bps: 1_000 }
+}
+
+pub fn init_fee_config_ix(env: &Env, admin: Pubkey, treasury: Pubkey, a: FeeArgs) -> Instruction {
+    ix(
+        f2f::instruction::InitFeeConfig { network_fee: a.network_fee, mint_fee: a.mint_fee, max_arrangement_bps: a.max_arrangement_bps },
+        f2f::accounts::InitFeeConfig {
+            admin,
+            config: pda_config(),
+            fee_config: pda_fees(),
+            treasury,
+            usdc_mint: env.usdc_mint.pubkey(),
+            treasury_usdc: ata(&treasury, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            usdc_token_program: SPL_TOKEN,
+            associated_token_program: spl_associated_token_account_interface::program::ID,
+            system_program: system_program::ID,
+        },
+    )
+}
+
+pub fn update_fee_config_ix(env: &Env, admin: Pubkey, treasury: Pubkey, a: FeeArgs) -> Instruction {
+    ix(
+        f2f::instruction::UpdateFeeConfig { network_fee: a.network_fee, mint_fee: a.mint_fee, max_arrangement_bps: a.max_arrangement_bps },
+        f2f::accounts::UpdateFeeConfig {
+            admin,
+            config: pda_config(),
+            fee_config: pda_fees(),
+            treasury,
+            usdc_mint: env.usdc_mint.pubkey(),
+            treasury_usdc: ata(&treasury, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            usdc_token_program: SPL_TOKEN,
+            associated_token_program: spl_associated_token_account_interface::program::ID,
+            system_program: system_program::ID,
+        },
+    )
+}
+
+/// Configures fees: treasury = `env.treasury`, 0.5 USDC network fee, 3 USDC mint fee, 1,000 bps cap.
+pub fn setup_fees(env: &mut Env) {
+    let admin = env.admin.insecure_clone();
+    let i = init_fee_config_ix(env, admin.pubkey(), env.treasury.pubkey(), default_fee_args());
+    env.send(&[i], &admin, &[]).unwrap();
+}
+
+pub fn set_arrangement_fee_ix(env: &Env, issuer: Pubkey, pool_id: u64, bps: u16) -> Instruction {
+    let pool = pda_pool(pool_id);
+    ix(
+        f2f::instruction::SetArrangementFee { bps },
+        f2f::accounts::SetArrangementFee {
+            issuer,
+            config: pda_config(),
+            pool,
+            fee_config: pda_fees(),
+            pool_terms: pda_terms(&pool),
+            system_program: system_program::ID,
         },
     )
 }

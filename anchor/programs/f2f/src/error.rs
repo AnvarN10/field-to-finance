@@ -66,4 +66,10 @@ pub enum F2fError {
     InstrumentOutstanding,
     #[msg("Math overflow")]
     MathOverflow,
+    #[msg("Fee is above the allowed cap")]
+    FeeTooHigh,
+    #[msg("Treasury account is not the fee treasury's USDC account")]
+    InvalidTreasury,
+    #[msg("A fee is due but its accounts were not provided")]
+    MissingFeeAccount,
 }

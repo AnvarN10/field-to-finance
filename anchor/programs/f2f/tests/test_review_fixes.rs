@@ -125,7 +125,9 @@ fn another_pools_vault_cannot_be_substituted() {
     fund_usdc(&mut env, &investor.pubkey(), 1_000 * USDC);
     env.send(&[approve_ix(&env, investor.pubkey())], &compliance, &[]).unwrap();
     let mut i = subscribe_ix(&env, 1, investor.pubkey(), 1_000 * USDC);
-    i.accounts[7].pubkey = ata(&pda_pool(2), &env.usdc_mint.pubkey(), &SPL_TOKEN);
+    let vault1 = ata(&pda_pool(1), &env.usdc_mint.pubkey(), &SPL_TOKEN);
+    let slot = i.accounts.iter().position(|m| m.pubkey == vault1).unwrap();
+    i.accounts[slot].pubkey = ata(&pda_pool(2), &env.usdc_mint.pubkey(), &SPL_TOKEN);
     let err = env.send_err(&[i], &investor, &[]);
     assert!(err.contains("ConstraintAddress"), "{err}");
 }

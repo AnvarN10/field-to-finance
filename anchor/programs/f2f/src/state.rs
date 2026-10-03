@@ -127,3 +127,29 @@ pub struct InvestorRecord {
     pub approved_at: i64,
     pub bump: u8,
 }
+
+/// Platform fee settings. Singleton PDA `["fees"]`, controlled by `Config.admin`.
+/// Fees are charged only while this account exists; old deployments without it charge nothing.
+#[account]
+#[derive(InitSpace)]
+pub struct FeeConfig {
+    /// Wallet that receives every fee; fees land in its USDC associated token account.
+    pub treasury: Pubkey,
+    /// USDC base units added to each subscription, paid by the investor.
+    pub network_fee: u64,
+    /// USDC base units prepaid by the producer at `register_project`.
+    pub mint_fee: u64,
+    /// Upper bound for `PoolTerms.arrangement_fee_bps`, itself at most `MAX_ARRANGEMENT_BPS`.
+    pub max_arrangement_bps: u16,
+    pub bump: u8,
+}
+
+/// Per-pool commercial terms, PDA `["terms", pool]`. Set by the Issuer while the pool is Draft.
+/// A pool without this account (every pool created before fees) has a zero arrangement fee.
+#[account]
+#[derive(InitSpace)]
+pub struct PoolTerms {
+    /// Share of each project's requested amount withheld for the treasury at disbursement.
+    pub arrangement_fee_bps: u16,
+    pub bump: u8,
+}

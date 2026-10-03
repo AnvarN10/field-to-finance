@@ -46,3 +46,9 @@ pub mod sweep;
 
 pub use revoke_investor::*;
 pub use sweep::*;
+
+pub mod fee_config;
+pub mod set_arrangement_fee;
+
+pub use fee_config::*;
+pub use set_arrangement_fee::*;
