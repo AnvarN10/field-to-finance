@@ -7,7 +7,7 @@ date: "2026-10-03"
 
 ## Context
 
-The hackathon lasts five weeks. The team needs the fastest path to a working, demoable program and UI.
+About nine days remain until the submission deadline on 2026-10-12. The team needs the fastest path to a working, demoable program and UI.
 
 ## Decision
 

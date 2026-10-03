@@ -7,7 +7,7 @@ date: "2026-10-03"
 
 ## Context
 
-The business model has ten roles. A five-week build cannot implement them as separate systems. On Solana, matching, clearing and registry updates can happen in one atomic transaction.
+The business model has ten roles. A build of about nine days cannot implement them as separate systems. On Solana, matching, clearing and registry updates can happen in one atomic transaction.
 
 ## Decision
 
