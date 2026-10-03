@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { ConnectButton } from "@/components/wallet/connect-button";
+import { HeaderWalletButton } from "@/components/wallet/connect-button";
 import { WalletProviders } from "@/components/wallet/wallet-providers";
 import "./globals.css";
 
@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${brand.variable} ${code.variable}`}>
       <body className="flex min-h-dvh flex-col font-sans">
         <WalletProviders>
-          <SiteHeader walletSlot={<ConnectButton />} />
+          <SiteHeader walletSlot={<HeaderWalletButton />} />
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">{children}</main>
           <SiteFooter />
         </WalletProviders>
