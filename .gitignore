@@ -12,3 +12,4 @@ test-ledger/
 *.keypair.json
 id.json
 .DS_Store
+.superpowers/

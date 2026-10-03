@@ -1,0 +1,18 @@
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+f2f = "9syreF6kWfmMfoCkTSE8f7p3kRY1Bh7TSDjGAr9s6Jfm"
+
+[programs.devnet]
+f2f = "9syreF6kWfmMfoCkTSE8f7p3kRY1Bh7TSDjGAr9s6Jfm"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test -p f2f"

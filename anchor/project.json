@@ -1,0 +1,16 @@
+{
+  "name": "f2f-program",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "anchor build", "cwd": "anchor" },
+      "outputs": ["{projectRoot}/target/deploy", "{projectRoot}/target/idl", "{projectRoot}/target/types"]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "cargo test -p f2f", "cwd": "anchor" }
+    }
+  }
+}

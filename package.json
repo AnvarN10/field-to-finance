@@ -1,0 +1,12 @@
+{
+  "name": "field-to-finance",
+  "private": true,
+  "packageManager": "pnpm@12.3.4",
+  "scripts": {
+    "build": "nx run-many -t build",
+    "test": "nx run-many -t test"
+  },
+  "devDependencies": {
+    "nx": "23.2.1"
+  }
+}
