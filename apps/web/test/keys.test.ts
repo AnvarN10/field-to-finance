@@ -29,3 +29,27 @@ describe("parseKeypair", () => {
     }
   });
 });
+
+describe("assertRoleKeys", () => {
+  it("fails at boot for a set but malformed role key, naming the variable only", async () => {
+    const { assertRoleKeys } = await import("../src/lib/keys");
+    const good = JSON.stringify(Array.from(Keypair.generate().secretKey));
+    expect(() => assertRoleKeys({ F2F_ISSUER_KEYPAIR: good })).not.toThrow();
+    expect(() => assertRoleKeys({})).not.toThrow();
+    expect(() => assertRoleKeys({ F2F_ISSUER_KEYPAIR: good, SCAS_SECRET_KEY: "[1,2,3]" })).toThrow("SCAS_SECRET_KEY must be a JSON array of 64 bytes");
+    try {
+      assertRoleKeys({ F2F_COMPLIANCE_KEYPAIR: "secret-value-here" });
+    } catch (e) {
+      expect((e as Error).message).not.toContain("secret-value-here");
+    }
+  });
+});
+
+describe("roleKeyProblem", () => {
+  it("tells missing from malformed", async () => {
+    const { roleKeyProblem } = await import("../src/lib/keys");
+    expect(roleKeyProblem("F2F_ISSUER_KEYPAIR", undefined)).toBe("F2F_ISSUER_KEYPAIR is not set");
+    expect(roleKeyProblem("F2F_ISSUER_KEYPAIR", "nope")).toBe("F2F_ISSUER_KEYPAIR is not valid JSON; expected the 64-byte array from solana-keygen");
+    expect(roleKeyProblem("F2F_ISSUER_KEYPAIR", JSON.stringify(Array.from(Keypair.generate().secretKey)))).toBeNull();
+  });
+});

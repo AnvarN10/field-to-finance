@@ -43,7 +43,7 @@ describe("explainChainError", () => {
 
   it("tells the user to switch networks when the wallet does not know the blockhash", () => {
     expect(explainChainError({ error: new Error("Transaction simulation failed: Blockhash not found") })).toMatchObject({
-      code: "WrongNetworkOrExpired",
+      code: "WrongNetwork",
       title: "Your wallet is on a different network",
       action: "switch-network",
     });
@@ -73,5 +73,14 @@ describe("explainChainError fallback for unknown program errors", () => {
   it("names a way to recover", () => {
     const e = explainChainError({ logs: ["Program log: AnchorError occurred. Error Code: SomethingNew. Error Number: 6099."] });
     expect(e.detail).toMatch(/Reload the page and try again/);
+  });
+});
+
+describe("expired transaction", () => {
+  it("is reported as expired with a retry, not as a network mismatch", async () => {
+    const { explainChainError } = await import("../src/lib/chain/explain");
+    const e = explainChainError({ error: new Error("Signature abc has expired: block height exceeded.") });
+    expect(e.title).toBe("The transaction expired before it landed");
+    expect(e.action).toBe("retry");
   });
 });

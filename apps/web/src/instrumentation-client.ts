@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
-import { SENTRY_BASE, posthogOptions, scrubEvent } from "./src/lib/observability";
-import { publicEnv } from "./src/lib/public-env";
+import { SENTRY_BASE, posthogOptions, scrubEvent } from "./lib/observability";
+import { publicEnv } from "./lib/public-env";
 
 if (publicEnv.NEXT_PUBLIC_SENTRY_DSN) {
   Sentry.init({

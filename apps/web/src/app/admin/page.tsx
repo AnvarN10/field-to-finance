@@ -11,6 +11,7 @@ import { EmptyState, ErrorState } from "@/components/state";
 import { ADMIN_COOKIE, isAdminToken } from "@/lib/admin-auth";
 import { nextPoolId, roleMismatches } from "@/lib/chain/admin-ops";
 import { formatHa } from "@/lib/format";
+import { roleKeyProblem } from "@/lib/keys";
 import { getReader, roleKeypair } from "@/lib/server/context";
 import { serverEnv } from "@/lib/server/env";
 import { logoutAction, verifyAllFieldsAction } from "./actions";
@@ -18,7 +19,9 @@ import { logoutAction, verifyAllFieldsAction } from "./actions";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Demo console", robots: { index: false } };
 
-function safeKey(role: "issuer" | "compliance" | "scas"): string | undefined {
+const ROLE_VAR = { issuer: "F2F_ISSUER_KEYPAIR", compliance: "F2F_COMPLIANCE_KEYPAIR", scas: "SCAS_SECRET_KEY" } as const;
+
+function safeKey(role: keyof typeof ROLE_VAR): string | undefined {
   try {
     return roleKeypair(role).publicKey.toBase58();
   } catch {
@@ -41,7 +44,11 @@ export default async function AdminPage() {
   }
   const keys = { issuer: safeKey("issuer"), compliance: safeKey("compliance"), scas: safeKey("scas") };
   const mismatches = roleMismatches(data.config, keys);
-  const missing = Object.entries(keys).filter(([, v]) => !v).map(([k]) => k);
+  // Says whether a key is missing or malformed, by variable name only.
+  const env = serverEnv();
+  const keyProblems = (Object.keys(ROLE_VAR) as (keyof typeof ROLE_VAR)[])
+    .map((r) => roleKeyProblem(ROLE_VAR[r], env[ROLE_VAR[r]]))
+    .filter((m): m is string => m !== null);
   const unverified = data.unpooled.flatMap((p) => p.fields.filter((f) => !f.verified));
   const now = Math.floor(Date.now() / 1000);
 
@@ -56,9 +63,9 @@ export default async function AdminPage() {
         </form>
       </header>
 
-      {mismatches.length || missing.length ? (
+      {mismatches.length || keyProblems.length ? (
         <div role="alert" className="rounded-lg border border-destructive bg-card p-4 text-sm">
-          {missing.length ? <p>{`Missing keys on the server: ${missing.join(", ")}. Add them to Infisical (field-to-finance, dev) and restart the server.`}</p> : null}
+          {keyProblems.length ? <p>{`Server keys need attention: ${keyProblems.join("; ")}. Fix them in Infisical (field-to-finance, dev) and on Railway, then restart.`}</p> : null}
           {mismatches.map((m) => <p key={m}>{m}</p>)}
         </div>
       ) : null}

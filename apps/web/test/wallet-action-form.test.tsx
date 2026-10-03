@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -14,7 +14,7 @@ describe("WalletActionForm", () => {
     const input = screen.getByLabelText("Wallet to approve");
     await userEvent.type(input, "not-a-wallet");
     await userEvent.click(screen.getByRole("button", { name: /Approve investor/ }));
-    expect(input).toHaveAttribute("aria-invalid", "true");
+    await waitFor(() => expect(input).toHaveAttribute("aria-invalid", "true"));
     expect(input).toHaveAccessibleDescription("Enter a Solana address: 32 to 44 base58 characters");
     expect(approveInvestorAction).not.toHaveBeenCalled();
   });

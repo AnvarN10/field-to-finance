@@ -18,11 +18,11 @@ export async function POST(req: Request) {
   }
   try {
     await confirmOrThrow(getConnection(), b.data.signature, b.data.blockhash, b.data.lastValidBlockHeight);
+    // Only a confirmed transaction changes chain state; junk signatures must not defeat the read cache.
+    invalidateReads();
     return Response.json({ ok: true });
   } catch (e) {
     const logs = e instanceof ChainTxError ? e.logs : [];
     return Response.json({ ok: false, error: explainChainError({ logs, error: e }), logs, signature: b.data.signature }, { status: 422 });
-  } finally {
-    invalidateReads();
   }
 }

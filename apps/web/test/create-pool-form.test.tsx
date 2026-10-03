@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -32,7 +32,8 @@ describe("CreatePoolForm", () => {
     await userEvent.clear(premium);
     await userEvent.type(premium, "7");
     await userEvent.click(screen.getByRole("button", { name: /Create pool/ }));
-    expect(premium).toHaveAttribute("aria-invalid", "true");
+    // The check runs inside ActionButton's async transition.
+    await waitFor(() => expect(premium).toHaveAttribute("aria-invalid", "true"));
     expect(premium).toHaveAccessibleDescription("Premium must be between 5% and 6%");
     expect(premium).toHaveFocus();
     expect(createPoolAction).not.toHaveBeenCalled();
@@ -45,7 +46,7 @@ describe("CreatePoolForm", () => {
     await userEvent.clear(maturity);
     await userEvent.type(maturity, "5");
     await userEvent.click(screen.getByRole("button", { name: /Create pool/ }));
-    expect(maturity).toHaveAttribute("aria-invalid", "true");
+    await waitFor(() => expect(maturity).toHaveAttribute("aria-invalid", "true"));
     expect(maturity).toHaveAccessibleDescription("Maturity must come after the subscription close");
     expect(screen.getByLabelText("Premium (%)")).not.toHaveAttribute("aria-invalid");
     expect(createPoolAction).not.toHaveBeenCalled();

@@ -26,7 +26,7 @@ Pool, Instrument, Farm Project, Field, Attestation, KYC Thaw, Shortfall. See the
 
 ## How the system works
 
-- **Reads.** Server components call a `ChainReader` that uses `program.account.*.all()` with memcmp filters (projects by producer or pool, fields by project, attestations by field) and decodes Token-2022 metadata for the Instrument name and symbol. Results are cached in process for 5 seconds; every server-sent or server-confirmed transaction clears the cache.
+- **Reads.** Server components call a `ChainReader` that uses `program.account.*.all()` with memcmp filters (projects by producer or pool, fields by project, attestations by field) and decodes Token-2022 metadata for the Instrument name and symbol. Results are cached in process for 5 seconds; every server-sent transaction and every confirmed browser transaction clears the cache (a signature that does not confirm leaves it alone).
 - **User transactions.** The browser posts intent to `/api/tx/<action>` (`register-project`, `subscribe`, `refund`, `redeem`). The server builds a v0 transaction with `accountsStrict`, simulates it without signatures, and returns either the unsigned transaction or a plain-language error. The wallet signs and sends; the browser posts the signature to `/api/tx/confirm`, which confirms on the server's RPC and refreshes reads. A program rejection, such as a subscribe from a wallet without KYC, is shown before the wallet opens.
 - **Wallets.** Investors use the Solana wallet adapter (Phantom and other Wallet Standard wallets). Producers sign in with email through Privy and get an embedded Solana wallet; without `NEXT_PUBLIC_PRIVY_APP_ID` the farmer view falls back to the wallet adapter.
 - **Server-signed actions.** Admin server actions and the KYC and faucet routes sign with keys from the environment: Issuer (pool lifecycle), compliance (`approve_investor`, `revoke_investor`), SCAS (stub attestations), deployer (test-USDC mint authority, SOL top-ups).
@@ -87,7 +87,8 @@ Program and wallet errors go through `explainChainError` into a title, a detail 
 - The demo console is protected by `ADMIN_PASSWORD` (HMAC session cookie, httpOnly, SameSite strict). It is a demo control, not production auth.
 - Mock KYC values are validated and discarded; nothing personal is stored, logged or sent to analytics.
 - Evidence and polygons are public. Do not upload real pilot contours without the farmers' consent.
-- The faucet is rate-limited per wallet and mints only test USDC.
+- The faucet mints only test USDC. Limits: 60 s per wallet, 3 requests per IP per 10 minutes, 30 per hour in total. Mock KYC: 5 approvals per IP per 10 minutes, 60 per hour in total, and an already approved wallet costs nothing. Both protect the deployer and compliance balances from fresh-wallet loops.
+- A set but malformed role key fails the server boot (`assertRoleKeys` in `src/instrumentation.ts`), so the Railway healthcheck fails instead of serving a broken console; the admin console names a missing or malformed key by variable.
 
 ## Observability and debugging
 

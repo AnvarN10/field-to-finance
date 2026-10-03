@@ -22,3 +22,23 @@ export function parseKeypair(name: string, raw: string | undefined): Keypair {
   }
   return Keypair.fromSecretKey(Uint8Array.from(bytes as number[]));
 }
+
+export const ROLE_KEY_VARS = ["F2F_DEPLOYER_KEYPAIR", "F2F_ISSUER_KEYPAIR", "F2F_COMPLIANCE_KEYPAIR", "SCAS_SECRET_KEY"] as const;
+
+/** Boot check: every role key that is set must parse. Unset keys are allowed (their features say so). */
+export function assertRoleKeys(source: Record<string, string | undefined>): void {
+  for (const name of ROLE_KEY_VARS) {
+    const raw = source[name];
+    if (raw !== undefined && raw.trim() !== "") parseKeypair(name, raw);
+  }
+}
+
+/** The admin console's message for a role key: null when it parses, else what is wrong (missing or malformed). */
+export function roleKeyProblem(name: string, raw: string | undefined): string | null {
+  try {
+    parseKeypair(name, raw);
+    return null;
+  } catch (e) {
+    return (e as Error).message;
+  }
+}

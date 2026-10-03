@@ -93,11 +93,14 @@ export function explainChainError(input: { logs?: readonly string[] | null; erro
   if (/User rejected|rejected the request|Approval Denied/i.test(text)) {
     return { code: "UserRejected", title: "Signature cancelled", detail: "Nothing was sent. You can try again.", action: "none" };
   }
-  if (/Blockhash not found|BlockhashNotFound|block height exceeded/i.test(text)) {
+  if (/block height exceeded|has expired/i.test(text)) {
+    return { code: "Expired", title: "The transaction expired before it landed", detail: "Devnet was slow or the approval took too long. Nothing was charged; try again.", action: "retry" };
+  }
+  if (/Blockhash not found|BlockhashNotFound/i.test(text)) {
     return {
-      code: "WrongNetworkOrExpired",
+      code: "WrongNetwork",
       title: "Your wallet is on a different network",
-      detail: "Switch your wallet to Devnet and try again. If it already is on Devnet, the transaction expired; try again.",
+      detail: "Switch your wallet to Devnet and try again.",
       action: "switch-network",
     };
   }
