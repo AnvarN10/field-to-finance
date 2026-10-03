@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Demo field A" },
+      "geometry": { "type": "Polygon", "coordinates": [[[63.6, 53.2], [63.612, 53.2], [63.612, 53.2063], [63.6, 53.2063], [63.6, 53.2]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Demo field B" },
+      "geometry": { "type": "Polygon", "coordinates": [[[63.62, 53.2], [63.63, 53.2], [63.63, 53.207], [63.62, 53.207], [63.62, 53.2]]] }
+    }
+  ]
+}
