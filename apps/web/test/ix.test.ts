@@ -1,4 +1,4 @@
-import { attestationPda, fieldPda, investorPda, mintPda, poolPda, projectPda } from "@f2f/sdk";
+import { attestationPda, feesPda, fieldPda, investorPda, mintPda, poolPda, projectPda, termsPda } from "@f2f/sdk";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Keypair, type TransactionInstruction } from "@solana/web3.js";
 import { describe, expect, it } from "vitest";
@@ -6,12 +6,14 @@ import {
   approveInvestorIx,
   createInstrumentAtaIx,
   createPoolIx,
+  disburseIx,
   hexToBytes,
   recordAttestationIx,
   recordSettlementIx,
   registerFieldIx,
   registerProjectIx,
   revokeInvestorIx,
+  setArrangementFeeIx,
   subscribeIx,
 } from "../src/lib/chain/ix";
 import { offlineProgram } from "./fixtures/accounts";
@@ -32,9 +34,13 @@ function decode(ix: TransactionInstruction) {
 describe("instruction builders", () => {
   it("registers a project at its PDA", async () => {
     const producer = k();
-    const ix = await registerProjectIx(program, { producer, projectId: 42n, crop: "wheat", season: 2027, expectedKg: 400_000n, requestedAmount: 2_000_000_000n });
+    const payer = k();
+    const ix = await registerProjectIx(program, { producer, payer, projectId: 42n, crop: "wheat", season: 2027, expectedKg: 400_000n, requestedAmount: 2_000_000_000n, fees: null });
     expect(ix.programId.equals(pid)).toBe(true);
-    expect(ix.keys[1]?.pubkey.equals(projectPda(pid, producer, 42n))).toBe(true);
+    expect(ix.keys[3]?.pubkey.equals(projectPda(pid, producer, 42n))).toBe(true);
+    // The sponsor pays rent; the producer only signs.
+    expect(ix.keys[1]).toMatchObject({ pubkey: payer, isSigner: true, isWritable: true });
+    expect(ix.keys[0]).toMatchObject({ pubkey: producer, isSigner: true, isWritable: false });
     const d = decode(ix);
     expect(d.name).toBe("registerproject");
     expect(String(d.data.requestedAmount ?? d.data.requested_amount)).toBe("2000000000");
@@ -44,8 +50,8 @@ describe("instruction builders", () => {
     const producer = k();
     const project = k();
     const hash = "ab".repeat(32);
-    const ix = await registerFieldIx(program, { producer, project, index: 1, polygonHash: hash, areaHaX100: 7611 });
-    expect(ix.keys[2]?.pubkey.equals(fieldPda(pid, project, 1))).toBe(true);
+    const ix = await registerFieldIx(program, { producer, payer: k(), project, index: 1, polygonHash: hash, areaHaX100: 7611 });
+    expect(ix.keys[3]?.pubkey.equals(fieldPda(pid, project, 1))).toBe(true);
     expect(Buffer.from(ix.data).includes(Buffer.from(hash, "hex"))).toBe(true);
   });
 
@@ -100,13 +106,52 @@ describe("instruction builders", () => {
   it("subscribes with the investor record PDA, the Token-2022 instrument account and the programs to create it", async () => {
     const investor = k();
     const mint = k();
-    const ix = await subscribeIx(program, { investor, pool: k(), mint, vault: k(), usdcMint: k(), amount: 250_000_000n });
+    const payer = k();
+    const ix = await subscribeIx(program, { investor, payer, pool: k(), mint, vault: k(), usdcMint: k(), amount: 250_000_000n, treasury: null });
     const keys = ix.keys.map((m) => m.pubkey.toBase58());
     expect(keys).toContain(investorPda(pid, investor).toBase58());
     expect(keys).toContain(getAssociatedTokenAddressSync(mint, investor, false, TOKEN_2022_PROGRAM_ID).toBase58());
     expect(keys).toContain(ASSOCIATED_TOKEN_PROGRAM_ID.toBase58());
-    expect(ix.keys[0]?.isWritable).toBe(true); // investor pays rent for the instrument account
+    expect(keys).toContain(feesPda(pid).toBase58());
+    // The sponsor pays rent for the instrument account; the investor only signs.
+    expect(ix.keys[1]).toMatchObject({ pubkey: payer, isSigner: true, isWritable: true });
+    expect(ix.keys[0]?.isWritable).toBe(false);
     expect(String(decode(ix).data.amount)).toBe("250000000");
+  });
+
+  it("passes the treasury USDC account when fees are configured", async () => {
+    const usdcMint = k();
+    const treasury = k();
+    const ix = await subscribeIx(program, { investor: k(), payer: k(), pool: k(), mint: k(), vault: k(), usdcMint, amount: 1n, treasury });
+    const ata = getAssociatedTokenAddressSync(usdcMint, treasury, false, TOKEN_PROGRAM_ID);
+    expect(ix.keys.some((m) => m.pubkey.equals(ata) && m.isWritable)).toBe(true);
+  });
+
+  it("register_project with fees passes the producer's USDC account for the mint fee", async () => {
+    const producer = k();
+    const usdcMint = k();
+    const treasury = k();
+    const ix = await registerProjectIx(program, { producer, payer: k(), projectId: 1n, crop: "wheat", season: 2027, expectedKg: 1n, requestedAmount: 1n, fees: { usdcMint, treasury } });
+    const keys = ix.keys.map((m) => m.pubkey.toBase58());
+    expect(keys).toContain(getAssociatedTokenAddressSync(usdcMint, producer, false, TOKEN_PROGRAM_ID).toBase58());
+    expect(keys).toContain(getAssociatedTokenAddressSync(usdcMint, treasury, false, TOKEN_PROGRAM_ID).toBase58());
+  });
+
+  it("disburses with the pool's terms PDA and the treasury account", async () => {
+    const pool = k();
+    const usdcMint = k();
+    const treasury = k();
+    const ix = await disburseIx(program, { issuer: k(), pool, project: k(), producer: k(), usdcMint, vault: k(), treasury });
+    const keys = ix.keys.map((m) => m.pubkey.toBase58());
+    expect(keys).toContain(termsPda(pid, pool).toBase58());
+    expect(keys).toContain(getAssociatedTokenAddressSync(usdcMint, treasury, false, TOKEN_PROGRAM_ID).toBase58());
+  });
+
+  it("sets a pool's arrangement fee at its terms PDA", async () => {
+    const pool = k();
+    const ix = await setArrangementFeeIx(program, { issuer: k(), pool, bps: 200 });
+    expect(ix.keys.some((m) => m.pubkey.equals(termsPda(pid, pool)))).toBe(true);
+    expect(decode(ix)).toMatchObject({ name: "setarrangementfee", data: { bps: 200 } });
   });
 
   it("approves an investor platform-wide with only the record accounts", async () => {

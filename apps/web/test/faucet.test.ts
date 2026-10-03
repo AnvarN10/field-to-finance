@@ -3,8 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { createCooldown } from "../src/lib/cooldown";
 import { SOL_TOPUP_LAMPORTS, runFaucet, type FaucetDeps } from "../src/lib/chain/faucet";
 
-function deps(balance: number, cooldown = createCooldown(60_000, () => 0)): FaucetDeps {
+function deps(balance: number, cooldown = createCooldown(60_000, () => 0), sol = true): FaucetDeps {
   return {
+    sol,
     connection: { getBalance: vi.fn(async () => balance) },
     usdcMint: Keypair.generate().publicKey,
     deployer: Keypair.generate().publicKey,
@@ -22,6 +23,15 @@ describe("runFaucet", () => {
     const ixs = vi.mocked(d.send).mock.calls[0]![0];
     expect(ixs[0]?.programId.equals(SystemProgram.programId)).toBe(true);
     expect(ixs).toHaveLength(3); // transfer, create ATA, mintTo
+  });
+
+  it("sends test USDC only, never SOL, when the SOL top-up is off (ADR 0013)", async () => {
+    const d = deps(0, createCooldown(60_000, () => 0), false);
+    const r = await runFaucet(d, Keypair.generate().publicKey, { usdc: true });
+    expect(r).toEqual({ signature: "sigF", solLamports: 0, usdc: "1000000000" });
+    const ixs = vi.mocked(d.send).mock.calls[0]![0];
+    expect(ixs.some((ix) => ix.programId.equals(SystemProgram.programId))).toBe(false);
+    expect(d.connection.getBalance).not.toHaveBeenCalled();
   });
 
   it("does nothing when the wallet already has SOL and no USDC is asked", async () => {

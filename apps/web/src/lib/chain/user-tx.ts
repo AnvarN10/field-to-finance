@@ -5,7 +5,7 @@ import { z } from "zod";
 import { RequestError } from "../errors";
 import { HEX64, polygonKey, type BlobStore } from "../store";
 import { createUsdcAtaIx, redeemIx, refundIx, registerFieldIx, registerProjectIx, subscribeIx } from "./ix";
-import type { PoolView } from "./views";
+import type { FeeView, PoolView } from "./views";
 
 export const TX_ACTIONS = ["register-project", "subscribe", "refund", "redeem"] as const;
 export type TxAction = (typeof TX_ACTIONS)[number];
@@ -35,11 +35,15 @@ export interface UserTxDeps {
   program: Program<F2f>;
   store: BlobStore;
   usdcMint: PublicKey;
+  /** ADR 0013 gas sponsor: transaction fee payer and rent payer. Null when F2F_SPONSOR_KEYPAIR is unset. */
+  sponsor: PublicKey | null;
+  getFees(): Promise<FeeView | null>;
   getPool(poolId: string): Promise<PoolView | null>;
   now?: () => number;
 }
 
 export interface BuiltUserTx {
+  /** Transaction fee payer: always the sponsor. */
   payer: PublicKey;
   instructions: TransactionInstruction[];
   meta: Record<string, string>;
@@ -52,7 +56,10 @@ function parse<T>(schema: z.ZodType<T>, body: unknown): T {
 }
 
 export async function buildUserTx(deps: UserTxDeps, action: TxAction, body: unknown): Promise<BuiltUserTx> {
-  const { program } = deps;
+  const { program, sponsor } = deps;
+  if (!sponsor) throw new RequestError("Gas sponsorship is not configured on this server.", 503);
+  const fees = await deps.getFees();
+  const treasury = fees ? new PublicKey(fees.treasury) : null;
   if (action === "register-project") {
     const b = parse(registerProject, body);
     for (const [i, f] of b.fields.entries()) {
@@ -65,12 +72,23 @@ export async function buildUserTx(deps: UserTxDeps, action: TxAction, body: unkn
     const projectId = BigInt((deps.now ?? Date.now)());
     const project = projectPda(program.programId, producer, projectId);
     const instructions = [
-      await registerProjectIx(program, { producer, projectId, crop: b.crop, season: b.season, expectedKg: b.expectedKg, requestedAmount: b.requestedAmount }),
+      await registerProjectIx(program, {
+        producer,
+        payer: sponsor,
+        projectId,
+        crop: b.crop,
+        season: b.season,
+        expectedKg: b.expectedKg,
+        requestedAmount: b.requestedAmount,
+        fees: treasury ? { usdcMint: deps.usdcMint, treasury } : null,
+      }),
       ...(await Promise.all(
-        b.fields.map((f, index) => registerFieldIx(program, { producer, project, index, polygonHash: f.polygonHash, areaHaX100: f.areaHaX100 })),
+        b.fields.map((f, index) =>
+          registerFieldIx(program, { producer, payer: sponsor, project, index, polygonHash: f.polygonHash, areaHaX100: f.areaHaX100 }),
+        ),
       )),
     ];
-    return { payer: producer, instructions, meta: { projectId: projectId.toString(), project: project.toBase58() } };
+    return { payer: sponsor, instructions, meta: { projectId: projectId.toString(), project: project.toBase58() } };
   }
 
   const b = parse(holder, body);
@@ -88,8 +106,8 @@ export async function buildUserTx(deps: UserTxDeps, action: TxAction, body: unkn
   if (action === "subscribe") {
     // ADR 0011: subscribe creates and thaws the Instrument account itself. A wallet without an approved
     // InvestorRecord fails with AccountNotInitialized or InvestorNotApproved: the demo beat.
-    return { payer: investor, instructions: [await subscribeIx(program, args)], meta: { poolId: b.poolId } };
+    return { payer: sponsor, instructions: [await subscribeIx(program, { ...args, payer: sponsor, treasury })], meta: { poolId: b.poolId } };
   }
   const ix = action === "refund" ? await refundIx(program, args) : await redeemIx(program, args);
-  return { payer: investor, instructions: [createUsdcAtaIx(investor, investor, deps.usdcMint), ix], meta: { poolId: b.poolId } };
+  return { payer: sponsor, instructions: [createUsdcAtaIx(sponsor, investor, deps.usdcMint), ix], meta: { poolId: b.poolId } };
 }

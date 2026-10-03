@@ -1,5 +1,5 @@
 import { fieldPda, investorPda, projectPda } from "@f2f/sdk";
-import { ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Keypair } from "@solana/web3.js";
 import { describe, expect, it } from "vitest";
 import type { PoolView } from "../src/lib/chain/views";
@@ -34,11 +34,18 @@ const POOL: PoolView = {
   instrument: null,
 };
 
-function deps(store = new MemoryStore()): UserTxDeps {
+const sponsor = Keypair.generate().publicKey;
+const usdcMint = Keypair.generate().publicKey;
+const treasury = Keypair.generate().publicKey;
+const FEES = { treasury: treasury.toBase58(), networkFee: "500000", mintFee: "3000000", maxArrangementBps: 1_000 };
+
+function deps(store = new MemoryStore(), fees: typeof FEES | null = FEES): UserTxDeps {
   return {
     program,
     store,
-    usdcMint: Keypair.generate().publicKey,
+    usdcMint,
+    sponsor,
+    getFees: async () => fees,
     getPool: async (id) => (id === "7" ? POOL : null),
     now: () => 1_759_500_000_000,
   };
@@ -64,9 +71,14 @@ describe("buildUserTx", () => {
       ],
     });
     const project = projectPda(pid, producer, 1_759_500_000_000n);
-    expect(built.payer.equals(producer)).toBe(true);
+    expect(built.payer.equals(sponsor)).toBe(true);
     expect(built.instructions.map((ix) => nameOf(ix.data))).toEqual(["registerproject", "registerfield", "registerfield"]);
-    expect(built.instructions[2]?.keys[2]?.pubkey.equals(fieldPda(pid, project, 1))).toBe(true);
+    expect(built.instructions[2]?.keys[3]?.pubkey.equals(fieldPda(pid, project, 1))).toBe(true);
+    for (const ix of built.instructions) expect(ix.keys[1]?.pubkey.equals(sponsor)).toBe(true);
+    // Mint fee: the producer's USDC account and the treasury account ride on register_project.
+    const keys = built.instructions[0]!.keys.map((m) => m.pubkey.toBase58());
+    expect(keys).toContain(getAssociatedTokenAddressSync(usdcMint, producer, false, TOKEN_PROGRAM_ID).toBase58());
+    expect(keys).toContain(getAssociatedTokenAddressSync(usdcMint, treasury, false, TOKEN_PROGRAM_ID).toBase58());
     expect(built.meta).toEqual({ projectId: "1759500000000", project: project.toBase58() });
   });
 
@@ -96,16 +108,30 @@ describe("buildUserTx", () => {
     expect(built.instructions).toHaveLength(1);
     expect(nameOf(built.instructions[0]!.data)).toBe("subscribe");
     expect(built.instructions[0]?.keys.some((m) => m.pubkey.equals(investorPda(pid, investor)))).toBe(true);
+    expect(built.payer.equals(sponsor)).toBe(true);
+    expect(built.instructions[0]?.keys.some((m) => m.pubkey.equals(getAssociatedTokenAddressSync(usdcMint, treasury, false, TOKEN_PROGRAM_ID)))).toBe(true);
+  });
+
+  it("passes no fee accounts when fees are not configured", async () => {
+    const investor = Keypair.generate().publicKey;
+    const built = await buildUserTx(deps(new MemoryStore(), null), "subscribe", { signer: investor.toBase58(), poolId: "7", amount: "1" });
+    expect(built.instructions[0]?.keys.some((m) => m.pubkey.equals(getAssociatedTokenAddressSync(usdcMint, treasury, false, TOKEN_PROGRAM_ID)))).toBe(false);
+  });
+
+  it("refuses to build when no gas sponsor is configured", async () => {
+    const d = { ...deps(), sponsor: null };
+    await expect(buildUserTx(d, "subscribe", { signer: Keypair.generate().publicKey.toBase58(), poolId: "7", amount: "1" })).rejects.toMatchObject({ status: 503 });
   });
 
   it("returns 404 for an unknown pool", async () => {
     await expect(buildUserTx(deps(), "redeem", { signer: Keypair.generate().publicKey.toBase58(), poolId: "8", amount: "1" })).rejects.toMatchObject({ status: 404 });
   });
 
-  it("creates the USDC account before refund and redeem", async () => {
+  it("creates the USDC account before refund and redeem, rent paid by the sponsor", async () => {
     for (const action of ["refund", "redeem"] as const) {
       const built = await buildUserTx(deps(), action, { signer: Keypair.generate().publicKey.toBase58(), poolId: "7", amount: "1" });
       expect(built.instructions[0]?.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID)).toBe(true);
+      expect(built.instructions[0]?.keys[0]?.pubkey.equals(sponsor)).toBe(true);
       expect(nameOf(built.instructions[1]!.data)).toBe(action);
     }
   });

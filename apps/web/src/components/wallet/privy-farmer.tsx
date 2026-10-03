@@ -1,9 +1,9 @@
 "use client";
 
 import { PrivyProvider, usePrivy } from "@privy-io/react-auth";
-import { useSignAndSendTransaction, useWallets } from "@privy-io/react-auth/solana";
+import { useSignTransaction, useWallets } from "@privy-io/react-auth/solana";
 import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
-import bs58 from "bs58";
+import { VersionedTransaction } from "@solana/web3.js";
 import { useMemo, type ReactNode } from "react";
 import { track } from "../../lib/analytics";
 import type { TxSigner } from "../../lib/tx-client";
@@ -12,7 +12,7 @@ import { FarmerSessionContext } from "./farmer-session";
 function Bridge({ children }: { children: ReactNode }) {
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
-  const { signAndSendTransaction } = useSignAndSendTransaction();
+  const { signTransaction } = useSignTransaction();
   const wallet = wallets.find((w) => w.standardWallet.name === "Privy") ?? wallets[0];
 
   const signer = useMemo<TxSigner | null>(
@@ -20,13 +20,14 @@ function Bridge({ children }: { children: ReactNode }) {
       wallet
         ? {
             publicKey: wallet.address,
-            async signAndSend(tx) {
-              const { signature } = await signAndSendTransaction({ transaction: tx.serialize(), wallet, chain: "solana:devnet" });
-              return bs58.encode(signature);
+            // Sign only: the server adds the gas sponsor's signature and submits (ADR 0013).
+            async sign(tx) {
+              const { signedTransaction } = await signTransaction({ transaction: tx.serialize(), wallet, chain: "solana:devnet" });
+              return VersionedTransaction.deserialize(signedTransaction);
             },
           }
         : null,
-    [wallet, signAndSendTransaction],
+    [wallet, signTransaction],
   );
 
   return (

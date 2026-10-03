@@ -2,11 +2,13 @@ import type { Program } from "@anchor-lang/core";
 import {
   attestationPda,
   configPda,
+  feesPda,
   fieldPda,
   investorPda,
   mintPda,
   poolPda,
   projectPda,
+  termsPda,
   toAnchorEnum,
   type AttestationKindName,
   type F2f,
@@ -46,23 +48,57 @@ export const createUsdcAtaIx = (payer: PublicKey, owner: PublicKey, usdcMint: Pu
 export const mintUsdcIx = (usdcMint: PublicKey, destination: PublicKey, authority: PublicKey, amount: bigint) =>
   createMintToInstruction(usdcMint, destination, authority, amount, [], TOKEN_PROGRAM_ID);
 
+/** Fee accounts for an instruction: present only when the program's FeeConfig exists. */
+export interface FeeAccounts {
+  usdcMint: PublicKey;
+  /** FeeConfig.treasury wallet; fees go to its USDC ATA. */
+  treasury: PublicKey;
+}
+
+/** `payer` pays rent for the project account (the gas sponsor); `fees` adds the mint-fee accounts. */
 export function registerProjectIx(
   p: P,
-  a: { producer: PublicKey; projectId: bigint; crop: string; season: number; expectedKg: bigint; requestedAmount: bigint },
+  a: {
+    producer: PublicKey;
+    payer: PublicKey;
+    projectId: bigint;
+    crop: string;
+    season: number;
+    expectedKg: bigint;
+    requestedAmount: bigint;
+    fees: FeeAccounts | null;
+  },
 ): Promise<TransactionInstruction> {
   return p.methods
     .registerProject(bn(a.projectId), a.crop, a.season, bn(a.expectedKg), bn(a.requestedAmount))
-    .accountsStrict({ producer: a.producer, project: projectPda(p.programId, a.producer, a.projectId), systemProgram: system })
+    .accountsStrict({
+      producer: a.producer,
+      payer: a.payer,
+      config: configPda(p.programId),
+      project: projectPda(p.programId, a.producer, a.projectId),
+      feeConfig: feesPda(p.programId),
+      usdcMint: a.fees?.usdcMint ?? null,
+      producerUsdc: a.fees ? usdcAta(a.fees.usdcMint, a.producer) : null,
+      treasuryUsdc: a.fees ? usdcAta(a.fees.usdcMint, a.fees.treasury) : null,
+      usdcTokenProgram: a.fees ? TOKEN_PROGRAM_ID : null,
+      systemProgram: system,
+    })
     .instruction();
 }
 
 export function registerFieldIx(
   p: P,
-  a: { producer: PublicKey; project: PublicKey; index: number; polygonHash: string; areaHaX100: number },
+  a: { producer: PublicKey; payer: PublicKey; project: PublicKey; index: number; polygonHash: string; areaHaX100: number },
 ): Promise<TransactionInstruction> {
   return p.methods
     .registerField(Array.from(hexToBytes(a.polygonHash)), a.areaHaX100)
-    .accountsStrict({ producer: a.producer, project: a.project, field: fieldPda(p.programId, a.project, a.index), systemProgram: system })
+    .accountsStrict({
+      producer: a.producer,
+      payer: a.payer,
+      project: a.project,
+      field: fieldPda(p.programId, a.project, a.index),
+      systemProgram: system,
+    })
     .instruction();
 }
 
@@ -142,6 +178,20 @@ export function createPoolIx(
 export const addProjectIx = (p: P, a: { issuer: PublicKey; pool: PublicKey; project: PublicKey }) =>
   p.methods.addProject().accountsStrict({ issuer: a.issuer, config: configPda(p.programId), pool: a.pool, project: a.project }).instruction();
 
+/** Issuer-only, Draft-only: the pool's arrangement fee, withheld from each project at disbursement. */
+export const setArrangementFeeIx = (p: P, a: { issuer: PublicKey; pool: PublicKey; bps: number }) =>
+  p.methods
+    .setArrangementFee(a.bps)
+    .accountsStrict({
+      issuer: a.issuer,
+      config: configPda(p.programId),
+      pool: a.pool,
+      feeConfig: feesPda(p.programId),
+      poolTerms: termsPda(p.programId, a.pool),
+      systemProgram: system,
+    })
+    .instruction();
+
 export const openPoolIx = (p: P, a: { issuer: PublicKey; pool: PublicKey }) =>
   p.methods.openPool().accountsStrict({ issuer: a.issuer, config: configPda(p.programId), pool: a.pool }).instruction();
 
@@ -182,12 +232,16 @@ export const revokeInvestorIx = (
 
 type HolderArgs = { investor: PublicKey; pool: PublicKey; mint: PublicKey; vault: PublicKey; usdcMint: PublicKey; amount: bigint };
 
-/** ADR 0011: subscribe creates the investor's Instrument account (init_if_needed) and thaws it when the record is approved. */
-export const subscribeIx = (p: P, a: HolderArgs) =>
+/**
+ * ADR 0011: subscribe creates the investor's Instrument account (init_if_needed) and thaws it when the record is approved.
+ * ADR 0013: `payer` (the gas sponsor) pays that rent; with `treasury` set the network fee goes to its USDC ATA.
+ */
+export const subscribeIx = (p: P, a: HolderArgs & { payer: PublicKey; treasury: PublicKey | null }) =>
   p.methods
     .subscribe(bn(a.amount))
     .accountsStrict({
       investor: a.investor,
+      payer: a.payer,
       pool: a.pool,
       investorRecord: investorPda(p.programId, a.investor),
       mint: a.mint,
@@ -195,6 +249,8 @@ export const subscribeIx = (p: P, a: HolderArgs) =>
       usdcMint: a.usdcMint,
       investorUsdc: usdcAta(a.usdcMint, a.investor),
       vault: a.vault,
+      feeConfig: feesPda(p.programId),
+      treasuryUsdc: a.treasury ? usdcAta(a.usdcMint, a.treasury) : null,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       usdcTokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -217,9 +273,10 @@ const holderAccounts = (a: HolderArgs) => ({
 export const refundIx = (p: P, a: HolderArgs) => p.methods.refund(bn(a.amount)).accountsStrict(holderAccounts(a)).instruction();
 export const redeemIx = (p: P, a: HolderArgs) => p.methods.redeem(bn(a.amount)).accountsStrict(holderAccounts(a)).instruction();
 
+/** ADR 0013: withholds the pool's arrangement fee (PoolTerms) for the treasury; `treasury` is FeeConfig.treasury or null. */
 export const disburseIx = (
   p: P,
-  a: { issuer: PublicKey; pool: PublicKey; project: PublicKey; producer: PublicKey; usdcMint: PublicKey; vault: PublicKey },
+  a: { issuer: PublicKey; pool: PublicKey; project: PublicKey; producer: PublicKey; usdcMint: PublicKey; vault: PublicKey; treasury: PublicKey | null },
 ) =>
   p.methods
     .disburse()
@@ -232,6 +289,9 @@ export const disburseIx = (
       usdcMint: a.usdcMint,
       vault: a.vault,
       producerUsdc: usdcAta(a.usdcMint, a.producer),
+      poolTerms: termsPda(p.programId, a.pool),
+      feeConfig: feesPda(p.programId),
+      treasuryUsdc: a.treasury ? usdcAta(a.usdcMint, a.treasury) : null,
       usdcTokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: system,

@@ -12,8 +12,8 @@ export type TxPhase =
 
 export interface TxSigner {
   publicKey: string;
-  /** Signs and submits; returns the base58 signature. */
-  signAndSend(tx: VersionedTransaction): Promise<string>;
+  /** Signs only. The server adds the gas sponsor's signature and submits (ADR 0013). */
+  sign(tx: VersionedTransaction): Promise<VersionedTransaction>;
 }
 
 export type PostJson = (url: string, body: unknown) => Promise<unknown>;
@@ -29,6 +29,12 @@ export const postJson: PostJson = async (url, body) => {
   }
 };
 
+export function bytesToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
 export function base64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64);
   const out = new Uint8Array(bin.length);
@@ -37,6 +43,7 @@ export function base64ToBytes(b64: string): Uint8Array {
 }
 
 type Built = { ok: true; tx: string; blockhash: string; lastValidBlockHeight: number; meta?: Record<string, string> } | { ok: false; error: ExplainedError; logs: string[] };
+type Sent = { ok: true; signature: string } | { ok: false; error: ExplainedError; logs: string[] };
 type Confirmed = { ok: true } | { ok: false; error: ExplainedError; logs: string[]; signature?: string };
 
 export async function executeTx(
@@ -50,13 +57,16 @@ export async function executeTx(
   if (!built.ok) return { phase: "error", error: built.error ?? NETWORK_ERROR, logs: built.logs ?? [] };
 
   onPhase({ phase: "signing" });
-  let signature: string;
+  let signed: VersionedTransaction;
   try {
-    signature = await deps.signer.signAndSend(VersionedTransaction.deserialize(base64ToBytes(built.tx)));
+    signed = await deps.signer.sign(VersionedTransaction.deserialize(base64ToBytes(built.tx)));
   } catch (e) {
     const logs = extractLogs(e);
     return { phase: "error", error: explainChainError({ logs, error: e }), logs };
   }
+  const sent = (await deps.postJson("/api/tx/send", { action, tx: bytesToBase64(signed.serialize()) })) as Sent;
+  if (!sent.ok) return { phase: "error", error: sent.error ?? NETWORK_ERROR, logs: sent.logs ?? [] };
+  const signature = sent.signature;
 
   onPhase({ phase: "confirming", signature });
   const confirmed = (await deps.postJson("/api/tx/confirm", {

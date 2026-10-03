@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEMO_FIELDS } from "../src/lib/demo/fields";
-import { ACTOR_LAMPORTS, demoSchedule, roleTopUp, sceneLine } from "../src/lib/demo/main-flow";
+import { ACTOR_LAMPORTS, DEMO_ARRANGEMENT_BPS, DEMO_PRODUCER_USDC, demoSchedule, roleTopUp, sceneLine } from "../src/lib/demo/main-flow";
 import { splitFeatures } from "../src/lib/geojson";
 
 describe("demo flow helpers", () => {
@@ -36,8 +36,13 @@ describe("demo flow helpers", () => {
     expect(roleTopUp(0)).toBe(300_000_000);
   });
 
-  it("funds fresh actors with a small amount of SOL", () => {
-    expect(ACTOR_LAMPORTS).toBeLessThanOrEqual(50_000_000);
+  it("gives fresh actors no SOL: the gas sponsor pays fees and rent (ADR 0013)", () => {
+    expect(ACTOR_LAMPORTS).toBe(0);
+  });
+
+  it("gives the producer enough test USDC for the 3 USDC mint fee and uses a 2% arrangement fee", () => {
+    expect(DEMO_PRODUCER_USDC).toBeGreaterThanOrEqual(3_000_000n);
+    expect(DEMO_ARRANGEMENT_BPS).toBe(200);
   });
 });
 

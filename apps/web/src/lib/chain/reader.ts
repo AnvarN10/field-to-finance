@@ -1,5 +1,5 @@
 import type { Program } from "@anchor-lang/core";
-import { investorPda, poolPda, type F2f } from "@f2f/sdk";
+import { feesPda, investorPda, poolPda, termsPda, type F2f } from "@f2f/sdk";
 import {
   ExtensionType,
   TOKEN_2022_PROGRAM_ID,
@@ -21,6 +21,7 @@ import {
   toPoolView,
   toProjectView,
   type ConfigView,
+  type FeeStatus,
   type FieldDetail,
   type InstrumentView,
   type InvestorState,
@@ -38,6 +39,8 @@ export interface ChainReader {
   projectsByProducer(producer: string): Promise<ProjectWithFields[]>;
   unpooledProjects(): Promise<ProjectWithFields[]>;
   investor(wallet: string): Promise<InvestorState>;
+  /** FeeConfig plus the treasury's USDC balance; null until fees are configured. */
+  fees(): Promise<FeeStatus | null>;
   invalidate(): void;
 }
 
@@ -109,8 +112,11 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
         const account = await program.account.pool.fetchNullable(address);
         if (!account) return null;
         const [meta] = await instruments([account.mint]);
-        const projects = await withFields(await program.account.farmProject.all([projectsInPool(address)]));
-        return { pool: toPoolView(address, account, meta ?? null), projects };
+        const [projects, terms] = await Promise.all([
+          withFields(await program.account.farmProject.all([projectsInPool(address)])),
+          program.account.poolTerms.fetchNullable(termsPda(programId, address)),
+        ]);
+        return { pool: toPoolView(address, account, meta ?? null), projects, arrangementFeeBps: terms?.arrangementFeeBps ?? 0 };
       }),
 
     getField: (address) =>
@@ -179,6 +185,22 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
           usdcBalance: usdc.toString(),
           solLamports: lamports,
           positions,
+        };
+      }),
+
+    fees: () =>
+      cache.get("fees", async () => {
+        const fc = await program.account.feeConfig.fetchNullable(feesPda(programId));
+        if (!fc) return null;
+        const ata = getAssociatedTokenAddressSync(usdcMint, fc.treasury, false, TOKEN_PROGRAM_ID);
+        const [info] = await connection.getMultipleAccountsInfo([ata], "confirmed");
+        const balance = info ? unpackAccount(ata, info, TOKEN_PROGRAM_ID).amount : 0n;
+        return {
+          treasury: fc.treasury.toBase58(),
+          networkFee: fc.networkFee.toString(),
+          mintFee: fc.mintFee.toString(),
+          maxArrangementBps: fc.maxArrangementBps,
+          treasuryUsdc: balance.toString(),
         };
       }),
 

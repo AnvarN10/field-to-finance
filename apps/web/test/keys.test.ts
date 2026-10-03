@@ -36,6 +36,7 @@ describe("assertRoleKeys", () => {
     const good = JSON.stringify(Array.from(Keypair.generate().secretKey));
     expect(() => assertRoleKeys({ F2F_ISSUER_KEYPAIR: good })).not.toThrow();
     expect(() => assertRoleKeys({})).not.toThrow();
+    expect(() => assertRoleKeys({ F2F_SPONSOR_KEYPAIR: "[1]" })).toThrow("F2F_SPONSOR_KEYPAIR must be a JSON array of 64 bytes");
     expect(() => assertRoleKeys({ F2F_ISSUER_KEYPAIR: good, SCAS_SECRET_KEY: "[1,2,3]" })).toThrow("SCAS_SECRET_KEY must be a JSON array of 64 bytes");
     try {
       assertRoleKeys({ F2F_COMPLIANCE_KEYPAIR: "secret-value-here" });

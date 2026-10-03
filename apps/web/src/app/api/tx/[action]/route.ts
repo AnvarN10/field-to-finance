@@ -3,7 +3,7 @@ import { explainChainError } from "@/lib/chain/explain";
 import { buildV0, bytesToBase64, simulate } from "@/lib/chain/send";
 import { TX_ACTIONS, buildUserTx, type TxAction } from "@/lib/chain/user-tx";
 import { RequestError } from "@/lib/errors";
-import { getBuildProgram, getConnection, getReader, getStore, getUsdcMint } from "@/lib/server/context";
+import { getBuildProgram, getConnection, getReader, getStore, getUsdcMint, sponsorPublicKey } from "@/lib/server/context";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ action: string
   const body = await req.json().catch(() => null);
   try {
     const built = await buildUserTx(
-      { program: getBuildProgram(), store: getStore(), usdcMint: getUsdcMint(), getPool: async (id) => (await getReader().getPool(id))?.pool ?? null },
+      {
+        program: getBuildProgram(),
+        store: getStore(),
+        usdcMint: getUsdcMint(),
+        sponsor: sponsorPublicKey(),
+        getFees: () => getReader().fees(),
+        getPool: async (id) => (await getReader().getPool(id))?.pool ?? null,
+      },
       action as TxAction,
       body,
     );
@@ -28,7 +35,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ action: string
     }
     return Response.json({ ok: true, tx: bytesToBase64(tx.serialize()), blockhash, lastValidBlockHeight, meta: built.meta });
   } catch (e) {
-    if (e instanceof RequestError) return fail(e.status, "BadRequest", "Check the form", e.message);
+    if (e instanceof RequestError) return fail(e.status, e.status === 503 ? "SponsorUnavailable" : "BadRequest", e.status === 503 ? "Gas sponsorship is unavailable" : "Check the form", e.message);
     Sentry.captureException(e);
     return fail(500, "ServerError", "The server could not build this transaction", "Try again in a moment.");
   }

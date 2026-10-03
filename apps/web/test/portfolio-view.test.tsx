@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const wallet = Keypair.generate().publicKey;
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@solana/wallet-adapter-react", () => ({
-  useWallet: () => ({ publicKey: wallet, connected: true, sendTransaction: vi.fn() }),
+  useWallet: () => ({ publicKey: wallet, connected: true, signTransaction: vi.fn() }),
   useConnection: () => ({ connection: {} }),
 }));
 vi.mock("../src/components/wallet/connect-button", () => ({ ConnectButton: () => <button type="button">Connect</button> }));

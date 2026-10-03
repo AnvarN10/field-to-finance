@@ -1,5 +1,5 @@
-import { investorPda, poolPda } from "@f2f/sdk";
-import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { investorPda, poolPda, termsPda } from "@f2f/sdk";
+import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Keypair, type PublicKey, type TransactionInstruction } from "@solana/web3.js";
 import BN from "bn.js";
 import { describe, expect, it, vi } from "vitest";
@@ -12,6 +12,7 @@ import {
   fundRedemption,
   nextPoolId,
   revokeInvestor,
+  setArrangementFee,
   roleMismatches,
   type OpsContext,
 } from "../src/lib/chain/admin-ops";
@@ -22,7 +23,12 @@ const norm = (s: string) => s.replace(/_/g, "").toLowerCase();
 const names = (ixs: TransactionInstruction[]) =>
   ixs.map((ix) => (ix.programId.equals(program.programId) ? norm(ixCoder(program).decode(ix.data)!.name) : ix.programId.toBase58()));
 
-async function ctx(over: { pool?: Record<string, unknown>; projects?: Record<string, unknown>[]; balances?: Map<string, bigint> } = {}) {
+const TREASURY = Keypair.generate().publicKey;
+const FEES = { treasury: TREASURY.toBase58(), networkFee: "500000", mintFee: "3000000", maxArrangementBps: 1_000 };
+
+async function ctx(
+  over: { pool?: Record<string, unknown>; projects?: Record<string, unknown>[]; balances?: Map<string, bigint>; fees?: typeof FEES | null } = {},
+) {
   const sent: { role: string; ixs: TransactionInstruction[] }[] = [];
   const pool = (await roundTrip<PoolAccount>(program, "pool", poolValue(over.pool))).account;
   const projects = await Promise.all(
@@ -43,18 +49,60 @@ async function ctx(over: { pool?: Record<string, unknown>; projects?: Record<str
     loadProjects: vi.fn(async () => projects),
     tokenBalance: vi.fn(async (a: PublicKey) => over.balances?.get(a.toBase58()) ?? 0n),
     accountExists: vi.fn(async () => false),
+    loadFees: vi.fn(async () => (over.fees === undefined ? FEES : over.fees)),
     now: () => 1_791_000_000,
   };
   return { c, sent, pool, projects };
 }
 
-const validPool = { poolId: "7", crop: "wheat", season: 2027, name: "Wheat 2027", symbol: "WHEAT-2027", yieldBps: 800, premiumBps: 550, closeInMinutes: 10, maturityInMinutes: 20 };
+const validPool = {
+  poolId: "7",
+  crop: "wheat",
+  season: 2027,
+  name: "Wheat 2027",
+  symbol: "WHEAT-2027",
+  yieldBps: 800,
+  premiumBps: 550,
+  arrangementFeeBps: 200,
+  closeInMinutes: 10,
+  maturityInMinutes: 20,
+};
 
 describe("createPool", () => {
   it("validates premium and schedule before anything is sent", () => {
     expect(createPoolInput.safeParse({ ...validPool, premiumBps: 450 }).success).toBe(false);
     expect(createPoolInput.safeParse({ ...validPool, maturityInMinutes: 10 }).success).toBe(false);
     expect(createPoolInput.safeParse({ ...validPool, symbol: "WHEAT-2027X" }).success).toBe(false);
+    expect(createPoolInput.safeParse({ ...validPool, arrangementFeeBps: 1_001 }).success).toBe(false);
+    expect(createPoolInput.safeParse({ ...validPool, arrangementFeeBps: -1 }).success).toBe(false);
+  });
+
+  it("sets the arrangement fee in the same transaction, while the pool is still Draft", async () => {
+    const { c, sent } = await ctx();
+    await createPool(c, createPoolInput.parse(validPool), "https://f2f.example");
+    expect(names(sent[0]!.ixs)).toEqual(["createpool", "setarrangementfee"]);
+    const ix = sent[0]!.ixs[1]!;
+    expect(ix.keys.some((m) => m.pubkey.equals(termsPda(program.programId, poolPda(program.programId, 7n))))).toBe(true);
+    expect((ixCoder(program).decode(ix.data)!.data as { bps: number }).bps).toBe(200);
+  });
+
+  it("refuses an arrangement fee above FeeConfig's cap or without FeeConfig", async () => {
+    const capped = await ctx({ fees: { ...FEES, maxArrangementBps: 100 } });
+    await expect(createPool(capped.c, createPoolInput.parse(validPool), "https://f2f.example")).rejects.toMatchObject({ status: 422 });
+    const none = await ctx({ fees: null });
+    await expect(createPool(none.c, createPoolInput.parse(validPool), "https://f2f.example")).rejects.toMatchObject({ status: 422 });
+    expect(capped.sent).toHaveLength(0);
+    // A zero fee needs no FeeConfig and no extra instruction.
+    await createPool(none.c, createPoolInput.parse({ ...validPool, arrangementFeeBps: 0 }), "https://f2f.example");
+    expect(names(none.sent[0]!.ixs)).toEqual(["createpool"]);
+  });
+
+  it("changes the arrangement fee of a Draft pool", async () => {
+    const { c, sent } = await ctx({ pool: { status: { draft: {} } } });
+    await setArrangementFee(c, 7n, 150);
+    expect(names(sent[0]!.ixs)).toEqual(["setarrangementfee"]);
+    const closed = await ctx({ pool: { status: { open: {} } } });
+    await expect(setArrangementFee(closed.c, 7n, 150)).rejects.toMatchObject({ status: 409 });
   });
 
   it("sends one Issuer transaction with times relative to now and the instrument URI", async () => {
@@ -76,6 +124,13 @@ describe("disburseAll", () => {
     const sigs = await disburseAll(c, 7n);
     expect(sigs).toEqual(["sig1", "sig2"]);
     expect(sent.every((s) => s.role === "issuer" && names(s.ixs)[0] === "disburse")).toBe(true);
+  });
+
+  it("passes the treasury USDC account so the arrangement fee can be withheld", async () => {
+    const { c, sent } = await ctx({ pool: { status: { funded: {} } }, projects: [{ disbursed: false }] });
+    await disburseAll(c, 7n);
+    const ata = getAssociatedTokenAddressSync(c.usdcMint, TREASURY, false, TOKEN_PROGRAM_ID);
+    expect(sent[0]!.ixs[0]!.keys.some((m) => m.pubkey.equals(ata))).toBe(true);
   });
 });
 

@@ -10,6 +10,18 @@ describe("parseServerEnv", () => {
     expect(env.PUBLIC_BASE_URL).toBe("http://localhost:3000");
     expect(env.BUCKET_FORCE_PATH_STYLE).toBe(false);
     expect(env.ADMIN_PASSWORD).toBeUndefined();
+    // ADR 0013: users need no SOL, so the faucet sends test USDC only unless FAUCET_SOL=true.
+    expect(env.FAUCET_SOL).toBe(false);
+    expect(env.F2F_SPONSOR_KEYPAIR).toBeUndefined();
+    expect(env.F2F_TREASURY).toBeUndefined();
+  });
+
+  it("parses FAUCET_SOL and F2F_TREASURY", () => {
+    const t = "CUAToHz2ZFs5WtuL826CUXBQcHiUcU37vEDo3CCXQPwF";
+    const env = parseServerEnv({ FAUCET_SOL: "true", F2F_TREASURY: t });
+    expect(env.FAUCET_SOL).toBe(true);
+    expect(env.F2F_TREASURY).toBe(t);
+    expect(() => parseServerEnv({ F2F_TREASURY: "nope" })).toThrow(/F2F_TREASURY/);
   });
 
   it("treats blank strings as unset", () => {

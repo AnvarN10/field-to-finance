@@ -73,7 +73,11 @@ export interface AttestationView {
   recordedAt: number;
 }
 export type ProjectWithFields = ProjectView & { fields: FieldView[] };
-export interface PoolDetail { pool: PoolView; projects: ProjectWithFields[] }
+/** `arrangementFeeBps` comes from the pool's PoolTerms; 0 for pools created before fees (ADR 0013). */
+export interface PoolDetail { pool: PoolView; projects: ProjectWithFields[]; arrangementFeeBps: number }
+/** FeeConfig (ADR 0013); amounts in USDC base units. */
+export interface FeeView { treasury: string; networkFee: string; mintFee: string; maxArrangementBps: number }
+export type FeeStatus = FeeView & { treasuryUsdc: string };
 export interface FieldDetail { field: FieldView; project: ProjectView; pool: PoolView | null; attestations: AttestationView[] }
 export interface PositionView {
   poolId: string;

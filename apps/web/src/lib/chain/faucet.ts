@@ -7,6 +7,8 @@ export const SOL_MIN_LAMPORTS = 20_000_000;
 export const SOL_TOPUP_LAMPORTS = 50_000_000;
 
 export interface FaucetDeps {
+  /** SOL top-up enabled (FAUCET_SOL). Off by default: the gas sponsor pays fees and rent (ADR 0013). */
+  sol: boolean;
   connection: Pick<Connection, "getBalance">;
   usdcMint: PublicKey;
   /** Test-USDC mint authority; also pays the SOL top-up. */
@@ -21,7 +23,7 @@ export async function runFaucet(deps: FaucetDeps, wallet: PublicKey, want: { usd
   if (wait > 0) throw new RequestError(`Try again in ${wait} s`, 429);
   const ixs: TransactionInstruction[] = [];
   let solLamports = 0;
-  if ((await deps.connection.getBalance(wallet, "confirmed")) < SOL_MIN_LAMPORTS) {
+  if (deps.sol && (await deps.connection.getBalance(wallet, "confirmed")) < SOL_MIN_LAMPORTS) {
     ixs.push(SystemProgram.transfer({ fromPubkey: deps.deployer, toPubkey: wallet, lamports: SOL_TOPUP_LAMPORTS }));
     solLamports = SOL_TOPUP_LAMPORTS;
   }

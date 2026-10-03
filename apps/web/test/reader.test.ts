@@ -40,6 +40,8 @@ async function setup() {
   vi.spyOn(program.account.farmProject, "all").mockResolvedValue([{ publicKey: projectAddr, account: project.account }] as never);
   vi.spyOn(program.account.field, "all").mockResolvedValue([{ publicKey: Keypair.generate().publicKey, account: field.account }] as never);
   vi.spyOn(program.account.investorRecord, "fetchNullable").mockResolvedValue(null);
+  vi.spyOn(program.account.poolTerms, "fetchNullable").mockResolvedValue(null);
+  vi.spyOn(program.account.feeConfig, "fetchNullable").mockResolvedValue(null);
   const connection = offlineConnection;
   vi.spyOn(connection, "getMultipleAccountsInfo").mockResolvedValue([null]);
   vi.spyOn(connection, "getBalance").mockResolvedValue(5_000_000);
@@ -86,5 +88,41 @@ describe("ChainReader", () => {
     expect(state.usdcBalance).toBe("1000000000");
     expect(state.solLamports).toBe(5_000_000);
     expect(state.positions[0]).toMatchObject({ poolId: "7", exists: true, frozen: true, balance: "0" });
+  });
+
+  it("reports a zero arrangement fee for pools without terms", async () => {
+    const { reader } = await setup();
+    expect((await reader.getPool("7"))?.arrangementFeeBps).toBe(0);
+  });
+
+  it("reads the pool's arrangement fee from its terms", async () => {
+    const { reader, program } = await setup();
+    vi.mocked(program.account.poolTerms.fetchNullable).mockResolvedValue({ arrangementFeeBps: 200, bump: 254 } as never);
+    expect((await reader.getPool("7"))?.arrangementFeeBps).toBe(200);
+  });
+
+  it("returns null fees while FeeConfig does not exist", async () => {
+    const { reader } = await setup();
+    expect(await reader.fees()).toBeNull();
+  });
+
+  it("returns the fee config and the treasury's USDC balance", async () => {
+    const { reader, program, connection, usdcMint } = await setup();
+    const treasury = Keypair.generate().publicKey;
+    vi.mocked(program.account.feeConfig.fetchNullable).mockResolvedValue({
+      treasury,
+      networkFee: { toString: () => "500000" },
+      mintFee: { toString: () => "3000000" },
+      maxArrangementBps: 1_000,
+      bump: 255,
+    } as never);
+    vi.mocked(connection.getMultipleAccountsInfo).mockResolvedValue([tokenAccount(usdcMint, treasury, 3_500_000n, false, TOKEN_PROGRAM_ID)]);
+    expect(await reader.fees()).toEqual({
+      treasury: treasury.toBase58(),
+      networkFee: "500000",
+      mintFee: "3000000",
+      maxArrangementBps: 1_000,
+      treasuryUsdc: "3500000",
+    });
   });
 });

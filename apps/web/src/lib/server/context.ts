@@ -16,6 +16,7 @@ import { projectsInPool } from "../chain/filters";
 import type { FaucetDeps } from "../chain/faucet";
 import { createCooldown } from "../cooldown";
 import { RequestError } from "../errors";
+import type { SponsorPolicy } from "../chain/sponsor";
 
 let connection: Connection | undefined;
 let reader: ChainReader | undefined;
@@ -60,12 +61,13 @@ export function getStore(): BlobStore {
   return store;
 }
 
-export type Role = "issuer" | "compliance" | "scas" | "deployer";
+export type Role = "issuer" | "compliance" | "scas" | "deployer" | "sponsor";
 const ROLE_ENV = {
   issuer: "F2F_ISSUER_KEYPAIR",
   compliance: "F2F_COMPLIANCE_KEYPAIR",
   scas: "SCAS_SECRET_KEY",
   deployer: "F2F_DEPLOYER_KEYPAIR",
+  sponsor: "F2F_SPONSOR_KEYPAIR",
 } as const;
 const keypairs = new Map<Role, Keypair>();
 
@@ -85,6 +87,22 @@ export async function sendAs(role: Role, ixs: TransactionInstruction[]): Promise
   } finally {
     invalidateReads();
   }
+}
+
+/** The gas sponsor's public key, or null when F2F_SPONSOR_KEYPAIR is unset (user transactions then refuse to build). */
+export function sponsorPublicKey(): PublicKey | null {
+  return serverEnv().F2F_SPONSOR_KEYPAIR ? roleKeypair("sponsor").publicKey : null;
+}
+
+/** Validation policy for co-signing user transactions (ADR 0013). Reads FeeConfig for the treasury. */
+export async function sponsorPolicy(): Promise<SponsorPolicy> {
+  const fees = await getReader().fees();
+  return {
+    program: getBuildProgram(),
+    sponsor: roleKeypair("sponsor").publicKey,
+    usdcMint: getUsdcMint(),
+    treasury: fees ? new PublicKey(fees.treasury) : null,
+  };
 }
 
 let buildProgram: Program<F2f> | undefined;
@@ -133,6 +151,7 @@ export function opsContext(): OpsContext {
       }
     },
     accountExists: async (account) => (await connection.getAccountInfo(account, "confirmed")) !== null,
+    loadFees: () => getReader().fees(),
     now: () => Math.floor(Date.now() / 1000),
   };
 }
@@ -140,6 +159,7 @@ export function opsContext(): OpsContext {
 const faucetCooldown = createCooldown(60_000);
 export function faucetDeps(): FaucetDeps {
   return {
+    sol: serverEnv().FAUCET_SOL,
     connection: getConnection(),
     usdcMint: getUsdcMint(),
     deployer: roleKeypair("deployer").publicKey,

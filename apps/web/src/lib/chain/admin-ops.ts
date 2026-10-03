@@ -1,10 +1,10 @@
 import type { Program } from "@anchor-lang/core";
-import { MAX_EVIDENCE_URI_LEN, poolPda, type F2f } from "@f2f/sdk";
-import type { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { MAX_ARRANGEMENT_BPS, MAX_EVIDENCE_URI_LEN, poolPda, type F2f } from "@f2f/sdk";
+import { PublicKey, type TransactionInstruction } from "@solana/web3.js";
 import { z } from "zod";
 import { RequestError } from "../errors";
 import { withYield } from "../format";
-import type { SettlementRuleName } from "./enums";
+import { poolStatusFromAnchor, type SettlementRuleName } from "./enums";
 import {
   addProjectIx,
   approveInvestorIx,
@@ -18,10 +18,11 @@ import {
   openPoolIx,
   recordSettlementIx,
   revokeInvestorIx,
+  setArrangementFeeIx,
   sweepIx,
   usdcAta,
 } from "./ix";
-import type { ConfigView, PoolAccount, ProjectAccount } from "./views";
+import type { ConfigView, FeeView, PoolAccount, ProjectAccount } from "./views";
 
 export interface OpsContext {
   program: Program<F2f>;
@@ -32,6 +33,8 @@ export interface OpsContext {
   loadProjects(pool: PublicKey): Promise<{ address: PublicKey; account: ProjectAccount }[]>;
   tokenBalance(account: PublicKey): Promise<bigint>;
   accountExists(account: PublicKey): Promise<boolean>;
+  /** FeeConfig (ADR 0013), or null while fees are not configured. */
+  loadFees(): Promise<FeeView | null>;
   now(): number;
 }
 
@@ -44,6 +47,8 @@ export const createPoolInput = z
     symbol: z.string().trim().min(1).max(10),
     yieldBps: z.number().int().min(0).max(5_000),
     premiumBps: z.number().int().min(500, "premium must be at least 5%").max(600, "premium must be at most 6%"),
+    /** ADR 0013: withheld from each project at disbursement. */
+    arrangementFeeBps: z.number().int().min(0).max(MAX_ARRANGEMENT_BPS, `arrangement fee must be at most ${MAX_ARRANGEMENT_BPS / 100}%`),
     closeInMinutes: z.number().int().min(1).max(60 * 24 * 30),
     maturityInMinutes: z.number().int().min(2).max(60 * 24 * 365),
   })
@@ -56,6 +61,7 @@ export async function createPool(ctx: OpsContext, input: CreatePoolInput, public
   const poolId = BigInt(input.poolId);
   const uri = `${publicBaseUrl.replace(/\/+$/, "")}/api/instrument/${input.poolId}`;
   if (uri.length > MAX_EVIDENCE_URI_LEN) throw new RequestError("Instrument URI is too long; shorten PUBLIC_BASE_URL", 422);
+  await assertArrangementFee(ctx, input.arrangementFeeBps);
   const now = ctx.now();
   const ix = await createPoolIx(ctx.program, {
     issuer: ctx.roles.issuer,
@@ -71,8 +77,28 @@ export async function createPool(ctx: OpsContext, input: CreatePoolInput, public
     subscriptionCloseTs: now + input.closeInMinutes * 60,
     maturityTs: now + input.maturityInMinutes * 60,
   });
-  const signature = await ctx.send("issuer", [ix]);
+  const ixs = [ix];
+  // Same transaction: the pool is Draft right after create_pool, which set_arrangement_fee requires.
+  if (input.arrangementFeeBps > 0) {
+    ixs.push(await setArrangementFeeIx(ctx.program, { issuer: ctx.roles.issuer, pool: poolKey(ctx, poolId), bps: input.arrangementFeeBps }));
+  }
+  const signature = await ctx.send("issuer", ixs);
   return { signature, poolId: input.poolId, pool: poolKey(ctx, poolId).toBase58() };
+}
+
+async function assertArrangementFee(ctx: OpsContext, bps: number): Promise<void> {
+  if (bps === 0) return;
+  const fees = await ctx.loadFees();
+  if (!fees) throw new RequestError("Fees are not configured on-chain yet (init_fee_config); set the arrangement fee to 0", 422);
+  if (bps > fees.maxArrangementBps) throw new RequestError(`Arrangement fee is above the cap of ${fees.maxArrangementBps / 100}%`, 422);
+}
+
+/** Issuer-only, Draft-only (ADR 0013). */
+export async function setArrangementFee(ctx: OpsContext, poolId: bigint, bps: number): Promise<string> {
+  const account = await ctx.loadPool(poolId);
+  if (poolStatusFromAnchor(account.status) !== "Draft") throw new RequestError("The arrangement fee can only change while the pool is Draft", 409);
+  await assertArrangementFee(ctx, bps);
+  return ctx.send("issuer", [await setArrangementFeeIx(ctx.program, { issuer: ctx.roles.issuer, pool: poolKey(ctx, poolId), bps })]);
 }
 
 export async function addProject(ctx: OpsContext, poolId: bigint, project: PublicKey): Promise<string> {
@@ -90,6 +116,8 @@ export async function closeSubscription(ctx: OpsContext, poolId: bigint): Promis
 export async function disburseAll(ctx: OpsContext, poolId: bigint): Promise<string[]> {
   const pool = poolKey(ctx, poolId);
   const account = await ctx.loadPool(poolId);
+  const fees = await ctx.loadFees();
+  const treasury = fees ? new PublicKey(fees.treasury) : null;
   const signatures: string[] = [];
   for (const p of await ctx.loadProjects(pool)) {
     if (p.account.disbursed) continue;
@@ -100,6 +128,7 @@ export async function disburseAll(ctx: OpsContext, poolId: bigint): Promise<stri
       producer: p.account.producer,
       usdcMint: ctx.usdcMint,
       vault: account.vault,
+      treasury,
     });
     signatures.push(await ctx.send("issuer", [ix]));
   }

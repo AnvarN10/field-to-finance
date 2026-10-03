@@ -20,6 +20,7 @@ const detail: PoolDetail = {
       fields: [],
     },
   ],
+  arrangementFeeBps: 0,
 };
 
 describe("InstrumentCard", () => {

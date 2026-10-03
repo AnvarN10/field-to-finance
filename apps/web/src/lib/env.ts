@@ -22,6 +22,10 @@ export const serverEnvSchema = z.object({
   F2F_ISSUER_KEYPAIR: optional,
   F2F_COMPLIANCE_KEYPAIR: optional,
   SCAS_SECRET_KEY: optional,
+  /** ADR 0013 gas sponsor: fee payer and rent payer for user transactions. */
+  F2F_SPONSOR_KEYPAIR: optional,
+  /** Expected FeeConfig.treasury; the admin console flags a mismatch with the chain. */
+  F2F_TREASURY: z.preprocess(blank, z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, "must be a base58 public key").optional()),
   BUCKET_NAME: optional,
   BUCKET_ENDPOINT: z.preprocess(blank, z.url().optional()),
   BUCKET_REGION: z.preprocess(blank, z.string().default("auto")),
@@ -38,6 +42,10 @@ export const serverEnvSchema = z.object({
   ADMIN_PASSWORD: z.preprocess(blank, z.string().min(8, "must be at least 8 characters").optional()),
   SENTRY_ENVIRONMENT: z.preprocess(blank, z.string().default("development")),
   FAUCET_USDC: z.preprocess(blank, z.coerce.number().int().positive().max(100_000).default(1_000)),
+  /** SOL top-up from the faucet. Off by default: the sponsor pays gas (ADR 0013). */
+  FAUCET_SOL: z
+    .preprocess(blank, z.enum(["true", "false"]).default("false"))
+    .transform((v) => v === "true"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

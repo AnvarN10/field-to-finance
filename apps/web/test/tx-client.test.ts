@@ -12,17 +12,20 @@ function unsignedTxBase64(): string {
   return Buffer.from(new VersionedTransaction(msg).serialize()).toString("base64");
 }
 
-const signer = (impl?: () => Promise<string>): TxSigner => ({
+const signer = (impl?: (tx: VersionedTransaction) => Promise<VersionedTransaction>): TxSigner => ({
   publicKey: Keypair.generate().publicKey.toBase58(),
-  signAndSend: vi.fn(impl ?? (async () => "5sig")),
+  sign: vi.fn(impl ?? (async (tx: VersionedTransaction) => tx)),
 });
 
 describe("executeTx", () => {
-  it("builds, signs, confirms and reports each phase", async () => {
+  it("builds, signs in the wallet, hands the signed tx to the sponsor, confirms and reports each phase", async () => {
+    const built = unsignedTxBase64();
     const postJson = vi.fn(async (url: string) =>
       url === "/api/tx/subscribe"
-        ? { ok: true, tx: unsignedTxBase64(), blockhash: "b", lastValidBlockHeight: 1, meta: { poolId: "7" } }
-        : { ok: true },
+        ? { ok: true, tx: built, blockhash: "b", lastValidBlockHeight: 1, meta: { poolId: "7" } }
+        : url === "/api/tx/send"
+          ? { ok: true, signature: "5sig" }
+          : { ok: true },
     );
     const phases: TxPhase["phase"][] = [];
     const s = signer();
@@ -30,7 +33,17 @@ describe("executeTx", () => {
     expect(phases).toEqual(["building", "signing", "confirming"]);
     expect(final).toEqual({ phase: "success", signature: "5sig", meta: { poolId: "7" } });
     expect(postJson).toHaveBeenCalledWith("/api/tx/subscribe", { poolId: "7", amount: "1", signer: s.publicKey });
+    expect(postJson).toHaveBeenCalledWith("/api/tx/send", { action: "subscribe", tx: built });
     expect(postJson).toHaveBeenLastCalledWith("/api/tx/confirm", { signature: "5sig", blockhash: "b", lastValidBlockHeight: 1 });
+  });
+
+  it("reports a sponsor rejection without confirming", async () => {
+    const error = { code: "BadRequest", title: "Transaction rejected by the gas sponsor", detail: "", action: "none" };
+    const postJson = vi.fn(async (url: string) =>
+      url === "/api/tx/send" ? { ok: false, error, logs: [] } : { ok: true, tx: unsignedTxBase64(), blockhash: "b", lastValidBlockHeight: 1 },
+    );
+    expect(await executeTx({ postJson, signer: signer() }, "subscribe", {}, () => {})).toEqual({ phase: "error", error, logs: [] });
+    expect(postJson).not.toHaveBeenCalledWith("/api/tx/confirm", expect.anything());
   });
 
   it("stops before the wallet when simulation rejects", async () => {
@@ -38,7 +51,7 @@ describe("executeTx", () => {
     const s = signer();
     const final = await executeTx({ postJson: async () => ({ ok: false, error, logs: ["l1"] }), signer: s }, "subscribe", {}, () => {});
     expect(final).toEqual({ phase: "error", error, logs: ["l1"] });
-    expect(s.signAndSend).not.toHaveBeenCalled();
+    expect(s.sign).not.toHaveBeenCalled();
   });
 
   it("explains a cancelled signature", async () => {
@@ -54,7 +67,11 @@ describe("executeTx", () => {
   it("keeps the signature when the transaction fails on-chain", async () => {
     const error = { code: "PoolNotOpen", title: "x", detail: "", action: "none" };
     const postJson = vi.fn(async (url: string) =>
-      url === "/api/tx/confirm" ? { ok: false, error, logs: ["l"], signature: "5sig" } : { ok: true, tx: unsignedTxBase64(), blockhash: "b", lastValidBlockHeight: 1 },
+      url === "/api/tx/confirm"
+        ? { ok: false, error, logs: ["l"], signature: "5sig" }
+        : url === "/api/tx/send"
+          ? { ok: true, signature: "5sig" }
+          : { ok: true, tx: unsignedTxBase64(), blockhash: "b", lastValidBlockHeight: 1 },
     );
     expect(await executeTx({ postJson, signer: signer() }, "subscribe", {}, () => {})).toEqual({ phase: "error", error, logs: ["l"], signature: "5sig" });
   });
