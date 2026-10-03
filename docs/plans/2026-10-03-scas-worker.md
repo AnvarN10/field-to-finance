@@ -1,5 +1,7 @@
 # SCAS Worker Implementation Plan
 
+> **Status: stopped 2026-10-03.** SCAS will be an external provider; the MVP uses a stub in the web app. Tasks 1–2 (`packages/sdk`) are merged into `main`. Tasks 3–13 (Sentinel/CDSE worker) live only on branch `feat/scas-worker` as groundwork for a future integration.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build `apps/scas-worker`, a TypeScript service that pulls Sentinel-2 NDVI statistics for a Field polygon from the Copernicus Data Space Ecosystem, computes a verdict, stores the evidence in a Railway bucket under its SHA-256 hash, and signs `record_attestation` with the SCAS key. Build `packages/sdk` alongside it for the PDA helpers, the polygon hash and the IDL that the web app also needs.
