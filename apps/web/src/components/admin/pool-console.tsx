@@ -1,0 +1,92 @@
+import {
+  addProjectAction,
+  attestStageAction,
+  closeSubscriptionAction,
+  disburseAllAction,
+  fundRedemptionAction,
+  openPoolAction,
+  sweepAction,
+} from "../../app/admin/actions";
+import { SETTLEMENT_LABELS } from "../../lib/chain/enums";
+import type { PoolDetail, ProjectWithFields } from "../../lib/chain/views";
+import { formatDateUtc, formatUsd, relativeTime, shortKey } from "../../lib/format";
+import { ExplorerLink } from "../explorer-link";
+import { PoolStatusBadge } from "../status-badge";
+import { ActionButton } from "./action-button";
+import { SettlementForm } from "./settlement-form";
+import { WalletActionForm } from "./wallet-action-form";
+
+export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unpooled: ProjectWithFields[]; now: number }) {
+  const { pool, projects } = detail;
+  const id = pool.poolId;
+  const s = pool.status;
+  const full = BigInt(pool.raisedAmount) >= BigInt(pool.targetAmount) && BigInt(pool.targetAmount) > 0n;
+  const closeReady = s === "Open" && (full || now >= pool.subscriptionCloseTs);
+  const eligible = unpooled.filter((p) => p.crop === pool.crop && p.season === pool.season && p.fieldCount > 0 && p.verifiedFieldCount === p.fieldCount);
+  const allDisbursed = projects.length > 0 && projects.every((p) => p.disbursed);
+  const supply = BigInt(pool.instrument?.supply ?? "1");
+
+  return (
+    <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">{`${pool.instrument?.symbol ?? "Pool"} · #${id}`}</h2>
+        <div className="flex items-center gap-3">
+          <PoolStatusBadge status={s} />
+          <ExplorerLink kind="address" value={pool.address} />
+        </div>
+      </header>
+      <p className="tabular text-sm text-muted-foreground">
+        {`${formatUsd(pool.raisedAmount)} of ${formatUsd(pool.targetAmount)}. Closes ${formatDateUtc(pool.subscriptionCloseTs)} (${relativeTime(pool.subscriptionCloseTs, now * 1000)}). Matures ${formatDateUtc(pool.maturityTs)} (${relativeTime(pool.maturityTs, now * 1000)}).`}
+      </p>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold">1. Build the pool</h3>
+          {eligible.length === 0 ? <p className="text-xs text-muted-foreground">No verified project with this crop and season is waiting.</p> : null}
+          {eligible.map((p) => (
+            <ActionButton
+              key={p.address}
+              label={`Add project ${shortKey(p.address)} (${formatUsd(p.requestedAmount)})`}
+              role="Issuer"
+              action={addProjectAction.bind(null, id, p.address)}
+              disabled={s !== "Draft"}
+              disabledReason={s !== "Draft" ? "Only a Draft pool accepts projects" : undefined}
+            />
+          ))}
+          <ActionButton label="Open pool" role="Issuer" action={openPoolAction.bind(null, id)} disabled={s !== "Draft" || pool.projectCount === 0} disabledReason={s !== "Draft" ? "Already opened" : pool.projectCount === 0 ? "Add a project first" : undefined} />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold">2. Investors</h3>
+          <WalletActionForm poolId={id} mode="approve" />
+          <ActionButton label="Close subscription" role="Anyone" action={closeSubscriptionAction.bind(null, id)} disabled={!closeReady} disabledReason={closeReady ? undefined : "Available when the pool is full or after the close time"} />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold">3. Pay farmers and attest the season</h3>
+          <ActionButton label="Disburse to every project" role="Issuer" action={disburseAllAction.bind(null, id)} disabled={s !== "Funded" || allDisbursed} disabledReason={s !== "Funded" ? "Needs a Funded pool" : allDisbursed ? "Every project is paid" : undefined} />
+          {(["Sowing", "Vegetation", "Harvest"] as const).map((k) => (
+            <ActionButton key={k} label={`Attest ${k.toLowerCase()} for all fields`} role="SCAS stub" action={attestStageAction.bind(null, id, k)} disabled={projects.length === 0} disabledReason={projects.length === 0 ? "No projects in this pool" : undefined} />
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold">4. Settle and redeem</h3>
+          {projects.map((p) => (
+            <div key={p.address} className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">{`Project ${shortKey(p.address)}${p.settlement ? `: ${SETTLEMENT_LABELS[p.settlement]}` : ""}`}</span>
+              <SettlementForm
+                poolId={id}
+                project={p.address}
+                disabledReason={p.settlement ? "Already settled" : !p.disbursed ? "Disburse first" : !p.harvestAttested && now < pool.maturityTs ? "Attest harvest first" : undefined}
+              />
+            </div>
+          ))}
+          <ActionButton label="Fund redemption" role="Issuer" action={fundRedemptionAction.bind(null, id)} disabled={s !== "Funded"} disabledReason={s !== "Funded" ? "Needs a Funded pool" : undefined} />
+          <ActionButton label="Sweep vault remainder" role="Issuer" action={sweepAction.bind(null, id)} confirmText="Return the vault remainder to the Issuer?" disabled={s !== "Redeeming" || supply !== 0n} disabledReason={s !== "Redeeming" ? "Needs a Redeeming pool" : supply !== 0n ? "Investors still hold the Instrument" : undefined} />
+          <WalletActionForm poolId={id} mode="revoke" />
+        </div>
+      </div>
+    </section>
+  );
+}
