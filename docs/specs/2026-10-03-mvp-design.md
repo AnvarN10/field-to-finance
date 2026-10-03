@@ -9,7 +9,7 @@ Build a working devnet demo that a judge can follow in three minutes: a real pil
 The demo is successful when:
 
 1. Every step of the story runs on devnet against the deployed Program, with explorer links.
-2. NDVI numbers come from real Sentinel-2 data for real pilot field contours.
+2. Every Field carries Attestations signed by the SCAS key with public, hash-linked evidence. Until the external SCAS provider is integrated, a SCAS stub signs them and the UI says so ([ADR 0012](../architecture/decisions/0012-scas-external-provider-stub.md)).
 3. A wallet without KYC cannot receive the Instrument, and the demo shows this failing.
 4. The repo has program tests for every instruction, including the failure cases listed below.
 5. Pitch video, demo video, logo and go-to-market plan are submitted in English before the deadline.
@@ -36,15 +36,14 @@ Out of scope: Secondary Market, regulator and system admin views, a real KYC pro
 ## 4. Architecture
 
 ```
-apps/web            Next.js app: farmer, investor, admin views
-apps/scas-worker    TypeScript service: Sentinel-2 statistics, evidence, Attestations
+apps/web            Next.js app: farmer, investor and admin views; SCAS stub; server-built transactions
 anchor/             Anchor workspace; program in anchor/programs/f2f
-packages/sdk        generated Anchor client, PDA helpers, shared domain types
+packages/sdk        generated Anchor client, PDA helpers, polygon hash, shared domain types
 ```
 
 Nx manages the workspace ([ADR 0001](../architecture/decisions/0001-nx-monorepo.md)). The Anchor build runs as an Nx `run-commands` target.
 
-Hosting: the web app and the SCAS worker run as two Railway services in the "Yesset's projects" workspace; evidence goes to a Railway bucket ([ADR 0010](../architecture/decisions/0010-deploy-on-railway.md)). The Program runs on Solana devnet.
+Hosting: the web app runs as one Railway service in the "Yesset's projects" workspace; evidence and field polygons go to the Railway bucket `f2f-evidence` ([ADR 0010](../architecture/decisions/0010-deploy-on-railway.md), [ADR 0012](../architecture/decisions/0012-scas-external-provider-stub.md)). The Program runs on Solana devnet.
 
 There is no application database. State lives in Program accounts; evidence lives in object storage addressed by its SHA-256 hash.
 
@@ -91,43 +90,40 @@ One Token-2022 mint per Pool ([ADR 0003](../architecture/decisions/0003-token-20
 
 The fixed yield is the same for every investor whichever Shortfall rule applied ([ADR 0006](../architecture/decisions/0006-pooled-instrument-and-shortfall-rules.md)). How the Producer repays the Issuer happens off-chain and is only recorded by `record_settlement`.
 
-### 4.4 SCAS worker
+### 4.4 SCAS (stub until the external provider is integrated)
 
-- Data source: Sentinel Hub Statistical API on the Copernicus Data Space Ecosystem. It returns NDVI statistics for a polygon over a date range, so the worker processes no rasters. Credentials live in Infisical.
-- Cloud handling: scenes with more than 30% cloud cover over the polygon are skipped. No usable scene in the window gives an `InsufficientData` Attestation.
-- Evidence: a JSON document with the polygon, the request, the response, scene dates and the computed verdict. Stored in the Railway bucket under its SHA-256 hash; the hash and URI go on-chain.
-- Verdict rules for the demo:
-  - `FieldVerified`: the polygon is valid, its area matches the declared area within 5%, and at least one clear scene exists in the last 90 days.
-  - `Vegetation`: NDVI mean in the expected range for the crop and date.
-- Interface: a CLI for scripted demo runs and an HTTP endpoint the admin view calls. Both sign with the SCAS key.
+SCAS is an external provider ([ADR 0012](../architecture/decisions/0012-scas-external-provider-stub.md)). For the MVP the web server runs a stub:
 
-**Season timing.** Spring 2027 sowing has not happened, so `Sowing`, `Vegetation` and `Harvest` cannot be real for the 2027 season. The demo replays the same fields' 2026 season from historical imagery, clearly labelled in the UI as a replay of last season. `FieldVerified` uses current imagery.
+- Evidence: a canonical JSON document `{ schema, provider: "scas-stub", note: "External SCAS provider integration pending", kind, verdict: "Pass", polygonHash, fieldAreaHaX100, recordedAt, subject, signer }`, stored in the bucket under its SHA-256 and served at `GET /api/evidence/<hash>` after a hash check.
+- Attestation: `record_attestation` signed with the SCAS key, verdict `Pass`, `ndvi_mean_x10k = 0`, `scene_date = now`. Attestations on one Field are sent one at a time because their addresses depend on `attestation_count`.
+- Triggers: the admin console's "Verify all fields" (`FieldVerified` for every unverified field not yet in a pool) and "Attest season stage" (`Sowing`, `Vegetation` or `Harvest` for every field of a pool), and the end-to-end script.
+- Field polygons uploaded by farmers are stored the same way under `polygons/<polygonHash>.json`, where `polygonHash` is the `@f2f/sdk` hash recorded by `register_field`.
 
 ### 4.5 Web app
 
-- **Landing and pools list.** What Field-to-Finance does, open Pools.
-- **Pool page.** The Instrument card from the business context: Issuer, Farm Projects, SCAS checks, amount, term, fixed yield, Shortfall rules, risks, status.
-- **Field page.** Map with the polygon over satellite imagery, NDVI chart over the season, list of Attestations with explorer links and evidence downloads.
-- **Farmer view.** Email login with an embedded wallet ([ADR 0005](../architecture/decisions/0005-wallet-model.md)), register fields from GeoJSON, see financing status.
-- **Investor view.** Connect Phantom, submit a mock KYC form, subscribe, portfolio, redeem.
-- **Admin view.** Issuer, compliance and SCAS actions behind their keys. Demo-only; keys stay on the server.
+- **Landing and pools list.** What Field-to-Finance does, live devnet numbers, open Pools.
+- **Pool page.** The Instrument card from the business context: Issuer, Farm Projects, SCAS checks, amount, term, fixed yield, Shortfall rules, risks, status, explorer links; the invest panel.
+- **Field page.** The field polygon over Esri World Imagery satellite tiles, and the Attestation timeline (`FieldVerified`, `Sowing`, `Vegetation`, `Harvest`) with explorer links, evidence links and the SCAS stub badge. No NDVI chart while SCAS is a stub.
+- **Farmer view.** Email login with a Privy embedded Solana wallet ([ADR 0005](../architecture/decisions/0005-wallet-model.md)); the standard wallet adapter when no Privy app id is configured. Register a project and fields from GeoJSON, see financing status.
+- **Investor view.** Connect Phantom, get verified once with a mock KYC form (platform-level, [ADR 0011](../architecture/decisions/0011-platform-level-kyc.md)), test-USDC faucet, subscribe, portfolio, refund, redeem.
+- **Admin view.** Issuer, compliance and SCAS stub actions behind a demo password. Keys stay on the server.
 - Amounts are shown in USD ([ADR 0004](../architecture/decisions/0004-usdc-settlement-usd-display.md)).
 
 ## 5. Main flow
 
 1. Producer registers a Farm Project with two pilot fields.
-2. SCAS runs `FieldVerified` for both; Attestations land on-chain.
+2. SCAS (stub) attests `FieldVerified` for both; Attestations land on-chain with public evidence.
 3. Issuer creates `WHEAT-2027`, adds the project, opens the Pool.
 4. Investor without KYC tries to subscribe and fails. Compliance approves; the account thaws; the investor subscribes.
 5. Pool is funded; Issuer disburses USDC to the Producer.
-6. SCAS replays last season: `Sowing`, `Vegetation`, `Harvest` Attestations.
+6. SCAS (stub) attests the season: `Sowing`, `Vegetation`, `Harvest`.
 7. Issuer records settlement `CoveredFromOtherFields`, funds redemption; investor redeems principal plus yield.
 
 ## 6. Error handling
 
 - Under-subscription: Pool goes to `Refunding`; investors refund.
 - Failed or missing Attestation: `add_project` rejects unverified Fields; `record_settlement` rejects a project without a `Harvest` Attestation.
-- Satellite API errors: the worker retries with backoff and never signs an Attestation from a failed request.
+- SCAS stub errors: a failed bucket write or `record_attestation` is reported per field in the admin console and never retried silently; nothing is signed without stored evidence.
 - Signer checks: every instruction checks its role key from Config or the Pool.
 - Errors are reported to GlitchTip, organization `personal`.
 
@@ -140,7 +136,7 @@ The fixed yield is the same for every investor whichever Shortfall rule applied 
   - `subscribe` above target or after close;
   - `disburse` before `Funded`, `redeem` before `Redeeming`;
   - wrong signer for each role.
-- Worker tests with recorded Statistical API responses: clear scene, cloudy scene, no scenes, area mismatch.
+- Web tests (Vitest): account mapping against real Borsh encodings, memcmp offsets, instruction builders, server-built transactions, plain-language program errors, the SCAS stub (evidence, serialized sends), polygon hashing, and the key UI states, including the non-KYC subscribe rejection.
 - One end-to-end devnet script that runs the main flow and prints explorer links. It doubles as the demo video script.
 
 ## 8. Schedule
@@ -162,4 +158,4 @@ Secondary Market work starts only if the main flow is done by Oct 9.
 - Contours of one or two pilot fields as GeoJSON or cadastral numbers, with crop and expected yield.
 - Letters of intent from the payment on-ramp and the farmers.
 - Names and backgrounds of the three or more team members; all must register on Colosseum before the deadline.
-- Copernicus Data Space Ecosystem account for the Statistical API.
+- SCAS provider contact for the post-hackathon integration (no Copernicus account is needed for the MVP).

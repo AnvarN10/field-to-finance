@@ -10,7 +10,7 @@ A Producer registers a Farm Project.
 
 ## Participants
 
-Producer, SCAS worker, Issuer, compliance, investors, the [program](../systems/program.md).
+Producer, SCAS (stub in the web app), Issuer, compliance, investors, the [program](../systems/program.md).
 
 ## Step-by-step flow
 
@@ -18,14 +18,14 @@ Producer, SCAS worker, Issuer, compliance, investors, the [program](../systems/p
 | --- | --- | --- | --- |
 | 1 | Producer registers the Farm Project | `register_project` | Producer |
 | 2 | Producer adds each Field | `register_field` | Producer |
-| 3 | SCAS verifies each Field from satellite data | `record_attestation(FieldVerified, Pass)` | SCAS |
+| 3 | SCAS (stub until the external provider) attests each Field | `record_attestation(FieldVerified, Pass)` | SCAS |
 | 4 | Issuer creates the Pool and its Instrument | `create_pool` | Issuer |
 | 5 | Issuer adds verified projects and opens the Pool | `add_project`, `open_pool` | Issuer |
-| 6 | Compliance approves an investor; the account thaws | `approve_investor` | compliance |
-| 7 | Investor pays USDC and receives the Instrument | `subscribe` | investor |
+| 6 | Compliance approves an investor once for every pool | `approve_investor` | compliance |
+| 7 | Investor pays USDC; the Instrument account is created, thawed and credited | `subscribe` | investor |
 | 8 | Subscription closes at target or after the close time | `close_subscription` | anyone |
 | 9 | Issuer pays each Producer | `disburse` | Issuer |
-| 10 | SCAS attests the season | `record_attestation(Sowing, Vegetation, Harvest)` | SCAS |
+| 10 | SCAS (stub) attests the season | `record_attestation(Sowing, Vegetation, Harvest)` | SCAS |
 | 11 | Issuer records the Shortfall rule per project | `record_settlement` | Issuer |
 | 12 | Issuer deposits principal plus yield; after maturity the Pool opens for redemption | `fund_redemption` | Issuer |
 | 13 | Investor burns the Instrument and receives principal plus yield | `redeem` | investor |
@@ -48,7 +48,7 @@ Every investor redeems `amount × (1 + yield)` USDC, the vault empties, and ever
 
 ## External dependencies
 
-Solana devnet, USDC mint, SCAS worker for Attestations.
+Solana devnet, USDC mint, the SCAS stub in the web app ([ADR 0012](../architecture/decisions/0012-scas-external-provider-stub.md)).
 
 ## Invariants and assumptions
 
@@ -74,4 +74,5 @@ Each transaction has an explorer link; failures name the `F2fError` variant in l
 ## Related docs
 
 - [Program](../systems/program.md)
+- [Web app](../systems/web.md)
 - [MVP design, section 5](../specs/2026-10-03-mvp-design.md#5-main-flow)

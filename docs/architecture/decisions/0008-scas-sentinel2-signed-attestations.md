@@ -1,6 +1,7 @@
 ---
-status: Accepted
+status: Superseded
 date: "2026-10-03"
+superseded_by: docs/architecture/decisions/0012-scas-external-provider-stub.md
 ---
 
 # SCAS uses real Sentinel-2 NDVI and signs Attestations
