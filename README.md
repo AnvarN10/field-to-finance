@@ -10,3 +10,17 @@ Farmers need money for seed, fertilizer and fuel months before the harvest exist
 6. After harvest the pool settles and investors are paid out.
 
 Status: hackathon build, Solana Colosseum fall 2026. Documentation starts at [docs/README.md](docs/README.md).
+
+## Devnet
+
+| What | Address |
+| --- | --- |
+| Program | [`9syreF6kWfmMfoCkTSE8f7p3kRY1Bh7TSDjGAr9s6Jfm`](https://explorer.solana.com/address/9syreF6kWfmMfoCkTSE8f7p3kRY1Bh7TSDjGAr9s6Jfm?cluster=devnet) |
+| Test USDC mint | [`Fhfr7QZ6PpZF4ug1kVdnA7dfMGaSJawGL6dhwNMFvTjv`](https://explorer.solana.com/address/Fhfr7QZ6PpZF4ug1kVdnA7dfMGaSJawGL6dhwNMFvTjv?cluster=devnet) |
+
+Keys and endpoints live in Infisical, project `field-to-finance`, environment `dev`. Deploy and initialize in one go, because `init_config` accepts its first caller:
+
+```bash
+cd anchor && anchor deploy --provider.cluster devnet --provider.wallet ~/.config/f2f/deployer.json && cd ..
+infisical run --env=dev -- ./node_modules/.bin/tsx scripts/devnet-bootstrap.ts
+```
