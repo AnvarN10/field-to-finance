@@ -3,7 +3,7 @@
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef } from "react";
-import { MAPLIBRE_WORKER_URL, polygonBounds, satelliteStyle } from "../../lib/map";
+import { FIELD_CASING, FIELD_STROKE, MAPLIBRE_WORKER_URL, polygonBounds, satelliteStyle } from "../../lib/map";
 
 maplibregl.setWorkerUrl(MAPLIBRE_WORKER_URL);
 
@@ -30,12 +30,13 @@ export function FieldMap({ polygons, height = 360 }: { polygons: { coordinates: 
           features: polygons.map((p, i) => ({ type: "Feature", properties: { i }, geometry: { type: "Polygon", coordinates: p.coordinates } })),
         },
       });
-      // Gold reads on imagery and is a fill on a dark ground, which the style-lock allows.
-      map.addLayer({ id: "fields-fill", type: "fill", source: "fields", paint: { "fill-color": "#c9a227", "fill-opacity": 0.18 } });
-      map.addLayer({ id: "fields-line", type: "line", source: "fields", paint: { "line-color": "#c9a227", "line-width": 2 } });
+      // Wheat (style-lock primary) reads on green and brown imagery; a dark casing keeps the edge visible on pale fields.
+      map.addLayer({ id: "fields-fill", type: "fill", source: "fields", paint: { "fill-color": FIELD_STROKE, "fill-opacity": 0.14 } });
+      map.addLayer({ id: "fields-casing", type: "line", source: "fields", paint: { "line-color": FIELD_CASING, "line-width": 4, "line-opacity": 0.55 } });
+      map.addLayer({ id: "fields-line", type: "line", source: "fields", paint: { "line-color": FIELD_STROKE, "line-width": 2 } });
     });
     return () => map.remove();
   }, [polygons]);
 
-  return <div ref={ref} role="region" aria-label="Field boundary over satellite imagery" style={{ height }} className="w-full overflow-hidden rounded-lg bg-ink" />;
+  return <div ref={ref} role="region" aria-label="Field boundary over satellite imagery" style={{ height }} className="w-full overflow-hidden rounded-lg border border-border bg-card" />;
 }

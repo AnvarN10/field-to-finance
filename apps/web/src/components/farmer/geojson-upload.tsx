@@ -80,7 +80,7 @@ export function GeojsonUpload({ onUploaded }: { onUploaded: (fields: UploadedFie
         <button
           type="button"
           disabled={busy}
-          className="rounded-sm font-medium text-gold-text underline decoration-muted-foreground underline-offset-4 disabled:opacity-60 [@media(hover:hover)]:hover:decoration-current"
+          className="rounded-sm font-medium text-primary underline decoration-muted-foreground underline-offset-4 disabled:opacity-60 [@media(hover:hover)]:hover:decoration-current"
           onClick={async () => handle(await (await fetch("/samples/demo-fields.geojson")).text())}
         >
           Use the sample file

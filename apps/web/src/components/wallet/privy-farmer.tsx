@@ -56,7 +56,7 @@ export default function PrivyFarmer({ appId, rpcUrl, children }: { appId: string
       appId={appId}
       config={{
         loginMethods: ["email"],
-        appearance: { theme: "light", accentColor: "#142d23", walletChainType: "solana-only" },
+        appearance: { theme: "dark", accentColor: "#F2C14E", walletChainType: "solana-only" },
         embeddedWallets: { solana: { createOnLogin: "users-without-wallets" } },
         solana: {
           rpcs: {

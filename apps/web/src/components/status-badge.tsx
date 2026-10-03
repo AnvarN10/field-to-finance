@@ -2,11 +2,12 @@ import { CircleCheck, CircleDashed, CircleDot, RotateCcw, Wallet, type LucideIco
 import type { PoolStatusName } from "../lib/chain/enums";
 
 const STYLE: Record<PoolStatusName, { label: string; className: string; Icon: LucideIcon }> = {
-  Draft: { label: "Draft", className: "border-border bg-muted text-muted-foreground", Icon: CircleDashed },
-  Open: { label: "Open for subscription", className: "border-primary bg-primary text-gold", Icon: CircleDot },
-  Funded: { label: "Funded", className: "border-success text-success", Icon: CircleCheck },
-  Refunding: { label: "Refunding", className: "border-warning text-warning", Icon: RotateCcw },
-  Redeeming: { label: "Redeeming", className: "border-info text-info", Icon: Wallet },
+  // Tints are 12% of the status colour over the surface; every text/tint pair measures >= 5.4:1 (style-lock Color contract).
+  Draft: { label: "Draft", className: "border-border text-muted-foreground", Icon: CircleDashed },
+  Open: { label: "Open for subscription", className: "border-success/40 bg-success/12 text-success", Icon: CircleDot },
+  Funded: { label: "Funded", className: "border-success/40 text-success", Icon: CircleCheck },
+  Refunding: { label: "Refunding", className: "border-warning/40 bg-warning/12 text-warning", Icon: RotateCcw },
+  Redeeming: { label: "Redeeming", className: "border-info/40 bg-info/12 text-info", Icon: Wallet },
 };
 
 export function PoolStatusBadge({ status }: { status: PoolStatusName }) {

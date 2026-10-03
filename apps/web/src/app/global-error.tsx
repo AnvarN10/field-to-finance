@@ -9,7 +9,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   }, [error]);
   return (
     <html lang="en">
-      <body style={{ fontFamily: "system-ui", padding: 32, background: "#f5f2ea", color: "#0d2019" }}>
+      <body style={{ fontFamily: "system-ui", padding: 32, background: "#0b0d0c", color: "#edefea" }}>
         <h1>Something went wrong</h1>
         <p>The error was reported.</p>
         <button type="button" onClick={reset}>

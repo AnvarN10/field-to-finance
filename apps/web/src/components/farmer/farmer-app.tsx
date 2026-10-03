@@ -147,7 +147,7 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
 function Inner() {
   const session = useFarmerSession();
   const [refreshKey, setRefreshKey] = useState(0);
-  if (!session.ready) return <div className="h-40 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" role="status" aria-label="Loading account" />;
+  if (!session.ready) return <div className="h-40 skeleton-shimmer rounded-lg" role="status" aria-label="Loading account" />;
   if (!session.authenticated || !session.signer) {
     return (
       <div className="flex flex-col items-start gap-4 rounded-lg border border-border bg-card p-6">

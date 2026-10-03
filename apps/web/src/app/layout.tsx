@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${brand.variable} ${code.variable}`}>
+    <html lang="en" className={`dark ${brand.variable} ${code.variable}`}>
       <body className="flex min-h-dvh flex-col font-sans">
         <SkipLink />
         <WalletProviders>

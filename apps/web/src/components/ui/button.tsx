@@ -4,20 +4,21 @@ import { cn } from "cn"
 import { Slot } from "radix-ui"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[background-color,border-color,color,transform] duration-100 ease-(--ease-out) select-none active:not-aria-[haspopup]:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[background-color,border-color,color,transform] duration-100 ease-(--ease-out) select-none active:not-aria-[haspopup]:scale-[0.98] disabled:pointer-events-none aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
+        // Disabled primary turns neutral (muted text on the surface, 5.90:1) instead of a dimmed wheat that reads as olive on the dark ground.
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover disabled:border-border disabled:bg-transparent disabled:text-muted-foreground",
         outline:
-          "border-border bg-card text-foreground hover:bg-muted aria-expanded:bg-muted",
+          "border-border bg-card text-foreground hover:bg-muted aria-expanded:bg-muted disabled:opacity-50",
         secondary:
-          "bg-muted text-foreground hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)] aria-expanded:bg-muted",
+          "bg-muted text-foreground disabled:opacity-50 hover:bg-[color-mix(in_oklab,var(--raised),var(--foreground)_6%)] aria-expanded:bg-muted",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
+          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground disabled:opacity-50",
         destructive:
-          "border-destructive bg-card text-destructive hover:bg-destructive/10",
-        link: "text-gold-text underline underline-offset-4 decoration-muted-foreground hover:decoration-current",
+          "border-destructive bg-card text-destructive hover:bg-destructive/10 disabled:opacity-50",
+        link: "text-primary underline underline-offset-4 decoration-muted-foreground hover:decoration-current disabled:opacity-50",
       },
       size: {
         default:

@@ -10,6 +10,10 @@ export const MAPLIBRE_WORKER_URL = `/maplibre/${maplibrePkg.version}/maplibre-gl
 
 /** Keyless satellite tiles; attribution is required by Esri's terms. */
 export const ESRI_IMAGERY_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+/** Field polygon paint on satellite imagery: style-lock wheat with a near-black casing. MapLibre needs literal colours. */
+export const FIELD_STROKE = "#F2C14E";
+export const FIELD_CASING = "#0B0D0C";
+
 export const ESRI_ATTRIBUTION = "Imagery © Esri, Maxar, Earthstar Geographics";
 
 export function polygonBounds(polygons: { coordinates: number[][][] }[]): [[number, number], [number, number]] | null {

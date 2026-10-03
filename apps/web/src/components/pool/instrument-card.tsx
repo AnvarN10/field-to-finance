@@ -76,7 +76,7 @@ export function InstrumentCard({ detail, cluster = "devnet" }: { detail: PoolDet
         </dl>
       </Row>
       <Row title="Fixed yield">
-        <p className="text-base font-semibold text-gold-text">Fixed yield {formatYield(pool.yieldBps)}</p>
+        <p className="text-base font-semibold text-primary">Fixed yield {formatYield(pool.yieldBps)}</p>
         <p className="tabular">{`${formatUsd(payoutPer(pool, 1_000_000_000n))} back for every ${formatUsd(1_000_000_000n)}`}</p>
         <p className="text-muted-foreground">The same for every investor, whichever Shortfall rule settles a project.</p>
       </Row>
