@@ -94,3 +94,8 @@ export function attestationValue(o: Partial<Record<string, unknown>> = {}) {
     ...o,
   };
 }
+
+/** The runtime instruction coder is BorshInstructionCoder; Anchor's InstructionCoder type omits decode. */
+export function ixCoder(program: Program<F2f>) {
+  return program.coder.instruction as unknown as { decode(data: Buffer): { name: string; data: unknown } | null };
+}

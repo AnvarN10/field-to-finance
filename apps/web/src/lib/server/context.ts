@@ -10,6 +10,12 @@ import { parseKeypair } from "../keys";
 import type { StubDeps } from "../scas-stub";
 import { S3Store, type BlobStore } from "../store";
 import { serverEnv } from "./env";
+import { investorPda, poolPda } from "@f2f/sdk";
+import type { OpsContext } from "../chain/admin-ops";
+import { projectsInPool } from "../chain/filters";
+import type { FaucetDeps } from "../chain/faucet";
+import { createCooldown } from "../cooldown";
+import { RequestError } from "../errors";
 
 let connection: Connection | undefined;
 let reader: ChainReader | undefined;
@@ -97,5 +103,48 @@ export function stubDeps(): StubDeps {
     scas: roleKeypair("scas").publicKey,
     publicBaseUrl: serverEnv().PUBLIC_BASE_URL,
     cluster: serverEnv().SOLANA_CLUSTER,
+  };
+}
+
+export function opsContext(): OpsContext {
+  const program = getBuildProgram();
+  const connection = getConnection();
+  return {
+    program,
+    usdcMint: getUsdcMint(),
+    roles: {
+      get issuer() { return roleKeypair("issuer").publicKey; },
+      get compliance() { return roleKeypair("compliance").publicKey; },
+      get deployer() { return roleKeypair("deployer").publicKey; },
+    },
+    send: (role, ixs) => sendAs(role, ixs),
+    loadPool: async (poolId) => {
+      const a = await program.account.pool.fetchNullable(poolPda(program.programId, poolId));
+      if (!a) throw new RequestError(`Pool ${poolId} does not exist`, 404);
+      return a;
+    },
+    loadProjects: async (pool) =>
+      (await program.account.farmProject.all([projectsInPool(pool)])).map((r) => ({ address: r.publicKey, account: r.account })),
+    tokenBalance: async (account) => {
+      try {
+        return BigInt((await connection.getTokenAccountBalance(account, "confirmed")).value.amount);
+      } catch {
+        return 0n;
+      }
+    },
+    accountExists: async (account) => (await connection.getAccountInfo(account, "confirmed")) !== null,
+    now: () => Math.floor(Date.now() / 1000),
+  };
+}
+
+const faucetCooldown = createCooldown(60_000);
+export function faucetDeps(): FaucetDeps {
+  return {
+    connection: getConnection(),
+    usdcMint: getUsdcMint(),
+    deployer: roleKeypair("deployer").publicKey,
+    send: (ixs) => sendAs("deployer", ixs),
+    usdcAmount: BigInt(serverEnv().FAUCET_USDC) * 1_000_000n,
+    cooldown: faucetCooldown,
   };
 }
