@@ -1,0 +1,187 @@
+import type { Program } from "@anchor-lang/core";
+import { investorPda, poolPda, type F2f } from "@f2f/sdk";
+import {
+  ExtensionType,
+  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+  getExtensionData,
+  unpackAccount,
+  unpackMint,
+} from "@solana/spl-token";
+import { PublicKey, type Connection } from "@solana/web3.js";
+import { RequestError } from "../errors";
+import { createTtlCache } from "../ttl-cache";
+import { attestationsOfField, fieldsOfProject, projectsByProducer, projectsInPool, projectsWithoutPool } from "./filters";
+import { parseTokenMetadata } from "./token-metadata";
+import {
+  toAttestationView,
+  toConfigView,
+  toFieldView,
+  toPoolView,
+  toProjectView,
+  type ConfigView,
+  type FieldDetail,
+  type InstrumentView,
+  type InvestorState,
+  type PoolDetail,
+  type PoolView,
+  type ProjectAccount,
+  type ProjectWithFields,
+} from "./views";
+
+export interface ChainReader {
+  config(): Promise<ConfigView>;
+  listPools(): Promise<PoolView[]>;
+  getPool(poolId: string): Promise<PoolDetail | null>;
+  getField(address: string): Promise<FieldDetail | null>;
+  projectsByProducer(producer: string): Promise<ProjectWithFields[]>;
+  unpooledProjects(): Promise<ProjectWithFields[]>;
+  investor(wallet: string): Promise<InvestorState>;
+  invalidate(): void;
+}
+
+export interface ReaderDeps {
+  program: Program<F2f>;
+  connection: Connection;
+  usdcMint: PublicKey;
+  ttlMs?: number;
+}
+
+function parseKey(s: string): PublicKey | null {
+  try {
+    return new PublicKey(s);
+  } catch {
+    return null;
+  }
+}
+
+export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000 }: ReaderDeps): ChainReader {
+  const cache = createTtlCache(ttlMs);
+  const programId = program.programId;
+
+  async function instruments(mints: PublicKey[]): Promise<(InstrumentView | null)[]> {
+    if (mints.length === 0) return [];
+    const infos = await connection.getMultipleAccountsInfo(mints, "confirmed");
+    return infos.map((info, i) => {
+      if (!info) return null;
+      const mint = unpackMint(mints[i] as PublicKey, info, TOKEN_2022_PROGRAM_ID);
+      const ext = getExtensionData(ExtensionType.TokenMetadata, mint.tlvData);
+      const meta = ext ? parseTokenMetadata(ext) : { name: "", symbol: "", uri: "" };
+      return { ...meta, supply: mint.supply.toString(), decimals: mint.decimals };
+    });
+  }
+
+  async function withFields(rows: { publicKey: PublicKey; account: ProjectAccount }[]): Promise<ProjectWithFields[]> {
+    return Promise.all(
+      rows.map(async ({ publicKey, account }) => {
+        const fields = await program.account.field.all([fieldsOfProject(publicKey)]);
+        return {
+          ...toProjectView(publicKey, account),
+          fields: fields.map((f) => toFieldView(f.publicKey, f.account)).sort((a, b) => a.index - b.index),
+        };
+      }),
+    );
+  }
+
+  const listPools = () =>
+    cache.get("pools", async () => {
+      const rows = await program.account.pool.all();
+      const meta = await instruments(rows.map((r) => r.account.mint));
+      return rows
+        .map((r, i) => toPoolView(r.publicKey, r.account, meta[i] ?? null))
+        .sort((a, b) => (BigInt(b.poolId) > BigInt(a.poolId) ? 1 : -1));
+    });
+
+  return {
+    config: () =>
+      cache.get("config", async () => {
+        const [address] = PublicKey.findProgramAddressSync([new TextEncoder().encode("config")], programId);
+        return toConfigView(await program.account.config.fetch(address));
+      }),
+
+    listPools,
+
+    getPool: (poolId) =>
+      cache.get(`pool:${poolId}`, async () => {
+        if (!/^\d{1,20}$/.test(poolId)) return null;
+        const address = poolPda(programId, BigInt(poolId));
+        const account = await program.account.pool.fetchNullable(address);
+        if (!account) return null;
+        const [meta] = await instruments([account.mint]);
+        const projects = await withFields(await program.account.farmProject.all([projectsInPool(address)]));
+        return { pool: toPoolView(address, account, meta ?? null), projects };
+      }),
+
+    getField: (address) =>
+      cache.get(`field:${address}`, async () => {
+        const key = parseKey(address);
+        if (!key) return null;
+        const field = await program.account.field.fetchNullable(key);
+        if (!field) return null;
+        const project = await program.account.farmProject.fetch(field.project);
+        let pool: PoolView | null = null;
+        if (project.pool) {
+          const p = await program.account.pool.fetchNullable(project.pool);
+          if (p) pool = toPoolView(project.pool, p, (await instruments([p.mint]))[0] ?? null);
+        }
+        const attestations = (await program.account.attestation.all([attestationsOfField(key)]))
+          .map((a) => toAttestationView(a.publicKey, a.account))
+          .sort((a, b) => a.sequence - b.sequence);
+        return { field: toFieldView(key, field), project: toProjectView(field.project, project), pool, attestations };
+      }),
+
+    projectsByProducer: (producer) =>
+      cache.get(`producer:${producer}`, async () => {
+        const key = parseKey(producer);
+        if (!key) throw new RequestError("wallet is not a valid public key", 400);
+        const rows = await withFields(await program.account.farmProject.all([projectsByProducer(key)]));
+        return rows.sort((a, b) => (BigInt(b.projectId) > BigInt(a.projectId) ? 1 : -1));
+      }),
+
+    unpooledProjects: () =>
+      cache.get("unpooled", async () => withFields(await program.account.farmProject.all([projectsWithoutPool()]))),
+
+    investor: (wallet) =>
+      cache.get(`investor:${wallet}`, async () => {
+        const owner = parseKey(wallet);
+        if (!owner) throw new RequestError("wallet is not a valid public key", 400);
+        const pools = await listPools();
+        const record = await program.account.investorRecord.fetchNullable(investorPda(programId, owner));
+        const atas = pools.map((p) => getAssociatedTokenAddressSync(new PublicKey(p.mint), owner, false, TOKEN_2022_PROGRAM_ID));
+        const usdcAta = getAssociatedTokenAddressSync(usdcMint, owner, false, TOKEN_PROGRAM_ID);
+        const [infos, lamports] = await Promise.all([
+          connection.getMultipleAccountsInfo([...atas, usdcAta], "confirmed"),
+          connection.getBalance(owner, "confirmed"),
+        ]);
+        const positions = pools.map((p, i) => {
+          const info = infos[i];
+          const ata = atas[i] as PublicKey;
+          const acc = info ? unpackAccount(ata, info, TOKEN_2022_PROGRAM_ID) : null;
+          return {
+            poolId: p.poolId,
+            pool: p.address,
+            symbol: p.instrument?.symbol ?? `POOL-${p.poolId}`,
+            status: p.status,
+            yieldBps: p.yieldBps,
+            ata: ata.toBase58(),
+            exists: acc !== null,
+            frozen: acc?.isFrozen ?? true,
+            balance: (acc?.amount ?? 0n).toString(),
+          };
+        });
+        const usdcInfo = infos[atas.length];
+        const usdc = usdcInfo ? unpackAccount(usdcAta, usdcInfo, TOKEN_PROGRAM_ID).amount : 0n;
+        return {
+          wallet: owner.toBase58(),
+          approved: record?.approved ?? false,
+          approvedAt: record?.approved ? record.approvedAt.toNumber() : null,
+          usdcBalance: usdc.toString(),
+          solLamports: lamports,
+          positions,
+        };
+      }),
+
+    invalidate: () => cache.clear(),
+  };
+}
