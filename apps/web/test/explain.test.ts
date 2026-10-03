@@ -39,7 +39,7 @@ describe("explainChainError", () => {
     expect(explainChainError({ logs: ["Program log: Error: insufficient funds", "Program Tokenkeg failed: custom program error: 0x1"] })).toMatchObject({ code: "InsufficientUsdc", action: "faucet" });
     expect(explainChainError({ logs: ["Program log: AnchorError caused by account: investor_usdc. Error Code: AccountNotInitialized. Error Number: 3012."] })).toMatchObject({ code: "InsufficientUsdc", action: "faucet" });
     expect(explainChainError({ logs: ["Program log: AnchorError caused by account: producer_usdc. Error Code: AccountNotInitialized. Error Number: 3012."] })).toMatchObject({ code: "InsufficientUsdc", action: "faucet" });
-    expect(explainChainError({ error: "AccountNotFound" })).toMatchObject({ code: "SponsorOutOfSol", action: "none", title: "Gas sponsorship is out of devnet SOL" });
+    expect(explainChainError({ error: "AccountNotFound" })).toMatchObject({ code: "NoSol", action: "none", title: "A platform account is out of devnet SOL" });
   });
 
   it("explains the fee errors in plain words", () => {

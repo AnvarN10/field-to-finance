@@ -56,11 +56,12 @@ export const subscriptionTotal = (amount: bigint, networkFee: bigint) => amount 
 export type SubscriptionCheck = { ok: true; amount: bigint; total: bigint } | { ok: false; message: string; reason: "amount" | "balance" };
 
 /** Capacity first, then whether the wallet can pay amount plus the network fee. */
-export function validateSubscription(input: string, max: bigint, w: { networkFee: bigint; usdcBalance: bigint }): SubscriptionCheck {
+/** `usdcBalance` null (still loading or failed to load): the balance check is skipped; the program checks it anyway. */
+export function validateSubscription(input: string, max: bigint, w: { networkFee: bigint; usdcBalance: bigint | null }): SubscriptionCheck {
   const v = validateAmount(input, max);
   if (!v.ok) return { ...v, reason: "amount" };
   const total = subscriptionTotal(v.amount, w.networkFee);
-  if (w.usdcBalance < total) {
+  if (w.usdcBalance !== null && w.usdcBalance < total) {
     const fee = w.networkFee > 0n ? ` (amount plus ${formatUsd(w.networkFee)} network fee)` : "";
     return { ok: false, reason: "balance", message: `You need ${formatUsd(total)} in test USDC${fee}; this wallet has ${formatUsd(w.usdcBalance)}` };
   }

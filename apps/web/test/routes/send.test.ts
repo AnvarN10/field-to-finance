@@ -8,6 +8,7 @@ vi.mock("@/lib/server/context", () => ({
   roleKeypair: () => ({}),
   sponsorPolicy: async () => ({}),
   sponsorPublicKey: () => sponsor,
+  getStore: () => ({ get: async () => null }),
 }));
 vi.mock("@/lib/chain/sponsor", async (orig) => ({
   ...(await orig<typeof import("../../src/lib/chain/sponsor")>()),

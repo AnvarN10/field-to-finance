@@ -5,13 +5,18 @@ import { cosignAndSend } from "@/lib/chain/sponsor";
 import { TX_ACTIONS } from "@/lib/chain/user-tx";
 import { RequestError } from "@/lib/errors";
 import { clientIp, createRateLimit, takeAll } from "@/lib/rate-limit";
-import { getConnection, roleKeypair, sponsorPolicy, sponsorPublicKey } from "@/lib/server/context";
+import { getConnection, getStore, roleKeypair, sponsorPolicy, sponsorPublicKey } from "@/lib/server/context";
+import { polygonKey } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 // ADR 0013: every accepted request spends the sponsor's SOL (fee, sometimes rent). Bound the burn rate.
 const perIp = createRateLimit({ limit: 20, windowMs: 10 * 60_000 });
 const global = createRateLimit({ limit: 300, windowMs: 60 * 60_000 });
+// Rent budget for transactions that create accounts at the sponsor's expense (~0.002 SOL each), so a
+// wallet cannot close and recreate its token accounts in a loop: 5 per wallet and 60 in total per hour.
+const rentPerWallet = createRateLimit({ limit: 5, windowMs: 60 * 60_000 });
+const rentGlobal = createRateLimit({ limit: 60, windowMs: 60 * 60_000 });
 
 const Body = z.object({ action: z.enum(TX_ACTIONS), tx: z.string().min(1).max(4_000) });
 
@@ -27,7 +32,13 @@ export async function POST(req: Request) {
   if (wait > 0) return fail(429, "Cooldown", `Too many transactions. Try again in ${Math.ceil(wait / 60)} min.`, "");
   try {
     const signature = await cosignAndSend(
-      { policy: await sponsorPolicy(), sponsorKey: roleKeypair("sponsor"), connection: getConnection() },
+      {
+        policy: await sponsorPolicy(),
+        sponsorKey: roleKeypair("sponsor"),
+        connection: getConnection(),
+        polygonExists: async (hash) => (await getStore().get(polygonKey(hash))) !== null,
+        allowRent: (wallet) => takeAll([[rentPerWallet, wallet], [rentGlobal, "all"]]),
+      },
       b.data.action,
       b.data.tx,
     );

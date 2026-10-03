@@ -28,7 +28,7 @@ import { explorerAddress, explorerTx, formatUsd, withYield } from "../format";
 import { parseKeypair } from "../keys";
 import { uploadPolygon } from "../polygons";
 import { attestStage, attestStub, type StubDeps } from "../scas-stub";
-import { S3Store } from "../store";
+import { S3Store, polygonKey } from "../store";
 import { DEMO_FIELDS } from "./fields";
 
 export const DEMO_TARGET = 2_000_000_000n; // $2,000.00
@@ -98,14 +98,18 @@ export async function runFromEnv(source: Record<string, string | undefined> = pr
   const fees = await reader.fees();
   if (!fees) throw new Error("FeeConfig is not initialized; run scripts/devnet-init-fees.ts first");
   const treasury = new PublicKey(fees.treasury);
-  const treasuryUsdc = usdcAta(usdcMint, treasury);
+  const treasuryUsdc = usdcAta(usdcMint, treasury, true);
   const treasuryStart = await ops.tokenBalance(treasuryUsdc);
-  const policy: SponsorPolicy = { program, sponsor: keys.sponsor.publicKey, usdcMint, treasury };
+  const policy: SponsorPolicy = { program, sponsor: keys.sponsor.publicKey, usdcMint, treasury, mintFee: BigInt(fees.mintFee) };
   /** The production path (ADR 0013): the user signs, the sponsor validates, co-signs as fee payer and submits. */
   const sponsored = async (action: TxAction, user: Keypair, ixs: TransactionInstruction[]) => {
     const { tx: unsigned, blockhash, lastValidBlockHeight } = await buildV0(connection, keys.sponsor.publicKey, ixs);
     unsigned.sign([user]);
-    const signature = await cosignAndSend({ policy, sponsorKey: keys.sponsor, connection }, action, bytesToBase64(unsigned.serialize()));
+    const signature = await cosignAndSend(
+      { policy, sponsorKey: keys.sponsor, connection, polygonExists: async (h) => (await store.get(polygonKey(h))) !== null, allowRent: () => 0 },
+      action,
+      bytesToBase64(unsigned.serialize()),
+    );
     await confirmOrThrow(connection, signature, blockhash, lastValidBlockHeight);
     return signature;
   };

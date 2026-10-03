@@ -102,6 +102,7 @@ export async function sponsorPolicy(): Promise<SponsorPolicy> {
     sponsor: roleKeypair("sponsor").publicKey,
     usdcMint: getUsdcMint(),
     treasury: fees ? new PublicKey(fees.treasury) : null,
+    mintFee: BigInt(fees?.mintFee ?? "0"),
   };
 }
 

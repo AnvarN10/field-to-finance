@@ -192,7 +192,8 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
       cache.get("fees", async () => {
         const fc = await program.account.feeConfig.fetchNullable(feesPda(programId));
         if (!fc) return null;
-        const ata = getAssociatedTokenAddressSync(usdcMint, fc.treasury, false, TOKEN_PROGRAM_ID);
+        // The treasury may be a PDA (off-curve); the program derives its ATA either way.
+        const ata = getAssociatedTokenAddressSync(usdcMint, fc.treasury, true, TOKEN_PROGRAM_ID);
         const [info] = await connection.getMultipleAccountsInfo([ata], "confirmed");
         const balance = info ? unpackAccount(ata, info, TOKEN_PROGRAM_ID).amount : 0n;
         return {

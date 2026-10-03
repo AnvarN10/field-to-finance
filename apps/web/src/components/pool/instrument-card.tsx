@@ -1,8 +1,7 @@
-import { splitArrangementFee } from "@f2f/sdk";
 import type { ReactNode } from "react";
 import type { PoolDetail } from "../../lib/chain/views";
 import { formatDateUtc, formatUsd, formatYield, relativeTime } from "../../lib/format";
-import { payoutPer, termDays } from "../../lib/pool-math";
+import { arrangementSplit, payoutPer, termDays } from "../../lib/pool-math";
 import { ExplorerLink } from "../explorer-link";
 import { ScasStubBadge } from "../scas-stub-badge";
 import { PoolStatusBadge } from "../status-badge";
@@ -20,8 +19,8 @@ function Row({ title, children, stacked = false }: { title: string; children: Re
 
 export function InstrumentCard({ detail, cluster = "devnet", networkFee = null }: { detail: PoolDetail; cluster?: string; networkFee?: string | null }) {
   const { pool, projects, arrangementFeeBps } = detail;
-  const requested = projects.reduce((n, p) => n + BigInt(p.requestedAmount), 0n);
-  const split = splitArrangementFee(requested, arrangementFeeBps);
+  const split = arrangementSplit(projects, arrangementFeeBps);
+  const requested = split.requested;
   const fields = projects.flatMap((p) => p.fields);
   const verified = projects.reduce((n, p) => n + p.verifiedFieldCount, 0);
   const total = projects.reduce((n, p) => n + p.fieldCount, 0);

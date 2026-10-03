@@ -18,9 +18,20 @@ export interface SponsorPolicy {
   usdcMint: PublicKey;
   /** FeeConfig.treasury, or null while fees are not configured. */
   treasury: PublicKey | null;
+  /** FeeConfig.mint_fee in USDC base units (0 without FeeConfig). Registration is sponsored only while it is above 0. */
+  mintFee: bigint;
 }
 
-/** Priority fee cap: 50,000 micro-lamports per CU is 0.01 SOL at the 200k CU default limit. */
+/** What a validated transaction would cost the sponsor beyond the fee, for the rent budget and the polygon check. */
+export interface SponsoredTxInfo {
+  signer: PublicKey;
+  /** Accounts the transaction creates at the sponsor's expense if they do not exist yet. */
+  rentAccounts: PublicKey[];
+  /** register-project only: the polygon hash of every field, in order. */
+  polygonHashes: string[];
+}
+
+/** Priority fee cap: 50,000 micro-lamports per CU is 10,000 lamports at the 200k CU default limit, 70,000 at the 1.4M maximum. */
 export const MAX_CU_PRICE_MICROLAMPORTS = 50_000n;
 export const MAX_CU_LIMIT = 1_400_000;
 const MAX_FIELDS_PER_TX = 4;
@@ -125,7 +136,7 @@ function checkSubscribe(ix: DecodedIx, p: SponsorPolicy, signer: PublicKey): voi
   expectAccount(ix, "investorRecord", investorPda(pid, signer));
   expectAccount(ix, "feeConfig", feesPda(pid));
   if (p.treasury) {
-    const want = usdcAta(p.usdcMint, p.treasury);
+    const want = usdcAta(p.usdcMint, p.treasury, true);
     if (!ix.accounts.get("treasuryusdc")?.equals(want)) throw new SponsorRejected("subscribe: treasury account is not the fee treasury's USDC account");
   } else expectOptional(ix, p, "treasuryUsdc", null);
   expectAccount(ix, "associatedTokenProgram", ASSOCIATED_TOKEN_PROGRAM_ID);
@@ -144,7 +155,7 @@ function checkRegisterProject(ix: DecodedIx, p: SponsorPolicy, signer: PublicKey
   if (p.treasury) {
     expectOptional(ix, p, "usdcMint", p.usdcMint);
     expectOptional(ix, p, "producerUsdc", usdcAta(p.usdcMint, signer));
-    if (!ix.accounts.get("treasuryusdc")?.equals(usdcAta(p.usdcMint, p.treasury))) {
+    if (!ix.accounts.get("treasuryusdc")?.equals(usdcAta(p.usdcMint, p.treasury, true))) {
       throw new SponsorRejected("register_project: treasury account is not the fee treasury's USDC account");
     }
     expectOptional(ix, p, "usdcTokenProgram", TOKEN_PROGRAM_ID);
@@ -163,7 +174,7 @@ function checkRegisterField(ix: DecodedIx, p: SponsorPolicy, signer: PublicKey, 
 }
 
 /** Throws SponsorRejected unless `tx` is exactly a sponsored `action` transaction. Returns the user signer. */
-export function validateSponsoredTx(p: SponsorPolicy, action: TxAction, tx: VersionedTransaction): { signer: PublicKey } {
+export function validateSponsoredTx(p: SponsorPolicy, action: TxAction, tx: VersionedTransaction): SponsoredTxInfo {
   const msg = tx.message;
   if ("addressTableLookups" in msg && msg.addressTableLookups.length > 0) throw new SponsorRejected("address lookup tables are not allowed");
   const keys = msg.staticAccountKeys;
@@ -208,20 +219,40 @@ export function validateSponsoredTx(p: SponsorPolicy, action: TxAction, tx: Vers
   }
   for (const ix of f2f) checkSponsorSlots(ix, p);
 
-  if (action === "subscribe") checkSubscribe(first, p, signer);
-  else if (action === "refund" || action === "redeem") checkHolder(first, p, signer);
-  else {
-    if (rest.length === 0) throw new SponsorRejected("register_project needs at least one field");
-    const project = checkRegisterProject(first, p, signer);
-    rest.forEach((ix, i) => checkRegisterField(ix, p, signer, project, i));
+  const account = (ix: DecodedIx, name: string) => ix.accounts.get(norm(name)) as PublicKey;
+  if (action === "subscribe") {
+    checkSubscribe(first, p, signer);
+    return { signer, rentAccounts: [account(first, "investorInstrument")], polygonHashes: [] };
   }
-  return { signer };
+  if (action === "refund" || action === "redeem") {
+    checkHolder(first, p, signer);
+    return { signer, rentAccounts: ataCreates > 0 ? [usdcAta(p.usdcMint, signer)] : [], polygonHashes: [] };
+  }
+  // Project and Field PDAs can never be closed: every sponsored registration is pure rent spend, so it
+  // happens only while the producer pays a mint fee.
+  if (p.mintFee <= 0n) throw new SponsorRejected("registration is sponsored only while a mint fee is charged");
+  if (rest.length === 0) throw new SponsorRejected("register_project needs at least one field");
+  const project = checkRegisterProject(first, p, signer);
+  rest.forEach((ix, i) => checkRegisterField(ix, p, signer, project, i));
+  const polygonHashes = rest.map((ix) => {
+    const raw = (ix.data.polygonHash ?? ix.data.polygon_hash) as number[] | Uint8Array | undefined;
+    if (!raw || raw.length !== 32) throw new SponsorRejected("register_field: missing polygon hash");
+    return Buffer.from(raw).toString("hex");
+  });
+  return { signer, rentAccounts: [project, ...rest.map((ix) => account(ix, "field"))], polygonHashes };
 }
 
 export interface CosignDeps {
   policy: SponsorPolicy;
   sponsorKey: Keypair;
-  connection: Pick<Connection, "sendRawTransaction">;
+  connection: Pick<Connection, "sendRawTransaction" | "getMultipleAccountsInfo">;
+  /** Whether the canonical polygon for this hash is stored (uploaded through /api/polygons). */
+  polygonExists(hash: string): Promise<boolean>;
+  /**
+   * Rent budget: called once per transaction that would create accounts at the sponsor's expense.
+   * Returns 0 to allow, else the seconds until the wallet may try again. Stops close-and-recreate loops.
+   */
+  allowRent(wallet: string): number;
 }
 
 /**
@@ -236,9 +267,19 @@ export async function cosignAndSend(deps: CosignDeps, action: TxAction, txBase64
     throw new SponsorRejected("not a serialized transaction");
   }
   if (!deps.sponsorKey.publicKey.equals(deps.policy.sponsor)) throw new Error("sponsor key does not match the policy");
-  validateSponsoredTx(deps.policy, action, tx);
+  const info = validateSponsoredTx(deps.policy, action, tx);
   const userSig = tx.signatures[1];
   if (!userSig || userSig.every((b) => b === 0)) throw new SponsorRejected("the wallet signature is missing");
+  for (const [i, hash] of info.polygonHashes.entries()) {
+    if (!(await deps.polygonExists(hash))) throw new RequestError(`Field ${i + 1} boundary was not uploaded. Upload the GeoJSON again.`, 422);
+  }
+  if (info.rentAccounts.length > 0) {
+    const existing = await deps.connection.getMultipleAccountsInfo(info.rentAccounts, "confirmed");
+    if (existing.some((a) => a === null)) {
+      const wait = deps.allowRent(info.signer.toBase58());
+      if (wait > 0) throw new RequestError(`This wallet has used its sponsored account budget. Try again in ${Math.ceil(wait / 60)} min.`, 429);
+    }
+  }
   tx.sign([deps.sponsorKey]);
   return deps.connection.sendRawTransaction(tx.serialize(), { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 3 });
 }

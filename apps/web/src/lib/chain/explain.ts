@@ -108,11 +108,11 @@ export function explainChainError(input: { logs?: readonly string[] | null; erro
     };
   }
   if (/Attempt to debit an account but found no record of a prior credit|AccountNotFound|insufficient lamports/i.test(text)) {
-    // ADR 0013: users never pay SOL; the platform's gas sponsor does.
+    // ADR 0013: users never pay SOL. The payer is the gas sponsor (user transactions) or a role key (console, demo).
     return {
-      code: "SponsorOutOfSol",
-      title: "Gas sponsorship is out of devnet SOL",
-      detail: "Your wallet needs no SOL; the platform's sponsor account is empty. Nothing was charged. Try again later.",
+      code: "NoSol",
+      title: "A platform account is out of devnet SOL",
+      detail: "Your wallet needs no SOL: the gas sponsor or a server key that pays this transaction is empty. Nothing was charged. Try again later.",
       action: "none",
     };
   }

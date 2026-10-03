@@ -137,6 +137,11 @@ describe("instruction builders", () => {
     expect(keys).toContain(getAssociatedTokenAddressSync(usdcMint, treasury, false, TOKEN_PROGRAM_ID).toBase58());
   });
 
+  it("accepts an off-curve (PDA) treasury", async () => {
+    const pdaTreasury = poolPda(pid, 99n);
+    await expect(subscribeIx(program, { investor: k(), payer: k(), pool: k(), mint: k(), vault: k(), usdcMint: k(), amount: 1n, treasury: pdaTreasury })).resolves.toBeTruthy();
+  });
+
   it("disburses with the pool's terms PDA and the treasury account", async () => {
     const pool = k();
     const usdcMint = k();

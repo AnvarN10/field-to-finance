@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closeSubscriptionBlocker, disburseBlocker, fundRedemptionBlocker, fundedPercent, payoutPer, remaining, seasonAttestationBlocker, termDays } from "../src/lib/pool-math";
+import { closeSubscriptionBlocker, disburseBlocker, fundRedemptionBlocker, fundedPercent, payoutPer, remaining, seasonAttestationBlocker, termDays, arrangementSplit } from "../src/lib/pool-math";
 import type { PoolView } from "../src/lib/chain/views";
 
 const p = (o: Partial<PoolView> = {}) =>
@@ -58,5 +58,14 @@ describe("admin lifecycle reasons name what already happened", () => {
     expect(fundRedemptionBlocker("Open")).toBe("Needs a Funded pool");
     expect(fundRedemptionBlocker("Funded")).toBeUndefined();
     expect(fundRedemptionBlocker("Redeeming")).toBe("Redemption already funded");
+  });
+});
+
+describe("arrangementSplit", () => {
+  it("floors per project like disburse, then sums", () => {
+    // 1% of 150 floors to 1 per project (2 in total); flooring the pool total would say 3.
+    expect(arrangementSplit([{ requestedAmount: "150" }, { requestedAmount: "150" }], 100)).toEqual({ requested: 300n, fee: 2n, net: 298n });
+    expect(arrangementSplit([{ requestedAmount: "100000000000" }], 200)).toEqual({ requested: 100_000_000_000n, fee: 2_000_000_000n, net: 98_000_000_000n });
+    expect(arrangementSplit([], 200)).toEqual({ requested: 0n, fee: 0n, net: 0n });
   });
 });

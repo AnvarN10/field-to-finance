@@ -1,7 +1,7 @@
 import { investorPda } from "@f2f/sdk";
 import { ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, TransactionInstruction, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import { describe, expect, it, vi } from "vitest";
-import { disburseIx, registerFieldIx, usdcAta } from "../src/lib/chain/ix";
+import { disburseIx, instrumentAta, registerFieldIx, usdcAta } from "../src/lib/chain/ix";
 import { cosignAndSend, validateSponsoredTx, type SponsorPolicy } from "../src/lib/chain/sponsor";
 import { buildUserTx, type TxAction, type UserTxDeps } from "../src/lib/chain/user-tx";
 import type { PoolView } from "../src/lib/chain/views";
@@ -35,7 +35,7 @@ const POOL: PoolView = {
   instrument: null,
 };
 
-const policy: SponsorPolicy = { program, sponsor, usdcMint, treasury };
+const policy: SponsorPolicy = { program, sponsor, usdcMint, treasury, mintFee: 3_000_000n };
 
 async function deps(): Promise<UserTxDeps> {
   const store = new MemoryStore();
@@ -90,6 +90,26 @@ describe("validateSponsoredTx accepts what /api/tx builds", () => {
     const b = await built("subscribe");
     const tx = compile(sponsor, [ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 }), ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1_000 }), ...b.instructions]);
     expect(() => validateSponsoredTx(policy, "subscribe", tx)).not.toThrow();
+  });
+});
+
+describe("validateSponsoredTx reports what the sponsor would pay rent for", () => {
+  it("subscribe: the investor's Instrument account", async () => {
+    const b = await built("subscribe");
+    const r = validateSponsoredTx(policy, "subscribe", compile(sponsor, b.instructions));
+    expect(r.rentAccounts.map((k) => k.toBase58())).toEqual([instrumentAta(new PublicKey(POOL.mint), b.signer).toBase58()]);
+  });
+
+  it("register-project: the project and its fields, plus the polygon hashes", async () => {
+    const b = await built("register-project");
+    const r = validateSponsoredTx(policy, "register-project", compile(sponsor, b.instructions));
+    expect(r.rentAccounts).toHaveLength(3);
+    expect(r.polygonHashes).toEqual(["aa".repeat(32), "bb".repeat(32)]);
+  });
+
+  it("refuses to sponsor registration while no mint fee is charged", async () => {
+    const b = await built("register-project");
+    expect(() => validateSponsoredTx({ ...policy, mintFee: 0n }, "register-project", compile(sponsor, b.instructions))).toThrow(/mint fee/i);
   });
 });
 
@@ -188,6 +208,11 @@ describe("validateSponsoredTx rejects", () => {
 describe("cosignAndSend", () => {
   const sponsorKey = Keypair.generate();
   const p: SponsorPolicy = { ...policy, sponsor: sponsorKey.publicKey };
+  const conn = (send: (raw: Uint8Array) => Promise<string>, existing = false) => ({
+    sendRawTransaction: vi.fn(send),
+    getMultipleAccountsInfo: vi.fn(async (keys: PublicKey[]) => keys.map(() => (existing ? ({} as never) : null))),
+  });
+  const extra = { polygonExists: async () => true, allowRent: vi.fn((_w: string) => 0) };
 
   async function userSigned(action: TxAction) {
     const user = Keypair.generate();
@@ -200,10 +225,10 @@ describe("cosignAndSend", () => {
 
   it("adds the sponsor signature to a valid user-signed transaction and submits it", async () => {
     const { tx } = await userSigned("subscribe");
-    const sendRawTransaction = vi.fn(async (_raw: Uint8Array) => "5sig");
-    const sig = await cosignAndSend({ policy: p, sponsorKey, connection: { sendRawTransaction } }, "subscribe", Buffer.from(tx.serialize()).toString("base64"));
+    const connection = conn(async () => "5sig");
+    const sig = await cosignAndSend({ policy: p, sponsorKey, connection, ...extra }, "subscribe", Buffer.from(tx.serialize()).toString("base64"));
     expect(sig).toBe("5sig");
-    const sent = VersionedTransaction.deserialize(sendRawTransaction.mock.calls[0]![0]);
+    const sent = VersionedTransaction.deserialize(connection.sendRawTransaction.mock.calls[0]![0]);
     expect(sent.signatures.every((s) => s.some((b) => b !== 0))).toBe(true);
   });
 
@@ -213,9 +238,9 @@ describe("cosignAndSend", () => {
     const bad = new VersionedTransaction(
       new TransactionMessage({ payerKey: sponsorKey.publicKey, recentBlockhash: Keypair.generate().publicKey.toBase58(), instructions: [drain] }).compileToV0Message(),
     );
-    const sendRawTransaction = vi.fn(async () => "x");
-    await expect(cosignAndSend({ policy: p, sponsorKey, connection: { sendRawTransaction } }, "subscribe", Buffer.from(bad.serialize()).toString("base64"))).rejects.toMatchObject({ status: 400 });
-    expect(sendRawTransaction).not.toHaveBeenCalled();
+    const connection = conn(async () => "x");
+    await expect(cosignAndSend({ policy: p, sponsorKey, connection, ...extra }, "subscribe", Buffer.from(bad.serialize()).toString("base64"))).rejects.toMatchObject({ status: 400 });
+    expect(connection.sendRawTransaction).not.toHaveBeenCalled();
     void tx;
   });
 
@@ -223,13 +248,40 @@ describe("cosignAndSend", () => {
     const user = Keypair.generate();
     const b = await buildUserTx({ ...(await deps()), sponsor: sponsorKey.publicKey }, "subscribe", BODY.subscribe(user.publicKey));
     const tx = compile(sponsorKey.publicKey, b.instructions);
-    const sendRawTransaction = vi.fn(async () => "x");
-    await expect(cosignAndSend({ policy: p, sponsorKey, connection: { sendRawTransaction } }, "subscribe", Buffer.from(tx.serialize()).toString("base64"))).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/wallet signature/i) });
-    expect(sendRawTransaction).not.toHaveBeenCalled();
+    const connection = conn(async () => "x");
+    await expect(cosignAndSend({ policy: p, sponsorKey, connection, ...extra }, "subscribe", Buffer.from(tx.serialize()).toString("base64"))).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/wallet signature/i) });
+    expect(connection.sendRawTransaction).not.toHaveBeenCalled();
   });
 
   it("rejects bytes that are not a transaction", async () => {
-    const sendRawTransaction = vi.fn(async () => "x");
-    await expect(cosignAndSend({ policy: p, sponsorKey, connection: { sendRawTransaction } }, "subscribe", "bm90IGEgdHg=")).rejects.toMatchObject({ status: 400 });
+    await expect(cosignAndSend({ policy: p, sponsorKey, connection: conn(async () => "x"), ...extra }, "subscribe", "bm90IGEgdHg=")).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("budgets sponsored rent per wallet: only transactions that create accounts count", async () => {
+    const { tx, user } = await userSigned("subscribe");
+    const b64 = Buffer.from(tx.serialize()).toString("base64");
+    const allowRent = vi.fn((_w: string) => 0);
+    await cosignAndSend({ policy: p, sponsorKey, connection: conn(async () => "s1", true), polygonExists: async () => true, allowRent }, "subscribe", b64);
+    expect(allowRent).not.toHaveBeenCalled();
+    await cosignAndSend({ policy: p, sponsorKey, connection: conn(async () => "s2", false), polygonExists: async () => true, allowRent }, "subscribe", b64);
+    expect(allowRent).toHaveBeenCalledWith(user.publicKey.toBase58());
+  });
+
+  it("refuses to pay rent beyond the wallet's budget", async () => {
+    const { tx } = await userSigned("redeem");
+    const connection = conn(async () => "x", false);
+    await expect(
+      cosignAndSend({ policy: p, sponsorKey, connection, polygonExists: async () => true, allowRent: () => 120 }, "redeem", Buffer.from(tx.serialize()).toString("base64")),
+    ).rejects.toMatchObject({ status: 429 });
+    expect(connection.sendRawTransaction).not.toHaveBeenCalled();
+  });
+
+  it("refuses to register fields whose boundaries were never uploaded", async () => {
+    const { tx } = await userSigned("register-project");
+    const connection = conn(async () => "x");
+    await expect(
+      cosignAndSend({ policy: p, sponsorKey, connection, polygonExists: async (h) => h !== "bb".repeat(32), allowRent: () => 0 }, "register-project", Buffer.from(tx.serialize()).toString("base64")),
+    ).rejects.toMatchObject({ status: 422 });
+    expect(connection.sendRawTransaction).not.toHaveBeenCalled();
   });
 });

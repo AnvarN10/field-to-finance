@@ -1,3 +1,4 @@
+import { splitArrangementFee } from "@f2f/sdk";
 import type { PoolStatusName } from "./chain/enums";
 import type { PoolView } from "./chain/views";
 import { withYield } from "./format";
@@ -45,4 +46,16 @@ export function disburseBlocker(status: PoolStatusName, allDisbursed: boolean): 
 export function fundRedemptionBlocker(status: PoolStatusName): string | undefined {
   if (status === "Redeeming") return "Redemption already funded";
   return status === "Funded" ? undefined : "Needs a Funded pool";
+}
+
+/** Arrangement fee over a pool's projects, floored per project exactly as `disburse` does (ADR 0013). */
+export function arrangementSplit(projects: { requestedAmount: string }[], bps: number): { requested: bigint; fee: bigint; net: bigint } {
+  return projects.reduce(
+    (acc, p) => {
+      const r = BigInt(p.requestedAmount);
+      const { fee, net } = splitArrangementFee(r, bps);
+      return { requested: acc.requested + r, fee: acc.fee + fee, net: acc.net + net };
+    },
+    { requested: 0n, fee: 0n, net: 0n },
+  );
 }

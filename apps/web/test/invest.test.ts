@@ -61,6 +61,10 @@ describe("subscription checkout (ADR 0013 network fee)", () => {
     });
   });
 
+  it("skips the balance check while the balance is unknown", () => {
+    expect(validateSubscription("250", 1_000_000_000n, { networkFee: 500_000n, usdcBalance: null })).toEqual({ ok: true, amount: 250_000_000n, total: 250_500_000n });
+  });
+
   it("keeps the capacity check first", () => {
     expect(validateSubscription("5", 1_000_000n, { networkFee: 500_000n, usdcBalance: 10_000_000n })).toMatchObject({ ok: false, message: "The pool needs at most $1.00 more" });
   });

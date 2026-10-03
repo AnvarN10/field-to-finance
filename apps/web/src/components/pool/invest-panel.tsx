@@ -115,7 +115,7 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
           className="flex flex-col gap-2 border-t border-border pt-4"
           onSubmit={(e) => {
             e.preventDefault();
-            const v = validateSubscription(amount, remaining(pool), { networkFee: fee, usdcBalance: usdc });
+            const v = validateSubscription(amount, remaining(pool), { networkFee: fee, usdcBalance: investor.data ? usdc : null });
             if (!v.ok) {
               setAmountError(v.message);
               if (v.reason === "balance") setShowFaucet(true);

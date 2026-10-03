@@ -31,5 +31,5 @@ export const explorerAddr = (a: PublicKey | string) => `https://explorer.solana.
 export async function feeAccounts(program: Program<F2f>): Promise<{ feeConfig: PublicKey; treasuryUsdc: PublicKey | null }> {
   const feeConfig = feesPda(program.programId);
   const fc = await program.account.feeConfig.fetchNullable(feeConfig);
-  return { feeConfig, treasuryUsdc: fc ? getAssociatedTokenAddressSync(usdcMint(), fc.treasury, false, TOKEN_PROGRAM_ID) : null };
+  return { feeConfig, treasuryUsdc: fc ? getAssociatedTokenAddressSync(usdcMint(), fc.treasury, true, TOKEN_PROGRAM_ID) : null };
 }
