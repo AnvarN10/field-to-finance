@@ -16,7 +16,7 @@ Status: working draft, 2026-10-04. Not legal advice. Sources: AIFC rulebooks (GE
 ## Findings that change the plan
 
 1. **Binance KZ and Bybit KZ cannot list or custody our token.** Their AFSA licences (BN KZ Technologies Limited, AFSA-A-LA-2024-0028; Bybit Limited, AFSA-A-LA-2024-0027) cover Digital Assets only (Binance also futures and options). Our token is a Security Token, an Investment Token, which the Glossary excludes from Digital Asset; a DATF may admit only Digital Assets (DAA 2.8). [V+I] Their broker functions (Dealing as Agent/Principal) are also limited to Digital Assets. They remain useful as **USDC/USDT ↔ KZT ramps**, not as the token venue.
-2. **The token venue must be an Authorised Market Institution (Operating an Exchange), or the token stays off-exchange.** AIX is one; CCX was not found in the AFSA authorised, DASP or AMI lists on 2026-10-04 [V]. BigONE Investment Ltd. holds Operating an Exchange and Operating a Clearing House inside the FinTech Lab (AFSA-G-LA-2023-0008) [V]; check whether CCX operates under that or another entity.
+2. **The token venue must be an Authorised Market Institution or an Investment Token facility.** Correction after a second search (2026-10-04): **Commodity Chain Ltd.** is in the AFSA register as a FinTech Lab participant, licence AFSA-A-LA-2026-0014, active since 18-06-2026, status "Licence Granted – Pending Approval for Commencement of Operations" (operations not yet allowed). Activities: Operating an Exchange; Operating a Clearing House, described as "for the purpose of Operating a facility for Investment Tokens" [V]. AIFC company registry: Commodity Chain Ltd., BIN 250540900471, registered 19-05-2025, shareholders Anvar Niyetkaliyev and Tech Hub Limited [V]. F2F Proto and CC Tech are not yet in the AIFC company registry [V].
 3. **An AMI trading Investment Tokens must use permissioned DLT access** (AMI 2-1.1.1(a)) [V]. Public Solana or TRON with a KYC-gated token needs an explicit case to AFSA [I].
 
 ## Licences by function (exact AFSA names)
@@ -79,12 +79,34 @@ All three fees go to the F2F treasury wallet named in the on-chain FeeConfig. In
 
 Team decision: issue on Solana and also on TRON (for CCX). TRON has no Token-2022 equivalent: KYC must be a whitelist in a TRC-20 contract, and two registries must stay in sync. Needs its own design before implementation.
 
+## Token classification (second research, 2026-10-04)
+
+AIFC Glossary categories that exist [V]: Commodity Derivative Token ("a digital representation of a Commodity Derivative"), Commodity stablecoin ("a Digital Asset whose value purports to be determined by reference to a Commodity"), Investment Token (excludes Digital Assets), Security Token, Debenture, Future. "Asset-Referenced Token" does not exist in AIFC rules.
+
+| Design | Classification | Fits the CCX licence (Investment Token facility) | Notes |
+| --- | --- | --- | --- |
+| A. Current: fixed USD yield, debt of F2F Proto | Debenture → Security Token [I] | Yes | Exempt offer under MAR 1.2.2; fixed income keeps CIS risk low |
+| B. Prepaid forward, cash settled | Commodity Derivative → Commodity Derivative Token [I] | Yes, with AMI 3.2.2-1 contract specifications and clearing | FinTech Lab derivatives: Professional Clients only [V] |
+| B′. Forward with physical delivery to investors | possibly not an Investment (Future definition exclusions) [I] | Doubtful | MTF/OTF "Qualified Investment" route |
+| C. Converts into CCX elevator token after harvest | A or B before; depends on how the elevator token is packaged after | Partly | a stablecoin-packaged elevator token needs DATF + Money Services |
+| D. Commodity stablecoin before harvest | impossible: reserve must be the referenced commodity itself (DAA 4.7.1) [V] | No | — |
+
+Spot title to stored grain is not an "Investment" by itself, so the CCX elevator token must be packaged as a Future with delivery, Certificate or Debenture to be admitted to an Investment Token facility [I].
+
+Recommendation: pilot with design A (only design that fits the CCX licence and allows up to 50 retail investors); keep B as a professional-only forward, which matches the AIFC's public description of the F2F leg as a forward instrument (kapital.kz, 11.09.2026); consider C after harvest.
+
+Consequences for F2F Proto: issuing debt needs no issuer licence; CCX may outsource technology to CC Tech with notice to AFSA (AMI 1.1.2), but F2F Proto acting as a platform operator is not covered by the CCX licence, so placement on our own site needs F2F Proto's own Arranging licence, or placement runs on the CCX primary market.
+
+RK law: the Law "On digital assets" (in force 01.05.2026) defines digital financial assets with goods as base assets and RK-resident issuers and custodians; whether it reaches an AIFC token sold to or financing RK residents needs RK counsel. A grain receipt cannot exist for a future harvest; the farmer side is a forward contract under the RK Civil Code.
+
 ## Open questions for AIFC counsel
 
-1. Under which entity and licence does CCX operate (CCX not in the AFSA register on 2026-10-04)?
+1. Which Investment Token types (Security, Derivative, Commodity Derivative) did AFSA approve for Commodity Chain Ltd., with which conditions, and when will commencement be approved?
 2. Can F2F Proto be issuer, placement agent (Arranging/Dealing) and lender at once; conflicts and disclosure?
 3. Does the single-issuer debt exclusion (CIS 3.13) hold, or is F2F Proto a closed-ended investment company?
 4. Providing Credit to RK farmers: AIFC licence, RK licence, or neither when structured as a KZT loan from an AIFC entity?
 5. Will AFSA accept public Solana/TRON with on-chain KYC gating under AMI 2-1.1.1(a) "permissioned access"?
 6. USDC settlement inside the placement: who must hold client USDC, and is a separate custodian needed when F2F only arranges?
 7. Tax and currency control for the KZT loan and repayment.
+8. Can F2F Proto issue on the CCX facility as a Direct Access Member (AMI 2-1.2) without its own licence, and which F2F functions qualify as outsourcing under AMI 1.1.2?
+9. Is USDC acceptable as the settlement asset on an Investment Token facility without Money Services?
