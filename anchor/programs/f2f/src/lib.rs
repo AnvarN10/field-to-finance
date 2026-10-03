@@ -45,4 +45,16 @@ pub mod f2f {
     ) -> Result<()> {
         instructions::record_attestation::handle_record_attestation(ctx, kind, verdict, evidence_hash, evidence_uri, ndvi_mean_x10k, scene_date)
     }
+
+    pub fn create_pool(ctx: Context<CreatePool>, pool_id: u64, args: CreatePoolArgs) -> Result<()> {
+        instructions::create_pool::handle_create_pool(ctx, pool_id, args)
+    }
+
+    pub fn add_project(ctx: Context<AddProject>) -> Result<()> {
+        instructions::add_project::handle_add_project(ctx)
+    }
+
+    pub fn open_pool(ctx: Context<OpenPool>) -> Result<()> {
+        instructions::open_pool::handle_open_pool(ctx)
+    }
 }

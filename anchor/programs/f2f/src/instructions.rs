@@ -10,3 +10,11 @@ pub use register_field::*;
 
 pub mod record_attestation;
 pub use record_attestation::*;
+
+pub mod create_pool;
+pub mod add_project;
+pub mod open_pool;
+
+pub use create_pool::*;
+pub use add_project::*;
+pub use open_pool::*;

@@ -234,3 +234,62 @@ pub fn verify_all_fields(env: &mut Env, project: Pubkey, fields: u8) {
         env.send(&[a], &scas, &[]).unwrap();
     }
 }
+
+pub fn default_pool_args(env: &Env) -> f2f::CreatePoolArgs {
+    let t = now(&env.svm);
+    f2f::CreatePoolArgs {
+        crop: "wheat".to_string(),
+        season: 2027,
+        name: "Wheat 2027".to_string(),
+        symbol: "WHEAT-2027".to_string(),
+        uri: "https://f2f.example/pools/1.json".to_string(),
+        yield_bps: 1_200,
+        premium_bps: 550,
+        subscription_close_ts: t + 7 * 86_400,
+        maturity_ts: t + 300 * 86_400,
+    }
+}
+
+pub fn create_pool_ix(env: &Env, pool_id: u64, args: f2f::CreatePoolArgs) -> Instruction {
+    let pool = pda_pool(pool_id);
+    ix(
+        f2f::instruction::CreatePool { pool_id, args },
+        f2f::accounts::CreatePool {
+            issuer: env.issuer.pubkey(),
+            config: pda_config(),
+            pool,
+            mint: pda_mint(&pool),
+            usdc_mint: env.usdc_mint.pubkey(),
+            vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            token_program: TOKEN_2022,
+            usdc_token_program: SPL_TOKEN,
+            associated_token_program: spl_associated_token_account_interface::program::ID,
+            system_program: system_program::ID,
+        },
+    )
+}
+
+pub fn add_project_ix(env: &Env, pool_id: u64, project: Pubkey) -> Instruction {
+    ix(
+        f2f::instruction::AddProject {},
+        f2f::accounts::AddProject { issuer: env.issuer.pubkey(), config: pda_config(), pool: pda_pool(pool_id), project },
+    )
+}
+
+pub fn open_pool_ix(env: &Env, pool_id: u64) -> Instruction {
+    ix(
+        f2f::instruction::OpenPool {},
+        f2f::accounts::OpenPool { issuer: env.issuer.pubkey(), config: pda_config(), pool: pda_pool(pool_id) },
+    )
+}
+
+/// Pool 1 with one verified two-field project, opened. Target is 100,000 USDC.
+pub fn seed_open_pool(env: &mut Env) -> (Pubkey, Pubkey) {
+    let project = seed_project(env, 1, 2);
+    verify_all_fields(env, project, 2);
+    let issuer = env.issuer.insecure_clone();
+    let args = default_pool_args(env);
+    env.send(&[create_pool_ix(env, 1, args)], &issuer, &[]).unwrap();
+    env.send(&[add_project_ix(env, 1, project), open_pool_ix(env, 1)], &issuer, &[]).unwrap();
+    (pda_pool(1), project)
+}
