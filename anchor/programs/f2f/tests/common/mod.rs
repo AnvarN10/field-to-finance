@@ -389,3 +389,45 @@ pub fn refund_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64) -> Inst
         },
     )
 }
+
+pub fn settle_ix(env: &Env, pool_id: u64, project: Pubkey, rule: f2f::SettlementRule) -> Instruction {
+    ix(
+        f2f::instruction::RecordSettlement { rule },
+        f2f::accounts::RecordSettlement { issuer: env.issuer.pubkey(), config: pda_config(), pool: pda_pool(pool_id), project },
+    )
+}
+
+pub fn fund_redemption_ix(env: &Env, pool_id: u64, amount: u64) -> Instruction {
+    let pool = pda_pool(pool_id);
+    ix(
+        f2f::instruction::FundRedemption { amount },
+        f2f::accounts::FundRedemption {
+            issuer: env.issuer.pubkey(),
+            config: pda_config(),
+            pool,
+            usdc_mint: env.usdc_mint.pubkey(),
+            issuer_usdc: ata(&env.issuer.pubkey(), &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            usdc_token_program: SPL_TOKEN,
+        },
+    )
+}
+
+pub fn redeem_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64) -> Instruction {
+    let pool = pda_pool(pool_id);
+    let mint = pda_mint(&pool);
+    ix(
+        f2f::instruction::Redeem { amount },
+        f2f::accounts::Redeem {
+            investor,
+            pool,
+            mint,
+            investor_instrument: ata(&investor, &mint, &TOKEN_2022),
+            usdc_mint: env.usdc_mint.pubkey(),
+            investor_usdc: ata(&investor, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            token_program: TOKEN_2022,
+            usdc_token_program: SPL_TOKEN,
+        },
+    )
+}

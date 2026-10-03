@@ -1,6 +1,7 @@
 pub mod constants;
 pub mod error;
 pub mod instructions;
+pub mod math;
 pub mod state;
 
 use anchor_lang::prelude::*;
@@ -76,5 +77,17 @@ pub mod f2f {
 
     pub fn refund(ctx: Context<Refund>, amount: u64) -> Result<()> {
         instructions::refund::handle_refund(ctx, amount)
+    }
+
+    pub fn record_settlement(ctx: Context<RecordSettlement>, rule: SettlementRule) -> Result<()> {
+        instructions::record_settlement::handle_record_settlement(ctx, rule)
+    }
+
+    pub fn fund_redemption(ctx: Context<FundRedemption>, amount: u64) -> Result<()> {
+        instructions::fund_redemption::handle_fund_redemption(ctx, amount)
+    }
+
+    pub fn redeem(ctx: Context<Redeem>, amount: u64) -> Result<()> {
+        instructions::redeem::handle_redeem(ctx, amount)
     }
 }
