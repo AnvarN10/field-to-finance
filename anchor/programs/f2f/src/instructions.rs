@@ -40,3 +40,9 @@ pub mod redeem;
 pub use record_settlement::*;
 pub use fund_redemption::*;
 pub use redeem::*;
+
+pub mod revoke_investor;
+pub mod sweep;
+
+pub use revoke_investor::*;
+pub use sweep::*;

@@ -18,7 +18,11 @@ pub fn handle_record_settlement(ctx: Context<RecordSettlement>, rule: Settlement
     let project = &mut ctx.accounts.project;
     require!(ctx.accounts.pool.status == PoolStatus::Funded, F2fError::PoolNotFunded);
     require!(project.disbursed, F2fError::NotDisbursed);
-    require!(project.harvest_attested, F2fError::HarvestNotAttested);
+    // Without a Harvest Attestation the only exit is a cash repayment after maturity,
+    // so a missing attestation cannot lock investor money in Funded forever.
+    let cash_after_maturity = rule == SettlementRule::CashRepaidWithPremium
+        && Clock::get()?.unix_timestamp >= ctx.accounts.pool.maturity_ts;
+    require!(project.harvest_attested || cash_after_maturity, F2fError::HarvestNotAttested);
     require!(project.settlement.is_none(), F2fError::AlreadySettled);
     project.settlement = Some(rule);
     ctx.accounts.pool.settled_count += 1;

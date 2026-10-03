@@ -70,6 +70,7 @@ Draft --open_pool--> Open --close_subscription--> Funded --fund_redemption--> Re
 | `create_pool(pool_id, args)` | Issuer |
 | `add_project()`, `open_pool()` | Issuer |
 | `approve_investor()` | compliance |
+| `revoke_investor()` | compliance |
 | `subscribe(amount)` | investor |
 | `close_subscription()` | anyone |
 | `disburse()` | Issuer |
@@ -77,6 +78,7 @@ Draft --open_pool--> Open --close_subscription--> Funded --fund_redemption--> Re
 | `record_settlement(rule)` | Issuer |
 | `fund_redemption(amount)` | Issuer |
 | `redeem(amount)` | investor |
+| `sweep()` | Issuer |
 
 The IDL is generated at `anchor/target/idl/f2f.json` and TypeScript types at `anchor/target/types/f2f.ts` by `anchor build`.
 
@@ -96,7 +98,10 @@ The SCAS worker and the web app build transactions from the IDL. Renaming an ins
 - Premium is between 500 and 600 bps.
 - A Field counts as verified at most once.
 - A Farm Project joins at most one Pool and gets no new Fields after that.
-- Settlement is recorded at most once per project, only after disbursement and a Harvest Attestation.
+- Settlement is recorded at most once per project, only after disbursement and a Harvest Attestation. The one exception is `CashRepaidWithPremium` after maturity, so a missing Harvest Attestation cannot lock investor money in Funded.
+- Redemption deposits are accepted only after every project is disbursed, so `disburse` never spends them.
+- `sweep` returns the vault remainder to the Issuer only when the Pool is Redeeming and Instrument supply is zero.
+- `revoke_investor` sets the record to not approved and freezes the investor's Instrument account.
 - Redemption opens only when every project is disbursed and settled, maturity has passed, and the vault holds `with_yield(raised_amount, yield_bps)`.
 
 ## Error handling
@@ -118,6 +123,9 @@ Program logs show the failing constraint or `F2fError` name. In tests, `send_err
 Run `cd anchor && anchor build && cargo test -p f2f`. Tests are LiteSVM integration tests, one file per area, sharing the harness in `tests/common/mod.rs`.
 
 ## Common pitfalls
+
+- `init_config` can be called by any signer once. Deploy and initialize in the same script right after deploying a fresh program id.
+- Demo pools need a maturity a few minutes out, otherwise redemption cannot be shown.
 
 - Host tests need Rust 1.97.1 (`anchor/rust-toolchain.toml`) because litesvm 0.17 pulls agave crates that require it.
 - litesvm must be 0.17 or newer to load sbpf v3 programs; the 0.10 pin from the Anchor template fails with `InvalidAccountData`.

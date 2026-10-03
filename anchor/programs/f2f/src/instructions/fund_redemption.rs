@@ -23,6 +23,11 @@ pub struct FundRedemption<'info> {
 pub fn handle_fund_redemption(ctx: Context<FundRedemption>, amount: u64) -> Result<()> {
     require!(ctx.accounts.pool.status == PoolStatus::Funded, F2fError::PoolNotFunded);
     if amount > 0 {
+        // Deposits before every project is paid would be swept into disbursements.
+        require!(
+            ctx.accounts.pool.disbursed_count == ctx.accounts.pool.project_count,
+            F2fError::NotAllDisbursed
+        );
         transfer_checked(
             CpiContext::new(
                 ctx.accounts.usdc_token_program.key(),

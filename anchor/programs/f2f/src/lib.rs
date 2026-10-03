@@ -90,4 +90,12 @@ pub mod f2f {
     pub fn redeem(ctx: Context<Redeem>, amount: u64) -> Result<()> {
         instructions::redeem::handle_redeem(ctx, amount)
     }
+
+    pub fn revoke_investor(ctx: Context<RevokeInvestor>) -> Result<()> {
+        instructions::revoke_investor::handle_revoke_investor(ctx)
+    }
+
+    pub fn sweep(ctx: Context<Sweep>) -> Result<()> {
+        instructions::sweep::handle_sweep(ctx)
+    }
 }

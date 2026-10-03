@@ -60,6 +60,10 @@ pub enum F2fError {
     HarvestNotAttested,
     #[msg("Project is already settled")]
     AlreadySettled,
+    #[msg("Every project must be disbursed before redemption funding")]
+    NotAllDisbursed,
+    #[msg("Instrument is still outstanding")]
+    InstrumentOutstanding,
     #[msg("Math overflow")]
     MathOverflow,
 }

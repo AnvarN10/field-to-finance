@@ -431,3 +431,38 @@ pub fn redeem_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64) -> Inst
         },
     )
 }
+
+pub fn revoke_ix(env: &Env, pool_id: u64, wallet: Pubkey) -> Instruction {
+    let pool = pda_pool(pool_id);
+    let mint = pda_mint(&pool);
+    ix(
+        f2f::instruction::RevokeInvestor {},
+        f2f::accounts::RevokeInvestor {
+            compliance: env.compliance.pubkey(),
+            config: pda_config(),
+            pool,
+            mint,
+            investor: wallet,
+            investor_record: pda_investor(&wallet),
+            investor_instrument: ata(&wallet, &mint, &TOKEN_2022),
+            token_program: TOKEN_2022,
+        },
+    )
+}
+
+pub fn sweep_ix(env: &Env, pool_id: u64) -> Instruction {
+    let pool = pda_pool(pool_id);
+    ix(
+        f2f::instruction::Sweep {},
+        f2f::accounts::Sweep {
+            issuer: env.issuer.pubkey(),
+            config: pda_config(),
+            pool,
+            mint: pda_mint(&pool),
+            usdc_mint: env.usdc_mint.pubkey(),
+            vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            issuer_usdc: ata(&env.issuer.pubkey(), &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            usdc_token_program: SPL_TOKEN,
+        },
+    )
+}
