@@ -1,0 +1,10 @@
+.git
+**/node_modules
+**/dist
+anchor/target
+.nx
+.env
+.env.*
+*.keypair.json
+id.json
+.superpowers
