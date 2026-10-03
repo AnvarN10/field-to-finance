@@ -1,1 +1,75 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --font-sans: var(--font-brand), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-code), ui-monospace, SFMono-Regular, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+  --color-accent: var(--muted);
+  --color-accent-foreground: var(--foreground);
+  --color-gold: var(--gold);
+  --color-gold-text: var(--gold-text);
+  --color-ink: var(--ink);
+  --color-on-dark: var(--on-dark);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--gold-text);
+  --color-info: var(--info);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Values from .tastemaker/style-lock.md (Palette). Do not invent new colours here. */
+:root {
+  --background: #f5f2ea;   /* paper */
+  --card: #fbfaf5;         /* surface */
+  --muted: #e1e4d3;        /* inlay */
+  --foreground: #0d2019;   /* text primary */
+  --muted-foreground: #455347;
+  --border: #b2b9a8;       /* decorative hairlines only */
+  --input: #b2b9a8;
+  --ring: #72571f;         /* focus on light */
+  --primary: #142d23;      /* forest */
+  --primary-hover: #19382b;
+  --primary-foreground: #f5f2ea;
+  --gold: #c9a227;         /* only on forest or ink fills */
+  --gold-text: #79632e;    /* gold as text on paper/surface; also warning */
+  --ink: #0d2019;
+  --on-dark: #dae2d0;
+  --destructive: #a3352b;
+  --success: #2f6b3f;
+  --info: #2d5a7b;
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-background text-foreground antialiased; font-size: 14px; line-height: 1.6; }
+  h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.15; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .dark-band :focus-visible { outline-color: #e6ca8b; }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

@@ -1,11 +1,25 @@
+import type { Metadata } from "next";
+import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
-export const metadata = { title: "Field-to-Finance" };
+const brand = Instrument_Sans({ subsets: ["latin"], variable: "--font-brand", display: "swap" });
+const code = JetBrains_Mono({ subsets: ["latin"], variable: "--font-code", display: "swap" });
+
+export const metadata: Metadata = {
+  title: { default: "Field-to-Finance", template: "%s · Field-to-Finance" },
+  description: "Farmers raise working capital against next season's harvest. Investors earn a fixed USDC yield on Solana.",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={`${brand.variable} ${code.variable}`}>
+      <body className="flex min-h-dvh flex-col font-sans">
+        <SiteHeader />
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">{children}</main>
+        <SiteFooter />
+      </body>
     </html>
   );
 }
