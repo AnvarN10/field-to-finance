@@ -67,4 +67,18 @@ describe("send", () => {
     const r = await sendSkippingPreflight(conn as never, [payer], [ix(payer.publicKey)]);
     expect(r).toEqual({ signature: "5sig", err, logs: ["Program log: AccountNotInitialized"] });
   });
+
+  it("sendSkippingPreflight waits for the transaction to be indexed before reading logs", async () => {
+    const payer = Keypair.generate();
+    const getTransaction = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce({ meta: { logMessages: ["Program log: x"] } });
+    const conn = {
+      getLatestBlockhash: async () => ({ blockhash, lastValidBlockHeight: 1 }),
+      sendRawTransaction: vi.fn(async () => "5sig"),
+      confirmTransaction: vi.fn(async () => ({ value: { err: { InstructionError: [0, { Custom: 1 }] } } })),
+      getTransaction,
+    };
+    const r = await sendSkippingPreflight(conn as never, [payer], [ix(payer.publicKey)], { retryDelayMs: 0 });
+    expect(r.logs).toEqual(["Program log: x"]);
+    expect(getTransaction).toHaveBeenCalledTimes(2);
+  });
 });

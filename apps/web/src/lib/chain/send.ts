@@ -73,9 +73,11 @@ export async function sendSkippingPreflight(
   connection: Connection,
   signers: Keypair[],
   ixs: TransactionInstruction[],
+  opts: { retryDelayMs?: number } = {},
 ): Promise<{ signature: string; err: unknown | null; logs: string[] }> {
   const payer = signers[0];
   if (!payer) throw new Error("sendSkippingPreflight needs at least one signer");
+  const delay = opts.retryDelayMs ?? 1_000;
   const { tx, blockhash, lastValidBlockHeight } = await buildV0(connection, payer.publicKey, ixs);
   tx.sign(signers);
   const signature = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true, maxRetries: 3 });
@@ -86,8 +88,13 @@ export async function sendSkippingPreflight(
     // Under RPC rate limits web3.js can reject with the raw transaction error instead of resolving with it.
     err = e;
   }
-  const t = await connection.getTransaction(signature, { commitment: "confirmed", maxSupportedTransactionVersion: 0 });
-  return { signature, err, logs: t?.meta?.logMessages ?? [] };
+  // The RPC may not have indexed a just-confirmed transaction yet; logs explain the failure, so retry a few times.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const t = await connection.getTransaction(signature, { commitment: "confirmed", maxSupportedTransactionVersion: 0 });
+    if (t) return { signature, err, logs: t.meta?.logMessages ?? [] };
+    await new Promise((r) => setTimeout(r, delay));
+  }
+  return { signature, err, logs: [] };
 }
 
 export const bytesToBase64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64");
