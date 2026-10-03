@@ -1,0 +1,26 @@
+{
+  "name": "scas-worker",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/scas-worker/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec tsup", "cwd": "apps/scas-worker" },
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": [],
+      "options": { "command": "pnpm exec vitest run", "cwd": "apps/scas-worker" }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec tsc --noEmit", "cwd": "apps/scas-worker" }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec tsx src/main.ts serve", "cwd": "apps/scas-worker" }
+    }
+  }
+}
