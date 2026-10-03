@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { InstrumentCard } from "@/components/pool/instrument-card";
+import { InvestPanel } from "@/components/pool/invest-panel";
 import { ErrorState } from "@/components/state";
 import { getReader } from "@/lib/server/context";
 import { serverEnv } from "@/lib/server/env";
@@ -31,7 +32,9 @@ export default async function PoolPage({ params }: { params: Promise<{ poolId: s
       </header>
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
         <InstrumentCard detail={detail} cluster={serverEnv().SOLANA_CLUSTER} />
-        <aside id="invest" className="lg:sticky lg:top-20" />
+        <aside id="invest" className="order-first lg:sticky lg:top-20 lg:order-none">
+          <InvestPanel pool={detail.pool} />
+        </aside>
       </div>
     </div>
   );

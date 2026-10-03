@@ -8,9 +8,9 @@ import { PoolStatusBadge } from "../status-badge";
 import { FundingMeter } from "./funding-meter";
 import { ProjectsTable } from "./projects-table";
 
-function Row({ title, children }: { title: string; children: ReactNode }) {
+function Row({ title, children, stacked = false }: { title: string; children: ReactNode; stacked?: boolean }) {
   return (
-    <section className="grid gap-2 border-b border-border py-5 last:border-0 sm:grid-cols-[180px_1fr]">
+    <section className={`grid gap-2 border-b border-border py-5 last:border-0 ${stacked ? "" : "sm:grid-cols-[180px_1fr]"}`}>
       <h2 className="text-sm font-semibold">{title}</h2>
       <div className="flex min-w-0 flex-col gap-2 text-sm">{children}</div>
     </section>
@@ -48,7 +48,7 @@ export function InstrumentCard({ detail, cluster = "devnet" }: { detail: PoolDet
           Demo Issuer key <ExplorerLink kind="address" value={pool.issuer} cluster={cluster} />. The Issuer carries the obligation to pay principal plus the fixed yield at maturity.
         </p>
       </Row>
-      <Row title="Farm Projects">
+      <Row title="Farm Projects" stacked>
         <ProjectsTable projects={projects} />
       </Row>
       <Row title="SCAS checks">
