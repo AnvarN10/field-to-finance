@@ -349,3 +349,43 @@ pub fn seed_funded_pool(env: &mut Env) -> (Pubkey, Pubkey) {
     env.send(&[subscribe_ix(env, 1, investor.pubkey(), 100_000 * USDC), close_ix(env, 1, investor.pubkey())], &investor, &[]).unwrap();
     (pool, project)
 }
+
+pub fn disburse_ix(env: &Env, pool_id: u64, project: Pubkey) -> Instruction {
+    let pool = pda_pool(pool_id);
+    let producer = env.producer.pubkey();
+    ix(
+        f2f::instruction::Disburse {},
+        f2f::accounts::Disburse {
+            issuer: env.issuer.pubkey(),
+            config: pda_config(),
+            pool,
+            project,
+            producer,
+            usdc_mint: env.usdc_mint.pubkey(),
+            vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            producer_usdc: ata(&producer, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            usdc_token_program: SPL_TOKEN,
+            associated_token_program: spl_associated_token_account_interface::program::ID,
+            system_program: system_program::ID,
+        },
+    )
+}
+
+pub fn refund_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64) -> Instruction {
+    let pool = pda_pool(pool_id);
+    let mint = pda_mint(&pool);
+    ix(
+        f2f::instruction::Refund { amount },
+        f2f::accounts::Refund {
+            investor,
+            pool,
+            mint,
+            investor_instrument: ata(&investor, &mint, &TOKEN_2022),
+            usdc_mint: env.usdc_mint.pubkey(),
+            investor_usdc: ata(&investor, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            token_program: TOKEN_2022,
+            usdc_token_program: SPL_TOKEN,
+        },
+    )
+}

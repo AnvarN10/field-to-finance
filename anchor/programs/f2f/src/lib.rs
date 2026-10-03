@@ -69,4 +69,12 @@ pub mod f2f {
     pub fn close_subscription(ctx: Context<CloseSubscription>) -> Result<()> {
         instructions::close_subscription::handle_close_subscription(ctx)
     }
+
+    pub fn disburse(ctx: Context<Disburse>) -> Result<()> {
+        instructions::disburse::handle_disburse(ctx)
+    }
+
+    pub fn refund(ctx: Context<Refund>, amount: u64) -> Result<()> {
+        instructions::refund::handle_refund(ctx, amount)
+    }
 }
