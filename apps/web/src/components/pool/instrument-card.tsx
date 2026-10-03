@@ -1,3 +1,4 @@
+import { splitArrangementFee } from "@f2f/sdk";
 import type { ReactNode } from "react";
 import type { PoolDetail } from "../../lib/chain/views";
 import { formatDateUtc, formatUsd, formatYield, relativeTime } from "../../lib/format";
@@ -17,8 +18,10 @@ function Row({ title, children, stacked = false }: { title: string; children: Re
   );
 }
 
-export function InstrumentCard({ detail, cluster = "devnet" }: { detail: PoolDetail; cluster?: string }) {
-  const { pool, projects } = detail;
+export function InstrumentCard({ detail, cluster = "devnet", networkFee = null }: { detail: PoolDetail; cluster?: string; networkFee?: string | null }) {
+  const { pool, projects, arrangementFeeBps } = detail;
+  const requested = projects.reduce((n, p) => n + BigInt(p.requestedAmount), 0n);
+  const split = splitArrangementFee(requested, arrangementFeeBps);
   const fields = projects.flatMap((p) => p.fields);
   const verified = projects.reduce((n, p) => n + p.verifiedFieldCount, 0);
   const total = projects.reduce((n, p) => n + p.fieldCount, 0);
@@ -60,6 +63,26 @@ export function InstrumentCard({ detail, cluster = "devnet" }: { detail: PoolDet
       </Row>
       <Row title="Amount">
         <FundingMeter raised={pool.raisedAmount} target={pool.targetAmount} />
+      </Row>
+      <Row title="Fees">
+        <dl className="tabular grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+          <dt className="text-muted-foreground">Farmers request</dt>
+          <dd>{formatUsd(requested)}</dd>
+          <dt className="text-muted-foreground">{`Arrangement fee (${formatYield(arrangementFeeBps)})`}</dt>
+          <dd>{formatUsd(split.fee)}</dd>
+          <dt className="text-muted-foreground">Farmer receives</dt>
+          <dd className="font-medium">{formatUsd(split.net)}</dd>
+        </dl>
+        <p className="text-muted-foreground">
+          {arrangementFeeBps > 0
+            ? "The farmer pays the arrangement fee: it is withheld on-chain from each project's disbursement and goes to the Field-to-Finance treasury."
+            : "No arrangement fee on this pool."}
+        </p>
+        <p className="text-muted-foreground">
+          {networkFee !== null
+            ? `Investors pay a ${formatUsd(networkFee)} network fee per subscription on top of the amount; it does not buy Instrument. Field-to-Finance pays the Solana fees, so no SOL is needed.`
+            : "No network fee is charged on subscriptions."}
+        </p>
       </Row>
       <Row title="Term">
         <dl className="tabular grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">

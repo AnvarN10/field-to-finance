@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ActionButton } from "@/components/admin/action-button";
 import { ExplorerLink } from "@/components/explorer-link";
 import { CreatePoolForm } from "@/components/admin/create-pool-form";
+import { FeesPanel } from "@/components/admin/fees-panel";
 import { PoolConsole } from "@/components/admin/pool-console";
 import { ScasStubBadge } from "@/components/scas-stub-badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { ADMIN_COOKIE, isAdminToken } from "@/lib/admin-auth";
 import { nextPoolId, roleMismatches } from "@/lib/chain/admin-ops";
 import { formatHa } from "@/lib/format";
 import { roleKeyProblem } from "@/lib/keys";
-import { getReader, roleKeypair } from "@/lib/server/context";
+import { getConnection, getReader, roleKeypair, sponsorPublicKey } from "@/lib/server/context";
 import { serverEnv } from "@/lib/server/env";
 import { logoutAction, verifyAllFieldsAction } from "./actions";
 
@@ -20,6 +21,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Demo console", robots: { index: false } };
 
 const ROLE_VAR = { issuer: "F2F_ISSUER_KEYPAIR", compliance: "F2F_COMPLIANCE_KEYPAIR", scas: "SCAS_SECRET_KEY" } as const;
+const ALL_KEY_VARS = [...Object.values(ROLE_VAR), "F2F_SPONSOR_KEYPAIR"] as const;
 
 function safeKey(role: keyof typeof ROLE_VAR): string | undefined {
   try {
@@ -34,11 +36,18 @@ export default async function AdminPage() {
   if (!isAdminToken(serverEnv().ADMIN_PASSWORD, (await cookies()).get(ADMIN_COOKIE)?.value)) redirect("/admin/login");
 
   const reader = getReader();
+  let sponsorKey;
+  try {
+    sponsorKey = sponsorPublicKey();
+  } catch {
+    sponsorKey = null; // malformed key: reported in the key problems below
+  }
   let data;
   try {
-    const [config, pools, unpooled] = await Promise.all([reader.config(), reader.listPools(), reader.unpooledProjects()]);
+    const [config, pools, unpooled, fees] = await Promise.all([reader.config(), reader.listPools(), reader.unpooledProjects(), reader.fees()]);
     const details = (await Promise.all(pools.map((p) => reader.getPool(p.poolId)))).filter((d) => d !== null);
-    data = { config, pools, unpooled, details };
+    const sponsor = sponsorKey ? { address: sponsorKey.toBase58(), lamports: await getConnection().getBalance(sponsorKey, "confirmed") } : null;
+    data = { config, pools, unpooled, details, fees, sponsor };
   } catch {
     return <ErrorState level={1} title="Could not load devnet state" body="Solana devnet did not answer." retryHref="/admin" />;
   }
@@ -46,9 +55,7 @@ export default async function AdminPage() {
   const mismatches = roleMismatches(data.config, keys);
   // Says whether a key is missing or malformed, by variable name only.
   const env = serverEnv();
-  const keyProblems = (Object.keys(ROLE_VAR) as (keyof typeof ROLE_VAR)[])
-    .map((r) => roleKeyProblem(ROLE_VAR[r], env[ROLE_VAR[r]]))
-    .filter((m): m is string => m !== null);
+  const keyProblems = ALL_KEY_VARS.map((name) => roleKeyProblem(name, env[name])).filter((m): m is string => m !== null);
   const unverified = data.unpooled.flatMap((p) => p.fields.filter((f) => !f.verified));
   const now = Math.floor(Date.now() / 1000);
 
@@ -69,6 +76,8 @@ export default async function AdminPage() {
           {mismatches.map((m) => <p key={m}>{m}</p>)}
         </div>
       ) : null}
+
+      <FeesPanel fees={data.fees} sponsor={data.sponsor} expectedTreasury={env.F2F_TREASURY} cluster={env.SOLANA_CLUSTER} />
 
       <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -91,7 +100,7 @@ export default async function AdminPage() {
 
       <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
         <h2 className="text-xl font-semibold">Create a pool</h2>
-        <CreatePoolForm defaultPoolId={nextPoolId(data.pools.map((p) => p.poolId))} />
+        <CreatePoolForm defaultPoolId={nextPoolId(data.pools.map((p) => p.poolId))} maxArrangementBps={data.fees?.maxArrangementBps ?? null} />
       </section>
 
       {data.details.length === 0 ? (

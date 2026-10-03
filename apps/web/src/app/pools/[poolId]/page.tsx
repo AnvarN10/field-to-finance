@@ -16,8 +16,9 @@ export async function generateMetadata({ params }: { params: Promise<{ poolId: s
 export default async function PoolPage({ params }: { params: Promise<{ poolId: string }> }) {
   const { poolId } = await params;
   let detail;
+  let fees;
   try {
-    detail = await getReader().getPool(poolId);
+    [detail, fees] = await Promise.all([getReader().getPool(poolId), getReader().fees()]);
   } catch {
     return <ErrorState level={1} title="Could not load this pool" body="Solana devnet did not answer." retryHref={`/pools/${poolId}`} />;
   }
@@ -33,10 +34,10 @@ export default async function PoolPage({ params }: { params: Promise<{ poolId: s
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
         {/* DOM order matches the phone order (panel first); on lg the grid places the panel in the right column. */}
         <aside id="invest" className="lg:sticky lg:top-20 lg:col-start-2 lg:row-start-1">
-          <InvestPanel pool={detail.pool} />
+          <InvestPanel pool={detail.pool} networkFee={fees?.networkFee ?? null} />
         </aside>
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <InstrumentCard detail={detail} cluster={serverEnv().SOLANA_CLUSTER} />
+          <InstrumentCard detail={detail} cluster={serverEnv().SOLANA_CLUSTER} networkFee={fees?.networkFee ?? null} />
         </div>
       </div>
     </div>

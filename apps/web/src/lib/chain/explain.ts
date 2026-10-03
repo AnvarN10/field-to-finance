@@ -43,6 +43,9 @@ const PROGRAM: Record<string, Entry> = {
   NotAllDisbursed: ["Disburse every project first", "Redemption deposits are accepted only after every project is paid."],
   InstrumentOutstanding: ["Instrument still outstanding", "Sweep is possible only after every investor has redeemed."],
   MathOverflow: ["Amount too large", "The amount overflows the program's arithmetic."],
+  FeeTooHigh: ["Fee is above the cap", "Arrangement fees are capped by FeeConfig and by the program at 10%; flat fees have program caps too."],
+  InvalidTreasury: ["Wrong treasury account", "Fees must go to the USDC account of the treasury named in FeeConfig."],
+  MissingFeeAccount: ["Fee accounts are missing", "A fee is due but the transaction did not include the treasury or USDC accounts. Reload and try again.", "retry"],
 };
 
 export function messageOf(e: unknown): string {
@@ -105,11 +108,17 @@ export function explainChainError(input: { logs?: readonly string[] | null; erro
     };
   }
   if (/Attempt to debit an account but found no record of a prior credit|AccountNotFound|insufficient lamports/i.test(text)) {
-    return { code: "NoSol", title: "Not enough devnet SOL for fees", detail: "Get free devnet SOL from the faucet, then try again.", action: "faucet" };
+    // ADR 0013: users never pay SOL; the platform's gas sponsor does.
+    return {
+      code: "SponsorOutOfSol",
+      title: "Gas sponsorship is out of devnet SOL",
+      detail: "Your wallet needs no SOL; the platform's sponsor account is empty. Nothing was charged. Try again later.",
+      action: "none",
+    };
   }
   if (
     /Error: insufficient funds|custom program error: 0x1\b/.test(text) ||
-    /caused by account: investor_usdc\. Error Code: AccountNotInitialized/.test(text)
+    /caused by account: (investor|producer)_usdc\. Error Code: AccountNotInitialized/.test(text)
   ) {
     return { code: "InsufficientUsdc", title: "Not enough test USDC", detail: "Get test USDC from the faucet, then try again.", action: "faucet" };
   }

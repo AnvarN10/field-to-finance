@@ -15,11 +15,13 @@ type Values = {
   symbol: string;
   yieldPct: string;
   premiumPct: string;
+  arrangementPct: string;
   closeIn: string;
   maturityIn: string;
 };
 
-export function CreatePoolForm({ defaultPoolId }: { defaultPoolId: string }) {
+/** `maxArrangementBps`: FeeConfig cap, or null while fees are not configured (the fee is then fixed at 0). */
+export function CreatePoolForm({ defaultPoolId, maxArrangementBps }: { defaultPoolId: string; maxArrangementBps: number | null }) {
   const [v, setV] = useState<Values>({
     poolId: defaultPoolId,
     crop: "wheat",
@@ -28,6 +30,8 @@ export function CreatePoolForm({ defaultPoolId }: { defaultPoolId: string }) {
     symbol: "WHEAT-2027",
     yieldPct: "8.0",
     premiumPct: "5.5",
+    // ADR 0013 demo default: 2% arrangement fee, paid by the farmer.
+    arrangementPct: maxArrangementBps === null ? "0.0" : (Math.min(200, maxArrangementBps) / 100).toFixed(1),
     closeIn: "10",
     maturityIn: "20",
   });
@@ -39,25 +43,31 @@ export function CreatePoolForm({ defaultPoolId }: { defaultPoolId: string }) {
     setErrors((p) => ({ ...p, [k]: undefined }));
   };
 
-  const field = (k: keyof Values, label: string, numeric = false) => (
-    <label className="flex flex-col gap-1.5 text-sm font-medium">
-      {label}
+  const field = (k: keyof Values, label: string, numeric = false, opts: { hint?: string; disabled?: boolean } = {}) => (
+    <div className="flex flex-col gap-1.5 text-sm font-medium">
+      <label htmlFor={idOf(k)}>{label}</label>
       <Input
         id={idOf(k)}
         value={v[k]}
         onChange={set(k)}
+        disabled={opts.disabled}
         inputMode={numeric ? "decimal" : undefined}
         className={numeric ? "tabular" : undefined}
         aria-invalid={errors[k] ? true : undefined}
-        aria-describedby={errors[k] ? `${idOf(k)}-error` : undefined}
+        aria-describedby={errors[k] ? `${idOf(k)}-error` : opts.hint ? `${idOf(k)}-hint` : undefined}
       />
       {errors[k] ? (
         <span id={`${idOf(k)}-error`} className="text-xs font-normal text-destructive">
           {errors[k]}
         </span>
+      ) : opts.hint ? (
+        <span id={`${idOf(k)}-hint`} className="text-xs font-normal text-muted-foreground">
+          {opts.hint}
+        </span>
       ) : null}
-    </label>
+    </div>
   );
+  const capPct = ((maxArrangementBps ?? 0) / 100).toFixed(1);
 
   /** Client checks the server repeats; each problem is shown on its own field. */
   function validate(): Partial<Record<keyof Values, string>> {
@@ -65,6 +75,8 @@ export function CreatePoolForm({ defaultPoolId }: { defaultPoolId: string }) {
     const premiumBps = toBps(v.premiumPct);
     if (!(premiumBps >= 500 && premiumBps <= 600)) e.premiumPct = "Premium must be between 5% and 6%";
     if (!(Number(v.maturityIn) > Number(v.closeIn))) e.maturityIn = "Maturity must come after the subscription close";
+    const feeBps = toBps(v.arrangementPct);
+    if (!(feeBps >= 0 && feeBps <= (maxArrangementBps ?? 0))) e.arrangementPct = `Arrangement fee must be between 0% and ${capPct}%`;
     return e;
   }
 
@@ -85,6 +97,7 @@ export function CreatePoolForm({ defaultPoolId }: { defaultPoolId: string }) {
       symbol: v.symbol,
       yieldBps: toBps(v.yieldPct),
       premiumBps,
+      arrangementFeeBps: maxArrangementBps === null ? 0 : toBps(v.arrangementPct),
       closeInMinutes: Number(v.closeIn),
       maturityInMinutes: Number(v.maturityIn),
     });
@@ -104,7 +117,14 @@ export function CreatePoolForm({ defaultPoolId }: { defaultPoolId: string }) {
         <legend className="sr-only">Terms</legend>
         {field("yieldPct", "Fixed yield (%)", true)}
         {field("premiumPct", "Premium (%)", true)}
-        <span className="hidden sm:block" aria-hidden />
+        {field(
+          "arrangementPct",
+          "Arrangement fee (%)",
+          true,
+          maxArrangementBps === null
+            ? { hint: "Fees are not configured on-chain yet.", disabled: true }
+            : { hint: `Paid by the farmer, withheld at disbursement. At most ${capPct}%.` },
+        )}
         {field("closeIn", "Subscription closes in (minutes)", true)}
         {field("maturityIn", "Matures in (minutes)", true)}
       </fieldset>

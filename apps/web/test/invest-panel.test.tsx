@@ -40,19 +40,19 @@ beforeEach(() => {
 
 describe("InvestPanel", () => {
   it("names KYC the same way everywhere: Not completed, with a Complete KYC action", async () => {
-    render(<InvestPanel pool={POOL} />);
+    render(<InvestPanel pool={POOL} networkFee="500000" />);
     expect(await screen.findByText("Not completed")).toBeInTheDocument();
     const kyc = screen.getByRole("button", { name: "Complete KYC" });
-    const subscribe = screen.getByRole("button", { name: "Subscribe" });
+    const subscribe = screen.getByRole("button", { name: /^Subscribe/ });
     // The required first step comes before the subscribe form.
     expect(kyc.compareDocumentPosition(subscribe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("shows the KYC rejection with a way out when an unapproved wallet subscribes", async () => {
-    render(<InvestPanel pool={POOL} />);
+    render(<InvestPanel pool={POOL} networkFee="500000" />);
     expect(await screen.findByText("Not completed")).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText("Amount (USD)"), "250");
-    await userEvent.click(screen.getByRole("button", { name: "Subscribe" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Subscribe/ }));
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("This wallet hasn't passed KYC");
     await userEvent.click(within(alert).getByRole("button", { name: "Complete KYC" }));
@@ -61,12 +61,40 @@ describe("InvestPanel", () => {
   });
 
   it("blocks an amount above the remaining capacity before calling the server", async () => {
-    render(<InvestPanel pool={{ ...POOL, raisedAmount: "1999000000" }} />);
+    render(<InvestPanel pool={{ ...POOL, raisedAmount: "1999000000" }} networkFee="500000" />);
     await screen.findByText("Not completed");
     await userEvent.type(screen.getByLabelText("Amount (USD)"), "5");
-    await userEvent.click(screen.getByRole("button", { name: "Subscribe" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Subscribe/ }));
     expect(screen.getByText("The pool needs at most $1.00 more")).toBeInTheDocument();
     expect(screen.getByLabelText("Amount (USD)")).toHaveFocus();
+    expect(vi.mocked(fetch).mock.calls.some(([u]) => u === "/api/tx/subscribe")).toBe(false);
+  });
+
+  it("discloses the network fee, the total and that no SOL is needed before signing", async () => {
+    render(<InvestPanel pool={POOL} networkFee="500000" />);
+    await screen.findByText("Not completed");
+    await userEvent.type(screen.getByLabelText("Amount (USD)"), "250");
+    const summary = screen.getByRole("group", { name: "Payment summary" });
+    expect(within(summary).getByText("Network fee").nextSibling).toHaveTextContent("$0.50");
+    expect(within(summary).getByText("Total").nextSibling).toHaveTextContent("$250.50");
+    expect(screen.getByText(/No SOL needed/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Subscribe · $250.50" })).toBeInTheDocument();
+  });
+
+  it("shows no fee line when fees are not configured", async () => {
+    render(<InvestPanel pool={POOL} networkFee={null} />);
+    await screen.findByText("Not completed");
+    await userEvent.type(screen.getByLabelText("Amount (USD)"), "250");
+    expect(screen.queryByText("Network fee")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Subscribe · $250.00" })).toBeInTheDocument();
+  });
+
+  it("stops a subscription the wallet cannot pay with the fee included", async () => {
+    render(<InvestPanel pool={POOL} networkFee="500000" />);
+    await screen.findByText("Not completed");
+    await userEvent.type(screen.getByLabelText("Amount (USD)"), "1000");
+    await userEvent.click(screen.getByRole("button", { name: /^Subscribe/ }));
+    expect(screen.getByText("You need $1,000.50 in test USDC (amount plus $0.50 network fee); this wallet has $1,000.00")).toBeInTheDocument();
     expect(vi.mocked(fetch).mock.calls.some(([u]) => u === "/api/tx/subscribe")).toBe(false);
   });
 });

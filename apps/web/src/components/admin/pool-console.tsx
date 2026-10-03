@@ -9,7 +9,7 @@ import {
 } from "../../app/admin/actions";
 import { SETTLEMENT_LABELS } from "../../lib/chain/enums";
 import type { PoolDetail, ProjectWithFields } from "../../lib/chain/views";
-import { formatDateUtc, formatUsd, relativeTime, shortKey } from "../../lib/format";
+import { formatDateUtc, formatUsd, formatYield, relativeTime, shortKey } from "../../lib/format";
 import { closeSubscriptionBlocker, disburseBlocker, fundRedemptionBlocker, seasonAttestationBlocker } from "../../lib/pool-math";
 import { ExplorerLink } from "../explorer-link";
 import { PoolStatusBadge } from "../status-badge";
@@ -41,7 +41,7 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
         </div>
       </header>
       <p className="tabular text-sm text-muted-foreground">
-        {`${formatUsd(pool.raisedAmount)} of ${formatUsd(pool.targetAmount)}. Closes ${formatDateUtc(pool.subscriptionCloseTs)} (${relativeTime(pool.subscriptionCloseTs, now * 1000)}). Matures ${formatDateUtc(pool.maturityTs)} (${relativeTime(pool.maturityTs, now * 1000)}).`}
+        {`${formatUsd(pool.raisedAmount)} of ${formatUsd(pool.targetAmount)}. Closes ${formatDateUtc(pool.subscriptionCloseTs)} (${relativeTime(pool.subscriptionCloseTs, now * 1000)}). Matures ${formatDateUtc(pool.maturityTs)} (${relativeTime(pool.maturityTs, now * 1000)}). Arrangement fee ${formatYield(detail.arrangementFeeBps)}.`}
       </p>
 
       {/* min-w-0 lets long select options and inputs shrink instead of widening the page at 390px. */}

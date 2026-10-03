@@ -19,7 +19,7 @@ export function FaucetButton({ wallet, usdc, onDone, label }: { wallet: string; 
       .catch(() => ({ ok: false, error: { title: "Could not reach the faucet. Check your connection and try again." } }));
     if (res.ok) {
       track("faucet_used", { usdc });
-      setState({ busy: false, message: res.signature ? "Test funds sent" : "You already have enough devnet SOL", signature: res.signature, failed: false });
+      setState({ busy: false, message: res.signature ? "Test funds sent" : "Nothing to send", signature: res.signature, failed: false });
       onDone?.();
     } else {
       setState({ busy: false, message: res.error?.title ?? "The faucet failed. Try again in a minute.", signature: null, failed: true });

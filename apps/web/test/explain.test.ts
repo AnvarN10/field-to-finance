@@ -35,10 +35,17 @@ describe("explainChainError", () => {
     expect(e).toMatchObject({ code: "AccountFrozen", action: "kyc" });
   });
 
-  it("points to the faucet for missing USDC, a missing USDC account, or missing SOL", () => {
+  it("points to the faucet for missing USDC or a missing USDC account; missing SOL is the sponsor's problem (ADR 0013)", () => {
     expect(explainChainError({ logs: ["Program log: Error: insufficient funds", "Program Tokenkeg failed: custom program error: 0x1"] })).toMatchObject({ code: "InsufficientUsdc", action: "faucet" });
     expect(explainChainError({ logs: ["Program log: AnchorError caused by account: investor_usdc. Error Code: AccountNotInitialized. Error Number: 3012."] })).toMatchObject({ code: "InsufficientUsdc", action: "faucet" });
-    expect(explainChainError({ error: "AccountNotFound" })).toMatchObject({ code: "NoSol", action: "faucet" });
+    expect(explainChainError({ logs: ["Program log: AnchorError caused by account: producer_usdc. Error Code: AccountNotInitialized. Error Number: 3012."] })).toMatchObject({ code: "InsufficientUsdc", action: "faucet" });
+    expect(explainChainError({ error: "AccountNotFound" })).toMatchObject({ code: "SponsorOutOfSol", action: "none", title: "Gas sponsorship is out of devnet SOL" });
+  });
+
+  it("explains the fee errors in plain words", () => {
+    expect(explainChainError({ logs: ["Program log: AnchorError occurred. Error Code: FeeTooHigh. Error Number: 6032."] })).toMatchObject({ code: "FeeTooHigh", title: "Fee is above the cap" });
+    expect(explainChainError({ logs: ["Program log: AnchorError occurred. Error Code: InvalidTreasury. Error Number: 6033."] })).toMatchObject({ code: "InvalidTreasury" });
+    expect(explainChainError({ logs: ["Program log: AnchorError occurred. Error Code: MissingFeeAccount. Error Number: 6034."] })).toMatchObject({ code: "MissingFeeAccount" });
   });
 
   it("tells the user to switch networks when the wallet does not know the blockhash", () => {

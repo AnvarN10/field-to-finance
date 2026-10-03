@@ -52,6 +52,23 @@ describe("InstrumentCard", () => {
   });
 });
 
+describe("InstrumentCard fees (COB 4.4 disclosure)", () => {
+  it("shows the arrangement fee and what the farmer nets", () => {
+    render(<InstrumentCard detail={{ ...detail, arrangementFeeBps: 200 }} networkFee="500000" />);
+    const fees = screen.getByRole("heading", { name: "Fees" }).parentElement as HTMLElement;
+    expect(within(fees).getByText("Arrangement fee (2.0%)").nextSibling).toHaveTextContent("$40.00");
+    expect(within(fees).getByText("Farmer receives").nextSibling).toHaveTextContent("$1,960.00");
+    expect(within(fees).getByText(/\$0.50 network fee/)).toBeInTheDocument();
+  });
+
+  it("says a pool without terms has no arrangement fee", () => {
+    render(<InstrumentCard detail={detail} networkFee={null} />);
+    const fees = screen.getByRole("heading", { name: "Fees" }).parentElement as HTMLElement;
+    expect(within(fees).getByText("No arrangement fee on this pool.")).toBeInTheDocument();
+    expect(within(fees).getByText("Farmer receives").nextSibling).toHaveTextContent("$2,000.00");
+  });
+});
+
 describe("ProjectsTable scroll container", () => {
   it("is a keyboard-focusable named region, so Safari users can scroll it", () => {
     render(<InstrumentCard detail={detail} />);

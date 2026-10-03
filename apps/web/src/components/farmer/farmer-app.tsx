@@ -11,13 +11,14 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useJson } from "../use-json";
 import { FarmerSessionProvider, useFarmerSession } from "../wallet/farmer-session";
-import { FaucetButton } from "../wallet/faucet-button";
 import { GeojsonUpload, type UploadedField } from "./geojson-upload";
+import { MintFeeNotice, mintFeeShortfall } from "./mint-fee-notice";
 import { ProjectList } from "./project-list";
 
-const SOL_FOR_FEES = 20_000_000;
+/** FeeConfig values the farmer sees before signing (ADR 0013); null while fees are not configured. */
+export type FarmerFees = { mintFee: string; maxArrangementBps: number } | null;
 
-function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () => void }) {
+function Register({ wallet, fees, onRegistered }: { wallet: string; fees: FarmerFees; onRegistered: () => void }) {
   const session = useFarmerSession();
   const [fields, setFields] = useState<UploadedField[]>([]);
   const [tonnes, setTonnes] = useState("400");
@@ -27,7 +28,9 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
   const idOf = (k: string) => `${base}-${k}`;
   const tx = useTransaction("register-project", session.signer, { onSuccess: onRegistered });
   const balance = useJson<InvestorState>(`/api/investor/${wallet}`);
-  const lowSol = balance.data ? balance.data.solLamports < SOL_FOR_FEES : false;
+  const usdcBalance = balance.data ? BigInt(balance.data.usdcBalance) : null;
+  const mintFee = fees?.mintFee ?? null;
+  const [feeError, setFeeError] = useState<string | null>(null);
   let requestedLabel = "";
   try {
     requestedLabel = formatUsd(parseUsd(usd));
@@ -44,6 +47,11 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
       if (first) document.getElementById(idOf(first))?.focus();
       return;
     }
+    if (usdcBalance !== null && mintFeeShortfall(usdcBalance, mintFee) > 0n) {
+      setFeeError(`Get test USDC first: registering costs ${formatUsd(BigInt(mintFee ?? "0"))}.`);
+      return;
+    }
+    setFeeError(null);
     const { values } = r;
     void tx.run({
       crop: "wheat",
@@ -123,20 +131,31 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
           Amount requested (USD)
           <Input value={usd} onChange={(e) => setUsd(e.target.value)} inputMode="decimal" className="tabular h-10 text-base" {...invalid("usd", errors.usd, "hint")} />
           {errorText("usd", errors.usd)}
-          <span id={`${idOf("usd")}-hint`} className="text-xs font-normal text-muted-foreground">Paid in USDC when the pool is funded.</span>
+          <span id={`${idOf("usd")}-hint`} className="text-xs font-normal text-muted-foreground">
+            {fees ? "Paid in USDC when the pool is funded, minus the pool's arrangement fee." : "Paid in USDC when the pool is funded."}
+          </span>
         </label>
       </div>
-      {lowSol ? (
-        <div className="flex flex-col gap-2 rounded-md bg-muted p-4 text-sm">
-          <p>Registering costs a small network fee. Your new account has none yet.</p>
-          <FaucetButton wallet={wallet} usdc={false} onDone={balance.reload} label="Get free devnet SOL for fees" />
-        </div>
+      <MintFeeNotice
+        wallet={wallet}
+        mintFee={mintFee}
+        usdcBalance={usdcBalance}
+        maxArrangementBps={fees?.maxArrangementBps ?? null}
+        onFunded={() => {
+          setFeeError(null);
+          void balance.reload();
+        }}
+      />
+      {feeError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {feeError}
+        </p>
       ) : null}
       <Button type="submit" size="lg" disabled={tx.busy} className="h-11 self-start px-5 text-base">
-        Register fields
+        {mintFee && BigInt(mintFee) > 0n ? `Register fields · ${formatUsd(BigInt(mintFee))}` : "Register fields"}
       </Button>
       <TxStatus state={tx.state} onAction={(a) => {
-          // "faucet": reloading the balance brings up the SOL faucet block above; "retry": re-send the registration.
+          // "faucet": reloading the balance brings up the test-USDC faucet in the fee notice; "retry": re-send the registration.
           if (a === "faucet") void balance.reload();
           if (a === "retry") void tx.retry();
         }} successLabel={`Registered. Requested ${requestedLabel}`} />
@@ -144,7 +163,7 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
   );
 }
 
-function Inner() {
+function Inner({ fees }: { fees: FarmerFees }) {
   const session = useFarmerSession();
   const [refreshKey, setRefreshKey] = useState(0);
   if (!session.ready) return <div className="h-40 skeleton-shimmer rounded-lg" role="status" aria-label="Loading account" />;
@@ -175,15 +194,15 @@ function Inner() {
         <h2 className="text-base font-semibold">Your projects</h2>
         <ProjectList wallet={session.signer.publicKey} refreshKey={refreshKey} />
       </section>
-      <Register wallet={session.signer.publicKey} onRegistered={() => setRefreshKey((k) => k + 1)} />
+      <Register wallet={session.signer.publicKey} fees={fees} onRegistered={() => setRefreshKey((k) => k + 1)} />
     </div>
   );
 }
 
-export function FarmerApp() {
+export function FarmerApp({ fees = null }: { fees?: FarmerFees }) {
   return (
     <FarmerSessionProvider>
-      <Inner />
+      <Inner fees={fees} />
     </FarmerSessionProvider>
   );
 }

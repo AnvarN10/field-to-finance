@@ -1,12 +1,12 @@
 "use client";
 
 import { useWallet } from "@solana/wallet-adapter-react";
-import { CircleAlert, CircleCheck } from "lucide-react";
+import { CircleAlert, CircleCheck, Fuel } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ErrorAction } from "../../lib/chain/explain";
 import type { InvestorState, PoolView } from "../../lib/chain/views";
-import { formatDateUtc, formatUsd, formatYield, withYield } from "../../lib/format";
-import { disconnectedCopy, panelMode, positionFor, validateAmount } from "../../lib/invest";
+import { formatDateUtc, formatUsd, formatYield, parseUsd, withYield } from "../../lib/format";
+import { disconnectedCopy, panelMode, positionFor, subscriptionTotal, validateSubscription } from "../../lib/invest";
 import { remaining } from "../../lib/pool-math";
 import { TxStatus } from "../tx/tx-status";
 import { useTransaction } from "../tx/use-transaction";
@@ -17,7 +17,17 @@ import { FaucetButton } from "../wallet/faucet-button";
 import { useAdapterSigner } from "../wallet/use-adapter-signer";
 import { KycDialog } from "./kyc-dialog";
 
-export function InvestPanel({ pool }: { pool: PoolView }) {
+function typedAmount(input: string): bigint {
+  try {
+    const v = parseUsd(input);
+    return v > 0n ? v : 0n;
+  } catch {
+    return 0n;
+  }
+}
+
+/** `networkFee`: FeeConfig.network_fee in USDC base units, or null while fees are not configured (ADR 0013). */
+export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: string | null }) {
   const { publicKey } = useWallet();
   const signer = useAdapterSigner();
   const wallet = publicKey?.toBase58() ?? null;
@@ -37,6 +47,9 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
   const balance = BigInt(position?.balance ?? "0");
   const symbol = pool.instrument?.symbol ?? `POOL-${pool.poolId}`;
   const usdc = BigInt(investor.data?.usdcBalance ?? "0");
+  const fee = BigInt(networkFee ?? "0");
+  const typed = typedAmount(amount);
+  const total = subscriptionTotal(typed, fee);
 
   // Each transaction gets its own handler so "Try again" re-sends that transaction.
   const handlerFor = (tx: { retry: () => Promise<unknown> }) => (a: ErrorAction) => {
@@ -102,9 +115,10 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
           className="flex flex-col gap-2 border-t border-border pt-4"
           onSubmit={(e) => {
             e.preventDefault();
-            const v = validateAmount(amount, remaining(pool));
+            const v = validateSubscription(amount, remaining(pool), { networkFee: fee, usdcBalance: usdc });
             if (!v.ok) {
               setAmountError(v.message);
+              if (v.reason === "balance") setShowFaucet(true);
               amountRef.current?.focus();
               return;
             }
@@ -136,8 +150,28 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
               {`Fixed yield ${formatYield(pool.yieldBps)}. Paid at maturity, ${formatDateUtc(pool.maturityTs)}.`}
             </p>
           )}
+          <div role="group" aria-label="Payment summary" className="tabular mt-2 flex flex-col gap-1.5 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">Amount</span>
+              <span>{formatUsd(typed)}</span>
+            </div>
+            {networkFee !== null ? (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Network fee</span>
+                <span>{formatUsd(fee)}</span>
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between gap-3 border-t border-border pt-1.5 font-medium">
+              <span>Total</span>
+              <span>{formatUsd(total)}</span>
+            </div>
+          </div>
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+            <Fuel aria-hidden strokeWidth={1.5} className="mt-px size-3.5 shrink-0" />
+            No SOL needed. Field-to-Finance pays the Solana transaction fee and account rent for you.
+          </p>
           <Button type="submit" size="lg" disabled={subscribe.busy} className="mt-2 text-base">
-            Subscribe
+            {typed > 0n ? `Subscribe · ${formatUsd(total)}` : "Subscribe"}
           </Button>
           <TxStatus state={subscribe.state} onAction={handlerFor(subscribe)} successLabel={`Subscribed. ${symbol} is in your wallet.`} />
         </form>

@@ -10,24 +10,26 @@ const { CreatePoolForm } = await import("../src/components/admin/create-pool-for
 
 describe("CreatePoolForm", () => {
   it("defaults to a demo pool that matures minutes from now", () => {
-    render(<CreatePoolForm defaultPoolId="3" />);
+    render(<CreatePoolForm defaultPoolId="3" maxArrangementBps={1_000} />);
     expect(screen.getByLabelText("Symbol")).toHaveValue("WHEAT-2027");
     expect(screen.getByLabelText("Fixed yield (%)")).toHaveValue("8.0");
     expect(screen.getByLabelText("Premium (%)")).toHaveValue("5.5");
     expect(screen.getByLabelText("Subscription closes in (minutes)")).toHaveValue("10");
     expect(screen.getByLabelText("Matures in (minutes)")).toHaveValue("20");
+    expect(screen.getByLabelText("Arrangement fee (%)")).toHaveValue("2.0");
+    expect(screen.getByLabelText("Arrangement fee (%)")).toHaveAccessibleDescription("Paid by the farmer, withheld at disbursement. At most 10.0%.");
   });
 
   it("converts percentages to basis points", async () => {
-    render(<CreatePoolForm defaultPoolId="3" />);
+    render(<CreatePoolForm defaultPoolId="3" maxArrangementBps={1_000} />);
     await userEvent.click(screen.getByRole("button", { name: /Create pool/ }));
-    expect(createPoolAction).toHaveBeenCalledWith(expect.objectContaining({ poolId: "3", yieldBps: 800, premiumBps: 550, closeInMinutes: 10, maturityInMinutes: 20, season: 2027 }));
+    expect(createPoolAction).toHaveBeenCalledWith(expect.objectContaining({ poolId: "3", yieldBps: 800, premiumBps: 550, arrangementFeeBps: 200, closeInMinutes: 10, maturityInMinutes: 20, season: 2027 }));
     expect(await screen.findByText("Pool 3 created as Draft")).toBeInTheDocument();
   });
 
   it("blocks a premium outside 5 to 6 percent before calling the server", async () => {
     createPoolAction.mockClear();
-    render(<CreatePoolForm defaultPoolId="3" />);
+    render(<CreatePoolForm defaultPoolId="3" maxArrangementBps={1_000} />);
     const premium = screen.getByLabelText("Premium (%)");
     await userEvent.clear(premium);
     await userEvent.type(premium, "7");
@@ -41,7 +43,7 @@ describe("CreatePoolForm", () => {
 
   it("marks maturity invalid when it is not after the subscription close", async () => {
     createPoolAction.mockClear();
-    render(<CreatePoolForm defaultPoolId="3" />);
+    render(<CreatePoolForm defaultPoolId="3" maxArrangementBps={1_000} />);
     const maturity = screen.getByLabelText("Matures in (minutes)");
     await userEvent.clear(maturity);
     await userEvent.type(maturity, "5");
@@ -50,5 +52,26 @@ describe("CreatePoolForm", () => {
     expect(maturity).toHaveAccessibleDescription("Maturity must come after the subscription close");
     expect(screen.getByLabelText("Premium (%)")).not.toHaveAttribute("aria-invalid");
     expect(createPoolAction).not.toHaveBeenCalled();
+  });
+
+  it("blocks an arrangement fee above the FeeConfig cap", async () => {
+    createPoolAction.mockClear();
+    render(<CreatePoolForm defaultPoolId="3" maxArrangementBps={1_000} />);
+    const fee = screen.getByLabelText("Arrangement fee (%)");
+    await userEvent.clear(fee);
+    await userEvent.type(fee, "12");
+    await userEvent.click(screen.getByRole("button", { name: /Create pool/ }));
+    await waitFor(() => expect(fee).toHaveAttribute("aria-invalid", "true"));
+    expect(fee).toHaveAccessibleDescription("Arrangement fee must be between 0% and 10.0%");
+    expect(createPoolAction).not.toHaveBeenCalled();
+  });
+
+  it("sends a zero arrangement fee when fees are not configured", async () => {
+    createPoolAction.mockClear();
+    render(<CreatePoolForm defaultPoolId="3" maxArrangementBps={null} />);
+    expect(screen.getByLabelText("Arrangement fee (%)")).toHaveValue("0.0");
+    expect(screen.getByLabelText("Arrangement fee (%)")).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: /Create pool/ }));
+    expect(createPoolAction).toHaveBeenCalledWith(expect.objectContaining({ arrangementFeeBps: 0 }));
   });
 });
