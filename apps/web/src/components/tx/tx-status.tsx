@@ -12,29 +12,35 @@ const PENDING: Record<"building" | "signing" | "confirming", string> = {
   confirming: "Confirming on devnet",
 };
 
+/**
+ * The polite status region stays mounted (empty while idle), so screen readers announce each phase change;
+ * a region inserted together with its text is often not announced. Errors use a separate role="alert".
+ */
 export function TxStatus({ state, onAction, successLabel = "Confirmed on devnet" }: { state: TxPhase; onAction?: (a: ErrorAction) => void; successLabel?: string }) {
-  if (state.phase === "idle") return null;
-
-  if (state.phase === "building" || state.phase === "signing" || state.phase === "confirming") {
-    return (
-      <div role="status" aria-live="polite" className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 aria-hidden strokeWidth={1.5} className="size-4 animate-spin motion-reduce:animate-none" />
-        <span>{PENDING[state.phase]}</span>
-        {state.phase === "confirming" ? <ExplorerLink kind="tx" value={state.signature} /> : null}
+  const pending = state.phase === "building" || state.phase === "signing" || state.phase === "confirming";
+  return (
+    <>
+      <div role="status" aria-live="polite" aria-atomic="true" className="empty:hidden">
+        {pending ? (
+          <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 aria-hidden strokeWidth={1.5} className="size-4 animate-spin motion-reduce:animate-none" />
+            <span>{PENDING[state.phase]}</span>
+            {state.phase === "confirming" ? <ExplorerLink kind="tx" value={state.signature} /> : null}
+          </div>
+        ) : state.phase === "success" ? (
+          <div className="flex min-h-11 items-center gap-2 text-sm text-success animate-in fade-in-0 duration-200 ease-(--ease-out)">
+            <CircleCheck aria-hidden strokeWidth={1.5} className="size-4" />
+            <span className="font-medium">{successLabel}</span>
+            <ExplorerLink kind="tx" value={state.signature} />
+          </div>
+        ) : null}
       </div>
-    );
-  }
+      {state.phase === "error" ? <TxError state={state} onAction={onAction} /> : null}
+    </>
+  );
+}
 
-  if (state.phase === "success") {
-    return (
-      <div role="status" aria-live="polite" className="flex min-h-11 items-center gap-2 text-sm text-success animate-in fade-in-0 duration-200 ease-(--ease-out)">
-        <CircleCheck aria-hidden strokeWidth={1.5} className="size-4" />
-        <span className="font-medium">{successLabel}</span>
-        <ExplorerLink kind="tx" value={state.signature} />
-      </div>
-    );
-  }
-
+function TxError({ state, onAction }: { state: Extract<TxPhase, { phase: "error" }>; onAction?: (a: ErrorAction) => void }) {
   const label = ACTION_LABEL[state.error.action];
   return (
     <div role="alert" className="flex flex-col gap-2 rounded-lg border border-destructive bg-card p-4 text-sm animate-in fade-in-0 duration-200 ease-(--ease-out)">

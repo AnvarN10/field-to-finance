@@ -31,10 +31,13 @@ export default async function PoolPage({ params }: { params: Promise<{ poolId: s
         <p className="text-muted-foreground">{detail.pool.instrument?.name}</p>
       </header>
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
-        <InstrumentCard detail={detail} cluster={serverEnv().SOLANA_CLUSTER} />
-        <aside id="invest" className="order-first lg:sticky lg:top-20 lg:order-none">
+        {/* DOM order matches the phone order (panel first); on lg the grid places the panel in the right column. */}
+        <aside id="invest" className="lg:sticky lg:top-20 lg:col-start-2 lg:row-start-1">
           <InvestPanel pool={detail.pool} />
         </aside>
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+          <InstrumentCard detail={detail} cluster={serverEnv().SOLANA_CLUSTER} />
+        </div>
       </div>
     </div>
   );

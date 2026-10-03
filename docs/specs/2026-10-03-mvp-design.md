@@ -96,7 +96,7 @@ SCAS is an external provider ([ADR 0012](../architecture/decisions/0012-scas-ext
 
 - Evidence: a canonical JSON document `{ schema, provider: "scas-stub", note: "External SCAS provider integration pending", kind, verdict: "Pass", polygonHash, fieldAreaHaX100, recordedAt, subject, signer }`, stored in the bucket under its SHA-256 and served at `GET /api/evidence/<hash>` after a hash check.
 - Attestation: `record_attestation` signed with the SCAS key, verdict `Pass`, `ndvi_mean_x10k = 0`, `scene_date = now`. Attestations on one Field are sent one at a time because their addresses depend on `attestation_count`.
-- Triggers: the admin console's "Verify all fields" (`FieldVerified` for every unverified field not yet in a pool) and "Attest season stage" (`Sowing`, `Vegetation` or `Harvest` for every field of a pool), and the end-to-end script.
+- Triggers: the admin console's "Verify all fields" (`FieldVerified` for every unverified field not yet in a pool) and "Attest sowing / vegetation / harvest" (`Sowing`, `Vegetation` or `Harvest` for every field of a pool; enabled only once the pool is Funded or Redeeming, because season attestations follow disbursement, and refused by the server otherwise), and the end-to-end script.
 - Field polygons uploaded by farmers are stored the same way under `polygons/<polygonHash>.json`, where `polygonHash` is the `@f2f/sdk` hash recorded by `register_field`.
 
 ### 4.5 Web app

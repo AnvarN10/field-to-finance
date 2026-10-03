@@ -18,7 +18,7 @@ const TONE: Record<ProjectStatus["tone"], { className: string; Icon: LucideIcon 
 export function ProjectList({ wallet, refreshKey }: { wallet: string; refreshKey: number }) {
   const { data, error, loading, reload } = useJson<{ projects: ProducerProject[] }>(`/api/producer/${wallet}?k=${refreshKey}`);
   if (error) return <ErrorState title="Could not load your projects" body={error} onRetry={reload} />;
-  if (loading && !data) return <div className="h-24 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" aria-label="Loading projects" />;
+  if (loading && !data) return <div className="h-24 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" role="status" aria-label="Loading projects" />;
   if (!data?.projects.length) return <EmptyState title="No projects yet" body="Register your fields below to request financing for next season." />;
   return (
     <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">

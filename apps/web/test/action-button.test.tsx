@@ -34,10 +34,11 @@ describe("ActionButton", () => {
 
   it("asks for confirmation inline when confirmText is set", async () => {
     const action = vi.fn(async () => ({ ok: true, message: "done", signatures: [] }));
-    render(<ActionButton label="Sweep" role="Issuer" action={action as never} confirmText="Return the vault remainder to the Issuer?" />);
-    await userEvent.click(screen.getByRole("button", { name: /Sweep/ }));
+    render(<ActionButton label="Sweep vault remainder" role="Issuer" action={action as never} confirmText="Return the vault remainder to the Issuer?" />);
+    await userEvent.click(screen.getByRole("button", { name: "Sweep vault remainder" }));
     expect(action).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(screen.queryByRole("button", { name: "Confirm" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Yes, sweep vault remainder" }));
     expect(action).toHaveBeenCalledOnce();
   });
 });

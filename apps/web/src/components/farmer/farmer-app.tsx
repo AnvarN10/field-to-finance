@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { InvestorState } from "../../lib/chain/views";
 import { formatTonnes, formatUsd, parseUsd } from "../../lib/format";
+import { firstInvalid, validateRegistration, type RegistrationErrors } from "../../lib/register-form";
 import { FieldMapLoader } from "../field/field-map-loader";
 import { TxStatus } from "../tx/tx-status";
 import { useTransaction } from "../tx/use-transaction";
@@ -21,7 +22,9 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
   const [fields, setFields] = useState<UploadedField[]>([]);
   const [tonnes, setTonnes] = useState("400");
   const [usd, setUsd] = useState("2000");
-  const [formError, setFormError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<RegistrationErrors>({});
+  const base = useId();
+  const idOf = (k: string) => `${base}-${k}`;
   const tx = useTransaction("register-project", session.signer, { onSuccess: onRegistered });
   const balance = useJson<InvestorState>(`/api/investor/${wallet}`);
   const lowSol = balance.data ? balance.data.solLamports < SOL_FOR_FEES : false;
@@ -34,36 +37,50 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!fields.length) return setFormError("Upload your field boundaries first.");
-    const t = Number(tonnes);
-    if (!Number.isFinite(t) || t <= 0) return setFormError("Enter the expected harvest in tonnes.");
-    let requested: bigint;
-    try {
-      requested = parseUsd(usd);
-    } catch (err) {
-      return setFormError((err as Error).message);
+    const r = validateRegistration({ fieldCount: fields.length, tonnes, usd, declaredHa: fields.map((f) => f.declaredHa) });
+    setErrors(r.errors);
+    const first = firstInvalid(r.errors);
+    if (first || !r.values) {
+      if (first) document.getElementById(idOf(first))?.focus();
+      return;
     }
-    const declared = fields.map((f) => Math.round(Number(f.declaredHa) * 100));
-    if (declared.some((d) => !Number.isFinite(d) || d <= 0)) return setFormError("Enter a declared area above 0 ha for every field.");
-    setFormError(null);
+    const { values } = r;
     void tx.run({
       crop: "wheat",
       season: 2027,
-      expectedKg: String(Math.round(t * 1000)),
-      requestedAmount: requested.toString(),
-      fields: fields.map((f, i) => ({ polygonHash: f.polygonHash, areaHaX100: declared[i] as number })),
+      expectedKg: values.expectedKg,
+      requestedAmount: values.requestedAmount,
+      fields: fields.map((f, i) => ({ polygonHash: f.polygonHash, areaHaX100: values.areaHaX100[i] as number })),
     });
   }
+
+  /** aria wiring for a control with an optional error message below it. */
+  const invalid = (key: string, message: string | undefined, hint?: string) => ({
+    id: idOf(key),
+    "aria-invalid": message ? true : undefined,
+    "aria-describedby": [message ? `${idOf(key)}-error` : null, hint ? `${idOf(key)}-hint` : null].filter(Boolean).join(" ") || undefined,
+  });
+  const errorText = (key: string, message: string | undefined) =>
+    message ? (
+      <span id={`${idOf(key)}-error`} className="text-xs font-normal text-destructive">
+        {message}
+      </span>
+    ) : null;
 
   const label = "flex flex-col gap-1.5 text-sm font-medium";
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6">
       <h2 className="text-base font-semibold">Request financing for the 2027 wheat season</h2>
-      <GeojsonUpload onUploaded={setFields} />
+      <GeojsonUpload onUploaded={(f) => { setFields(f); setErrors((p) => ({ ...p, upload: undefined })); }} />
+      {errors.upload ? (
+        <p id={idOf("upload")} tabIndex={-1} className="text-sm text-destructive">
+          {errors.upload}
+        </p>
+      ) : null}
       {fields.length ? (
         <div className="flex flex-col gap-3">
           <FieldMapLoader polygons={fields.map((f) => f.polygon)} height={280} />
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" role="region" aria-label="Declared field areas" tabIndex={0}>
             <table className="tabular w-full text-sm">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr>
@@ -80,11 +97,13 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
                     <td className="py-2">
                       <Input
                         aria-label={`Declared area for ${f.name}`}
+                        {...invalid(`declared-${i}`, errors.declared?.[i])}
                         inputMode="decimal"
                         value={f.declaredHa}
                         onChange={(e) => setFields((prev) => prev.map((x, j) => (j === i ? { ...x, declaredHa: e.target.value } : x)))}
                         className="tabular w-28"
                       />
+                      {errorText(`declared-${i}`, errors.declared?.[i])}
                     </td>
                   </tr>
                 ))}
@@ -96,20 +115,17 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={label}>
           Expected harvest (tonnes)
-          <Input value={tonnes} onChange={(e) => setTonnes(e.target.value)} inputMode="decimal" className="tabular h-10 text-base" />
-          <span className="text-xs font-normal text-muted-foreground">{`30% backs the instrument: ${Number(tonnes) > 0 ? formatTonnes(BigInt(Math.round(Number(tonnes) * 300))) : "0 t"}`}</span>
+          <Input value={tonnes} onChange={(e) => setTonnes(e.target.value)} inputMode="decimal" className="tabular h-10 text-base" {...invalid("tonnes", errors.tonnes, "hint")} />
+          {errorText("tonnes", errors.tonnes)}
+          <span id={`${idOf("tonnes")}-hint`} className="text-xs font-normal text-muted-foreground">{`30% backs the instrument: ${Number(tonnes) > 0 ? formatTonnes(BigInt(Math.round(Number(tonnes) * 300))) : "0 t"}`}</span>
         </label>
         <label className={label}>
           Amount requested (USD)
-          <Input value={usd} onChange={(e) => setUsd(e.target.value)} inputMode="decimal" className="tabular h-10 text-base" />
-          <span className="text-xs font-normal text-muted-foreground">Paid in USDC when the pool is funded.</span>
+          <Input value={usd} onChange={(e) => setUsd(e.target.value)} inputMode="decimal" className="tabular h-10 text-base" {...invalid("usd", errors.usd, "hint")} />
+          {errorText("usd", errors.usd)}
+          <span id={`${idOf("usd")}-hint`} className="text-xs font-normal text-muted-foreground">Paid in USDC when the pool is funded.</span>
         </label>
       </div>
-      {formError ? (
-        <p role="alert" className="text-sm text-destructive">
-          {formError}
-        </p>
-      ) : null}
       {lowSol ? (
         <div className="flex flex-col gap-2 rounded-md bg-muted p-4 text-sm">
           <p>Registering costs a small network fee. Your new account has none yet.</p>
@@ -127,7 +143,7 @@ function Register({ wallet, onRegistered }: { wallet: string; onRegistered: () =
 function Inner() {
   const session = useFarmerSession();
   const [refreshKey, setRefreshKey] = useState(0);
-  if (!session.ready) return <div className="h-40 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" aria-label="Loading account" />;
+  if (!session.ready) return <div className="h-40 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" role="status" aria-label="Loading account" />;
   if (!session.authenticated || !session.signer) {
     return (
       <div className="flex flex-col items-start gap-4 rounded-lg border border-border bg-card p-6">

@@ -62,7 +62,7 @@ export function ActionButton({
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted p-3 text-sm">
           <span className="mr-auto">{confirmText}</span>
           <Button type="button" variant="destructive" size="sm" onClick={go}>
-            Confirm
+            {`Yes, ${label.charAt(0).toLowerCase()}${label.slice(1)}`}
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)}>
             Cancel

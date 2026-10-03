@@ -2,9 +2,12 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
+import { useState } from "react";
 import type { InvestorState } from "../../lib/chain/views";
 import { formatUsd, withYield } from "../../lib/format";
+import { KycDialog } from "../pool/kyc-dialog";
 import { EmptyState, ErrorState } from "../state";
+import { Button } from "../ui/button";
 import { PoolStatusBadge } from "../status-badge";
 import { useJson } from "../use-json";
 import { ConnectButton } from "../wallet/connect-button";
@@ -12,16 +15,19 @@ import { FaucetButton } from "../wallet/faucet-button";
 
 const link = "rounded-sm text-gold-text underline decoration-border underline-offset-4 [@media(hover:hover)]:hover:decoration-current";
 
+const positionAction = (status: string) => (status === "Redeeming" ? "Redeem" : status === "Refunding" ? "Refund" : "View pool");
+
 export function PortfolioView() {
   const { publicKey } = useWallet();
   const wallet = publicKey?.toBase58() ?? null;
   const { data, error, loading, reload } = useJson<InvestorState>(wallet ? `/api/investor/${wallet}` : null);
+  const [kycOpen, setKycOpen] = useState(false);
 
   if (!wallet) return <EmptyState title="Connect a wallet" body="Your positions appear here once you connect a devnet wallet." action={<ConnectButton />} />;
   if (error) return <ErrorState title="Could not load your portfolio" body={error} onRetry={reload} />;
   if (loading || !data)
     return (
-      <div className="flex flex-col gap-6" aria-busy="true" aria-label="Loading portfolio">
+      <div className="flex flex-col gap-6" role="status" aria-busy="true" aria-label="Loading portfolio">
         <div className="h-20 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" />
         <div className="h-40 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" />
       </div>
@@ -39,6 +45,13 @@ export function PortfolioView() {
         <div className="flex flex-col gap-1 bg-card p-4">
           <dt className="text-xs text-muted-foreground">KYC</dt>
           <dd className={`text-xl font-semibold ${data.approved ? "text-success" : "text-warning"}`}>{data.approved ? "Approved" : "Not completed"}</dd>
+          {data.approved ? null : (
+            <dd>
+              <Button type="button" variant="link" className="h-auto px-0" onClick={() => setKycOpen(true)}>
+                Complete KYC
+              </Button>
+            </dd>
+          )}
         </div>
         <div className="flex flex-col gap-1 bg-card p-4">
           <dt className="text-xs text-muted-foreground">Positions</dt>
@@ -56,7 +69,7 @@ export function PortfolioView() {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label="Positions table" tabIndex={0}>
           <table className="tabular w-full text-sm whitespace-nowrap">
             <thead className="bg-muted text-left text-xs text-muted-foreground">
               <tr>
@@ -79,8 +92,9 @@ export function PortfolioView() {
                   <td className="px-3 py-3 text-right">{formatUsd(p.balance)}</td>
                   <td className="px-3 py-3 text-right">{formatUsd(withYield(BigInt(p.balance), p.yieldBps))}</td>
                   <td className="px-3 py-3 text-right">
-                    <Link href={`/pools/${p.poolId}`} className={link}>
-                      {p.status === "Redeeming" ? "Redeem" : p.status === "Refunding" ? "Refund" : "View pool"}
+                    {/* aria-label keeps the visible words first and adds the symbol, so repeated links are distinct. */}
+                    <Link href={`/pools/${p.poolId}`} className={link} aria-label={`${positionAction(p.status)} ${p.symbol}`}>
+                      {positionAction(p.status)}
                     </Link>
                   </td>
                 </tr>
@@ -90,6 +104,7 @@ export function PortfolioView() {
         </div>
       )}
       <FaucetButton wallet={wallet} usdc onDone={reload} />
+      <KycDialog open={kycOpen} onOpenChange={setKycOpen} wallet={wallet} onApproved={reload} />
     </div>
   );
 }

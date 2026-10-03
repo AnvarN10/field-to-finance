@@ -48,7 +48,7 @@ export function InstrumentCard({ detail, cluster = "devnet" }: { detail: PoolDet
           Demo Issuer key <ExplorerLink kind="address" value={pool.issuer} cluster={cluster} />. The Issuer carries the obligation to pay principal plus the fixed yield at maturity.
         </p>
       </Row>
-      <Row title="Farm Projects" stacked>
+      <Row title="Farm projects" stacked>
         <ProjectsTable projects={projects} />
       </Row>
       <Row title="SCAS checks">

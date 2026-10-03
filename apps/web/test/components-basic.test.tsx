@@ -46,3 +46,14 @@ describe("shared components", () => {
     expect(screen.getByRole("link", { name: "Try again" })).toHaveAttribute("href", "/pools");
   });
 });
+
+describe("SkipLink", () => {
+  it("is the first stop for keyboard users and targets the main landmark", async () => {
+    const { SkipLink, MAIN_ID } = await import("../src/components/skip-link");
+    render(<SkipLink />);
+    const link = screen.getByRole("link", { name: "Skip to content" });
+    expect(link).toHaveAttribute("href", `#${MAIN_ID}`);
+    expect(link.className).toContain("sr-only");
+    expect(link.className).toContain("focus:not-sr-only");
+  });
+});

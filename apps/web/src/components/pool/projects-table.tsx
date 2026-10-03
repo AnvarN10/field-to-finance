@@ -6,7 +6,7 @@ import { ExplorerLink } from "../explorer-link";
 
 export function ProjectsTable({ projects }: { projects: ProjectWithFields[] }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" role="region" aria-label="Farm projects table" tabIndex={0}>
       <table className="tabular w-full text-sm whitespace-nowrap">
         <thead className="bg-muted text-left text-xs text-muted-foreground">
           <tr>

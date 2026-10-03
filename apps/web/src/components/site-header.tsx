@@ -53,7 +53,7 @@ export function SiteHeader({ walletSlot }: { walletSlot?: ReactNode }) {
             aria-expanded={open}
             aria-controls="mobile-nav"
             onClick={() => setOpen((o) => !o)}
-            className="ml-1 inline-flex size-9 items-center justify-center rounded-md hover:bg-muted active:scale-[0.97] md:hidden"
+            className="ml-1 inline-flex size-9 items-center justify-center rounded-md hover:bg-muted active:scale-[0.98] md:hidden"
           >
             {open ? <X aria-hidden strokeWidth={1.5} className="size-5" /> : <Menu aria-hidden strokeWidth={1.5} className="size-5" />}
             <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>

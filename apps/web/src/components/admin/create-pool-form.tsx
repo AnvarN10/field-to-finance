@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { createPoolAction } from "../../app/admin/actions";
 import { Input } from "../ui/input";
 import { ActionButton } from "./action-button";
@@ -31,21 +31,52 @@ export function CreatePoolForm({ defaultPoolId }: { defaultPoolId: string }) {
     closeIn: "10",
     maturityIn: "20",
   });
-  const set = (k: keyof Values) => (e: React.ChangeEvent<HTMLInputElement>) => setV((p) => ({ ...p, [k]: e.target.value }));
+  const [errors, setErrors] = useState<Partial<Record<keyof Values, string>>>({});
+  const base = useId();
+  const idOf = (k: keyof Values) => `${base}-${k}`;
+  const set = (k: keyof Values) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setV((p) => ({ ...p, [k]: e.target.value }));
+    setErrors((p) => ({ ...p, [k]: undefined }));
+  };
 
   const field = (k: keyof Values, label: string, numeric = false) => (
     <label className="flex flex-col gap-1.5 text-sm font-medium">
       {label}
-      <Input value={v[k]} onChange={set(k)} inputMode={numeric ? "decimal" : undefined} className={numeric ? "tabular" : undefined} />
+      <Input
+        id={idOf(k)}
+        value={v[k]}
+        onChange={set(k)}
+        inputMode={numeric ? "decimal" : undefined}
+        className={numeric ? "tabular" : undefined}
+        aria-invalid={errors[k] ? true : undefined}
+        aria-describedby={errors[k] ? `${idOf(k)}-error` : undefined}
+      />
+      {errors[k] ? (
+        <span id={`${idOf(k)}-error`} className="text-xs font-normal text-destructive">
+          {errors[k]}
+        </span>
+      ) : null}
     </label>
   );
 
-  async function submit() {
+  /** Client checks the server repeats; each problem is shown on its own field. */
+  function validate(): Partial<Record<keyof Values, string>> {
+    const e: Partial<Record<keyof Values, string>> = {};
     const premiumBps = toBps(v.premiumPct);
-    if (!(premiumBps >= 500 && premiumBps <= 600)) {
-      // Shown by ActionButton like any other rejection; the server re-validates.
-      return { ok: false as const, error: { code: "BadRequest", title: "Premium must be between 5% and 6%", detail: "", action: "none" as const }, logs: [] };
+    if (!(premiumBps >= 500 && premiumBps <= 600)) e.premiumPct = "Premium must be between 5% and 6%";
+    if (!(Number(v.maturityIn) > Number(v.closeIn))) e.maturityIn = "Maturity must come after the subscription close";
+    return e;
+  }
+
+  async function submit() {
+    const found = validate();
+    setErrors(found);
+    const first = (Object.keys(found) as (keyof Values)[])[0];
+    if (first) {
+      document.getElementById(idOf(first))?.focus();
+      return { ok: false as const, error: { code: "BadRequest", title: "Fix the highlighted fields", detail: "", action: "none" as const }, logs: [] };
     }
+    const premiumBps = toBps(v.premiumPct);
     return createPoolAction({
       poolId: v.poolId,
       crop: v.crop,
@@ -63,7 +94,7 @@ export function CreatePoolForm({ defaultPoolId }: { defaultPoolId: string }) {
     <div className="flex flex-col gap-6">
       <fieldset className="grid gap-4 sm:grid-cols-3">
         <legend className="sr-only">Instrument</legend>
-        {field("poolId", "Pool id", true)}
+        {field("poolId", "Pool ID", true)}
         {field("name", "Name")}
         {field("symbol", "Symbol")}
         {field("crop", "Crop")}

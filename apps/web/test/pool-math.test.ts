@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fundedPercent, payoutPer, remaining, termDays } from "../src/lib/pool-math";
+import { fundedPercent, payoutPer, remaining, seasonAttestationBlocker, termDays } from "../src/lib/pool-math";
 import type { PoolView } from "../src/lib/chain/views";
 
 const p = (o: Partial<PoolView> = {}) =>
@@ -20,5 +20,19 @@ describe("pool math", () => {
   it("computes the term from subscription close to maturity in days", () => {
     expect(termDays(p())).toBe(30);
     expect(termDays(p({ maturityTs: 600 }))).toBe(0);
+  });
+});
+
+describe("seasonAttestationBlocker", () => {
+  it("blocks season attestations until the pool is funded and disbursement can follow", () => {
+    expect(seasonAttestationBlocker("Draft", 1)).toBe("Season attestations follow funding: available once the pool is Funded");
+    expect(seasonAttestationBlocker("Open", 1)).toBe("Season attestations follow funding: available once the pool is Funded");
+    expect(seasonAttestationBlocker("Refunding", 1)).toBe("The pool did not fund; no season to attest");
+  });
+
+  it("allows them for Funded and Redeeming pools with projects", () => {
+    expect(seasonAttestationBlocker("Funded", 1)).toBeUndefined();
+    expect(seasonAttestationBlocker("Redeeming", 2)).toBeUndefined();
+    expect(seasonAttestationBlocker("Funded", 0)).toBe("No projects in this pool");
   });
 });

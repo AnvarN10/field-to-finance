@@ -54,7 +54,7 @@ export function KycDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Verify your identity</DialogTitle>
+          <DialogTitle>Complete KYC</DialogTitle>
           <DialogDescription>Demo KYC: the form is checked and discarded. One approval on devnet covers every pool.</DialogDescription>
         </DialogHeader>
         {signature ? (

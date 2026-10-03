@@ -25,7 +25,7 @@ const detail: PoolDetail = {
 describe("InstrumentCard", () => {
   it("shows every element of the Instrument card from the business context", () => {
     render(<InstrumentCard detail={detail} />);
-    for (const heading of ["Issuer", "Farm Projects", "SCAS checks", "Amount", "Term", "Fixed yield", "Shortfall rules", "Risks", "Status"]) {
+    for (const heading of ["Issuer", "Farm projects", "SCAS checks", "Amount", "Term", "Fixed yield", "Shortfall rules", "Risks", "Status"]) {
       expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
     }
     expect(screen.getByText("Fixed yield 8.0%")).toBeInTheDocument();
@@ -48,5 +48,13 @@ describe("InstrumentCard", () => {
     const meter = screen.getByRole("meter", { name: "Raised" });
     expect(meter).toHaveAttribute("aria-valuenow", "25");
     expect(within(meter.parentElement as HTMLElement).getByText("25.0% funded")).toBeInTheDocument();
+  });
+});
+
+describe("ProjectsTable scroll container", () => {
+  it("is a keyboard-focusable named region, so Safari users can scroll it", () => {
+    render(<InstrumentCard detail={detail} />);
+    const region = screen.getByRole("region", { name: "Farm projects table" });
+    expect(region).toHaveAttribute("tabindex", "0");
   });
 });

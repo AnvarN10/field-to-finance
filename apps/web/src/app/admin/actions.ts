@@ -24,6 +24,7 @@ import { explainChainError, type ExplainedError } from "@/lib/chain/explain";
 import { ChainTxError } from "@/lib/chain/send";
 import { RequestError } from "@/lib/errors";
 import { formatUsd } from "@/lib/format";
+import { seasonAttestationBlocker } from "@/lib/pool-math";
 import { attestStage, verifyAllFields } from "@/lib/scas-stub";
 import { getReader, invalidateReads, opsContext, stubDeps } from "@/lib/server/context";
 import { serverEnv } from "@/lib/server/env";
@@ -111,6 +112,8 @@ export const attestStageAction = async (poolId: string, kind: (typeof STAGES)[nu
     if (!STAGES.includes(kind)) throw new RequestError("Unknown season stage", 400);
     const detail = await getReader().getPool(poolId);
     if (!detail) throw new RequestError(`Pool ${poolId} does not exist`, 404);
+    const blocked = seasonAttestationBlocker(detail.pool.status, detail.projects.length);
+    if (blocked) throw new RequestError(blocked, 409);
     const r = await attestStage(stubDeps(), detail.projects, kind as Exclude<AttestationKindName, "FieldVerified">);
     if (r.failures.length) throw new RequestError(`${r.results.length} attested, ${r.failures.length} failed: ${r.failures[0]?.error}`, 502);
     return { message: `${kind} attested for ${r.results.length} field(s)`, signatures: r.results.map((x) => x.signature) };

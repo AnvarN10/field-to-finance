@@ -10,6 +10,7 @@ import {
 import { SETTLEMENT_LABELS } from "../../lib/chain/enums";
 import type { PoolDetail, ProjectWithFields } from "../../lib/chain/views";
 import { formatDateUtc, formatUsd, relativeTime, shortKey } from "../../lib/format";
+import { seasonAttestationBlocker } from "../../lib/pool-math";
 import { ExplorerLink } from "../explorer-link";
 import { PoolStatusBadge } from "../status-badge";
 import { ActionButton } from "./action-button";
@@ -25,6 +26,7 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
   const eligible = unpooled.filter((p) => p.crop === pool.crop && p.season === pool.season && p.fieldCount > 0 && p.verifiedFieldCount === p.fieldCount);
   const allDisbursed = projects.length > 0 && projects.every((p) => p.disbursed);
   const supply = BigInt(pool.instrument?.supply ?? "1");
+  const seasonBlocker = seasonAttestationBlocker(s, projects.length);
 
   return (
     <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6">
@@ -70,7 +72,7 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
           <h3 className="text-sm font-semibold">3. Pay farmers and attest the season</h3>
           <ActionButton label="Disburse to every project" role="Issuer" action={disburseAllAction.bind(null, id)} disabled={s !== "Funded" || allDisbursed} disabledReason={s !== "Funded" ? "Needs a Funded pool" : allDisbursed ? "Every project is paid" : undefined} />
           {(["Sowing", "Vegetation", "Harvest"] as const).map((k) => (
-            <ActionButton key={k} label={`Attest ${k.toLowerCase()} for all fields`} role="SCAS stub" action={attestStageAction.bind(null, id, k)} disabled={projects.length === 0} disabledReason={projects.length === 0 ? "No projects in this pool" : undefined} />
+            <ActionButton key={k} label={`Attest ${k.toLowerCase()} for all fields`} role="SCAS stub" action={attestStageAction.bind(null, id, k)} disabled={seasonBlocker !== undefined} disabledReason={seasonBlocker} />
           ))}
         </div>
 

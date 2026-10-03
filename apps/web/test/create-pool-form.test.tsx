@@ -32,7 +32,22 @@ describe("CreatePoolForm", () => {
     await userEvent.clear(premium);
     await userEvent.type(premium, "7");
     await userEvent.click(screen.getByRole("button", { name: /Create pool/ }));
-    expect(screen.getByText("Premium must be between 5% and 6%")).toBeInTheDocument();
+    expect(premium).toHaveAttribute("aria-invalid", "true");
+    expect(premium).toHaveAccessibleDescription("Premium must be between 5% and 6%");
+    expect(premium).toHaveFocus();
+    expect(createPoolAction).not.toHaveBeenCalled();
+  });
+
+  it("marks maturity invalid when it is not after the subscription close", async () => {
+    createPoolAction.mockClear();
+    render(<CreatePoolForm defaultPoolId="3" />);
+    const maturity = screen.getByLabelText("Matures in (minutes)");
+    await userEvent.clear(maturity);
+    await userEvent.type(maturity, "5");
+    await userEvent.click(screen.getByRole("button", { name: /Create pool/ }));
+    expect(maturity).toHaveAttribute("aria-invalid", "true");
+    expect(maturity).toHaveAccessibleDescription("Maturity must come after the subscription close");
+    expect(screen.getByLabelText("Premium (%)")).not.toHaveAttribute("aria-invalid");
     expect(createPoolAction).not.toHaveBeenCalled();
   });
 });

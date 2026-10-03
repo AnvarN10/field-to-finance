@@ -66,7 +66,7 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
                 <CircleAlert aria-hidden strokeWidth={1.5} className="size-4" />
               )
             ) : null}
-            {investor.data ? (kycDone ? "Verified" : "KYC not completed") : <span className="text-muted-foreground">Checking</span>}
+            {investor.data ? (kycDone ? "Approved" : "Not completed") : <span className="text-muted-foreground">Checking</span>}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3">
@@ -161,7 +161,7 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
         <div className="flex flex-col items-start gap-3 border-t border-border pt-4">
           {investor.data && !kycDone ? (
             <Button type="button" variant="link" className="h-auto px-0" onClick={() => setKycOpen(true)}>
-              Get verified
+              Complete KYC
             </Button>
           ) : null}
           {showFaucet || (investor.data && usdc === 0n) ? <FaucetButton wallet={wallet} usdc onDone={investor.reload} /> : null}

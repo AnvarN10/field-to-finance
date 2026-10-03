@@ -5,13 +5,18 @@ import { describe, expect, it, vi } from "vitest";
 import { TxStatus } from "../src/components/tx/tx-status";
 
 describe("TxStatus", () => {
-  it("renders nothing when idle and a live region otherwise", () => {
-    const { container, rerender } = render(<TxStatus state={{ phase: "idle" }} />);
-    expect(container).toBeEmptyDOMElement();
+  it("keeps one empty live region mounted while idle so later updates are announced", () => {
+    const { rerender } = render(<TxStatus state={{ phase: "idle" }} />);
+    const region = screen.getByRole("status");
+    expect(region).toBeEmptyDOMElement();
     rerender(<TxStatus state={{ phase: "signing" }} />);
-    expect(screen.getByRole("status")).toHaveTextContent("Approve in your wallet");
+    expect(screen.getByRole("status")).toBe(region);
+    expect(region).toHaveTextContent("Approve in your wallet");
     rerender(<TxStatus state={{ phase: "confirming", signature: "5sig" }} />);
-    expect(screen.getByRole("status")).toHaveTextContent("Confirming on devnet");
+    expect(screen.getByRole("status")).toBe(region);
+    expect(region).toHaveTextContent("Confirming on devnet");
+    rerender(<TxStatus state={{ phase: "success", signature: "5sig" }} />);
+    expect(screen.getByRole("status")).toBe(region);
   });
 
   it("shows success with an explorer link", () => {
