@@ -1,0 +1,41 @@
+"use client";
+
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { useEffect, useRef } from "react";
+import { MAPLIBRE_WORKER_URL, polygonBounds, satelliteStyle } from "../../lib/map";
+
+maplibregl.setWorkerUrl(MAPLIBRE_WORKER_URL);
+
+export function FieldMap({ polygons, height = 360 }: { polygons: { coordinates: number[][][] }[]; height?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const bounds = polygonBounds(polygons);
+    if (!ref.current || !bounds) return;
+    const map = new maplibregl.Map({
+      container: ref.current,
+      style: satelliteStyle(),
+      bounds,
+      fitBoundsOptions: { padding: 48, maxZoom: 16 },
+      attributionControl: { compact: true },
+      cooperativeGestures: true,
+    });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.on("load", () => {
+      map.addSource("fields", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: polygons.map((p, i) => ({ type: "Feature", properties: { i }, geometry: { type: "Polygon", coordinates: p.coordinates } })),
+        },
+      });
+      // Gold reads on imagery and is a fill on a dark ground, which the style-lock allows.
+      map.addLayer({ id: "fields-fill", type: "fill", source: "fields", paint: { "fill-color": "#c9a227", "fill-opacity": 0.18 } });
+      map.addLayer({ id: "fields-line", type: "line", source: "fields", paint: { "line-color": "#c9a227", "line-width": 2 } });
+    });
+    return () => map.remove();
+  }, [polygons]);
+
+  return <div ref={ref} role="region" aria-label="Field boundary over satellite imagery" style={{ height }} className="w-full overflow-hidden rounded-lg bg-ink" />;
+}
