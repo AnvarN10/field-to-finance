@@ -36,7 +36,6 @@
   --radius-lg: 10px;
   --radius-xl: 10px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --animate-shimmer: shimmer 1.4s linear infinite;
   @keyframes shimmer {
     from { background-position: 150% 0; }
@@ -89,12 +88,12 @@
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(24px); } }
 @keyframes enter-row { from { opacity: 0; transform: translateY(6px); } }
-@keyframes meter-fill { from { transform: scaleX(0); } }
+@keyframes meter-fill { from { transform: translateX(-100%); } }
 @keyframes check-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 
-/* Hero intro: each sample field outline draws itself (700ms), its fill fades in, then the pool card rises (600ms). */
-.hero-field-line { fill: none; stroke: var(--primary); stroke-width: 7; stroke-linejoin: round; stroke-dasharray: 1; animation: field-draw 700ms var(--ease-in-out) both; }
-.hero-field-casing { fill: none; stroke: var(--background); stroke-opacity: 0.55; stroke-width: 14; stroke-linejoin: round; stroke-dasharray: 1; animation: field-draw 700ms var(--ease-in-out) both; }
+/* Hero intro (marketing, first view only): each sample field outline draws itself (700ms), its fill fades in, then the pool card rises (600ms). */
+.hero-field-line { fill: none; stroke: var(--primary); stroke-width: 7; stroke-linejoin: round; stroke-dasharray: 1; animation: field-draw 700ms var(--ease-out) both; }
+.hero-field-casing { fill: none; stroke: var(--background); stroke-opacity: 0.55; stroke-width: 14; stroke-linejoin: round; stroke-dasharray: 1; animation: field-draw 700ms var(--ease-out) both; }
 .hero-field-fill { fill: var(--primary); fill-opacity: 0.14; stroke: none; animation: fade-in 500ms var(--ease-out) both; }
 .hero-card { animation: rise-in 600ms var(--ease-out) 1300ms both; }
 .intro-fade { animation: fade-in 500ms var(--ease-out) 1500ms both; }
@@ -102,12 +101,12 @@
 /* App: rows of a list or table enter once, on first data load only (40ms stagger set inline, max 8 items). */
 .enter-row { animation: enter-row 220ms var(--ease-out) both; }
 
-/* Funding meter fills once when it mounts; later value changes jump without animating. */
-.meter-fill { transform-origin: left center; animation: meter-fill 700ms var(--ease-out) 150ms both; }
+/* Funding meter fills once when it mounts (slides in from the left on the compositor); later value changes jump without animating. */
+.meter-fill { animation: meter-fill 700ms var(--ease-out) 150ms both; }
 
-/* Transaction success: the check draws once (circle, then tick), then the explorer link fades in. */
-.check-draw-circle { stroke-dasharray: 1; animation: check-draw 320ms var(--ease-out) both; }
-.check-draw-tick { stroke-dasharray: 1; animation: check-draw 220ms var(--ease-out) 200ms both; }
+/* Transaction success: the check draws once (circle 260ms, then tick), then the explorer link fades in. */
+.check-draw-circle { stroke-dasharray: 1; animation: check-draw 260ms var(--ease-out) both; }
+.check-draw-tick { stroke-dasharray: 1; animation: check-draw 200ms var(--ease-out) 180ms both; }
 .tx-link-in { animation: fade-in 150ms var(--ease-out) 400ms both; }
 
 /* Reduced motion: no movement; opacity fades stay short. Components also branch on the media query. */

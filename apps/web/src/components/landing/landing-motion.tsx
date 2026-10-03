@@ -11,6 +11,8 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 export const LANDING_MOTION = {
   reveal: { duration: 0.6, distance: 16, ease: "power3.out", stagger: 0.06 },
   scrub: 0.5,
+  /** GSAP power2 is cubic: power2.inOut equals the style-lock scrubbed-scroll curve cubic-bezier(0.65, 0, 0.35, 1). */
+  stepEase: "power2.inOut",
   restingStepOpacity: 0.4,
   restingWordOpacity: 0.22,
   /** The rail runs horizontally from 1280px (matches the xl: classes in DealPath). */
@@ -75,8 +77,8 @@ export function LandingMotion({ children }: { children: ReactNode }) {
           });
           tl.fromTo(rail.querySelector("[data-rail-fill]"), wide ? { scaleX: 0 } : { scaleY: 0 }, { scaleX: 1, scaleY: 1, duration: steps.length - 0.5 }, 0);
           steps.forEach((step, i) => {
-            tl.fromTo(step, { opacity: LANDING_MOTION.restingStepOpacity }, { opacity: 1, duration: 0.4 }, i * 0.95);
-            tl.fromTo(step.querySelector("[data-rail-dot]"), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3 }, i * 0.95);
+            tl.fromTo(step, { opacity: LANDING_MOTION.restingStepOpacity }, { opacity: 1, duration: 0.4, ease: LANDING_MOTION.stepEase }, i * 0.95);
+            tl.fromTo(step.querySelector("[data-rail-dot]"), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: LANDING_MOTION.stepEase }, i * 0.95);
           });
         }
       });

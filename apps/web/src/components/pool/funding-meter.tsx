@@ -15,8 +15,13 @@ export function FundingMeter({ raised, target }: { raised: string; target: strin
         aria-valuetext={`${formatUsd(raised)} of ${formatUsd(target)}`}
         className="h-2 overflow-hidden rounded-full bg-muted"
       >
-        {/* scaleX, not width: the fill animates once on mount (globals.css .meter-fill) on the compositor. */}
-        <div data-slot="meter-fill" className="meter-fill h-full w-full bg-primary" style={{ transform: `scaleX(${Math.min(pct, 100) / 100})` }} />
+        {/* A transform, not width: the full-width fill is shifted left by the unfunded share and slides in once
+            on mount (globals.css .meter-fill), on the compositor. The track's overflow-hidden clips it. */}
+        <div
+          data-slot="meter-fill"
+          className="meter-fill h-full w-full rounded-full bg-primary"
+          style={{ translate: `${Math.min(pct, 100) - 100}% 0` }}
+        />
       </div>
       <div className="tabular flex justify-between text-sm">
         <span className="font-medium">{`${formatUsd(raised)} of ${formatUsd(target)}`}</span>
