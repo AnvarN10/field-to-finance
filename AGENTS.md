@@ -14,6 +14,7 @@ Built for the Solana Colosseum "Crypto World’s Fair" hackathon. Contest period
 - [docs/flows/](docs/flows/) — behavior that crosses systems.
 - [docs/architecture/](docs/architecture/) — cross-system structure and [decisions](docs/architecture/decisions/README.md).
 - [docs/business/CONTEXT.md](docs/business/CONTEXT.md) — business domain summary; sources in `docs/business/raw/`.
+- [docs/specs/](docs/specs/) — design specs. Implementation plans go to `docs/plans/`.
 - [docs/devlog/](docs/devlog/) — dated log of hackathon work.
 - [docs/templates/](docs/templates/) — templates for system, flow and ADR docs.
 

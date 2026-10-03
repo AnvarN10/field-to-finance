@@ -51,11 +51,10 @@ Settled decisions are recorded as ADRs in [../architecture/decisions/](../archit
 
 ## Pilot
 
-Real farmers and a contracted Swiss payment on-ramp are lined up for a pilot. The hackathon demo uses test data in addition to them.
+Real farmers and a contracted Swiss payment on-ramp are lined up for a pilot. Letters of intent from both are expected before the submission deadline. The demo uses real field contours from the pilot farmers, plus test investors and test USDC on devnet.
 
 ## Open questions
 
-- Normal-case redemption: paid from grain sale proceeds or as a fixed yield regardless of price? See ADR 0006.
 - Legal form of the Issuer and the jurisdiction of the Instrument.
 - How SCAS is operated: in-house or a third party, and who holds its key.
 - Term of the Instrument relative to harvest and grain sale dates.

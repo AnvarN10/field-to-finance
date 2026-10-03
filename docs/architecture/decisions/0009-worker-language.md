@@ -1,5 +1,5 @@
 ---
-status: Proposed
+status: Accepted
 date: "2026-10-03"
 ---
 
@@ -11,17 +11,17 @@ The worker fetches satellite statistics, stores evidence, signs Attestations and
 
 ## Decision
 
-Not decided. Options: TypeScript, Go, Rust.
+Write the SCAS worker and any backend code in TypeScript.
 
 ## Consequences
 
-- TypeScript reuses the generated Anchor client and domain types from the web app.
-- Rust could share types with the program but is slower to write.
-- Go is fast to write for services but needs a community Solana client and its own copy of the program types.
+- The worker reuses the generated Anchor client and domain types shared with the web app.
+- One language across web, worker and tests.
 
 ## Alternatives considered
 
-See options above.
+- Go: needs a community Solana client and a copy of the program types.
+- Rust: shares types with the program, slowest to write in nine days.
 
 ## Related code
 

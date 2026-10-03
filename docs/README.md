@@ -32,6 +32,10 @@ Flow docs live in [flows/](flows/). Planned flows:
 - [Architecture overview](architecture/README.md)
 - [Decision records](architecture/decisions/README.md)
 
+## Specs
+
+- [MVP design, 2026-10-03](specs/2026-10-03-mvp-design.md)
+
 ## Other
 
 - [Devlog](devlog/) — one entry per working day of the hackathon.

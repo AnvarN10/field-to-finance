@@ -12,11 +12,13 @@ Investors need a simple product. A single farm's harvest is risky, and a forecas
 ## Decision
 
 - One Instrument per Pool, for example `WHEAT-2027`, with a fixed yield.
+- In the normal case the Issuer pays principal plus the fixed yield in USDC at maturity, regardless of the grain price. The Issuer carries the grain price risk.
 - Only 30% of each Farm Project's expected harvest is the Tokenized Share.
 - Shortfall rules, in order:
   1. **Volume shortfall.** The Producer covers the missing tonnes from their other fields.
   2. **Quality shortfall.** If the delivered grain is below the contracted class, the Producer buys grain of that class on the market.
-  3. **No such quality on the market.** The Producer repays in USD with a fixed premium of 5–6%.
+  3. **No such quality on the market.** The Producer repays the financing in USD with a fixed premium. The Issuer sets the premium per Pool between 5% and 6% when the Pool is created; the Program stores it and rejects values outside that range.
+- Investors receive the same fixed yield whichever Shortfall rule settles a Farm Project.
 
 ## Consequences
 
@@ -30,9 +32,7 @@ Investors need a simple product. A single farm's harvest is risky, and a forecas
 
 ## Open questions
 
-- In the normal case, is the Instrument redeemed in USDC from the sale of the delivered grain, or does the Issuer pay the fixed yield regardless of the sale price?
-- Exact premium: 5% or 6%, and is it fixed per Pool?
-- Who sells the delivered grain and who carries the price risk between harvest and sale?
+- Who sells the delivered grain and when. This does not affect investors, because the Issuer pays a fixed yield.
 
 ## Related code
 
