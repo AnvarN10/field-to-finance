@@ -4,7 +4,8 @@
   "packageManager": "pnpm@12.3.4",
   "scripts": {
     "build": "nx run-many -t build",
-    "test": "nx run-many -t test"
+    "test": "nx run-many -t test",
+    "demo": "tsx scripts/demo-e2e.ts"
   },
   "devDependencies": {
     "@anchor-lang/core": "1.2.0",
