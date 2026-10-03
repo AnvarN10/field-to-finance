@@ -1,0 +1,14 @@
+node_modules/
+.next/
+dist/
+target/
+.anchor/
+test-ledger/
+.nx/cache/
+.nx/workspace-data/
+.env
+.env.*
+!.env.example
+*.keypair.json
+id.json
+.DS_Store
