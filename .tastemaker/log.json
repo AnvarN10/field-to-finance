@@ -1,0 +1,24 @@
+{
+  "builds": [
+    {
+      "date": "2026-10-03",
+      "surface": "landing",
+      "file": "apps/web/src/app/page.tsx",
+      "macrostructure": "Long-Scroll Narrative",
+      "arc": ["hook", "problem", "solution", "how-it-works", "proof", "close"],
+      "archetypes": {
+        "nav": "top bar app shell (shared with app pages)",
+        "hero": "split: promise + CTA left, live pool card in an ink frame right",
+        "proof": "stat strip (three tiles with hairline rules) + explorer ledger card",
+        "feature": "deal path rail, 7 steps in a hairline grid with a forest closing cell",
+        "section-head": "large-type tagline with per-word reveal for the problem beat",
+        "cta": "repeat of the hero primary CTA on paper",
+        "footer": "ink band, one line each side"
+      },
+      "mood": "calm, grounded, exact, trustworthy",
+      "palette": "style-lock (no seed; extracted from family brand site)",
+      "motion": "IntersectionObserver reveals 400ms ease-out, tagline words 45ms stagger, reduced motion: no movement",
+      "checks": "anti_slop_scan clean; audit_motion 3 MEDIUM missing-reduced-motion (global reduced-motion rule in globals.css covers them)"
+    }
+  ]
+}

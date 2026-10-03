@@ -97,3 +97,6 @@
 .wallet-adapter-dropdown-list-item { color: var(--foreground); font-family: var(--font-sans); font-size: 14px; border-radius: 6px; }
 .wallet-adapter-dropdown-list-item:not([disabled]):hover { background: var(--muted); }
 .wallet-adapter-button-trigger:not([disabled]):hover { background: var(--primary-hover) !important; }
+
+/* Full-bleed band inside the centred main column without horizontal overflow. */
+.band-inlay { background: var(--muted); box-shadow: 0 0 0 100vmax var(--muted); clip-path: inset(0 -100vmax); }
