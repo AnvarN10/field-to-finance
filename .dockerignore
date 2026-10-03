@@ -1,0 +1,11 @@
+.git
+**/node_modules
+**/dist
+**/.next
+anchor/target
+.nx
+.env
+.env.*
+*.keypair.json
+id.json
+.superpowers
