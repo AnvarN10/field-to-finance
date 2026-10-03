@@ -18,5 +18,5 @@ fn init_config_cannot_run_twice() {
     let mut env = setup_configured();
     let i = init_config_ix(&env, env.issuer.pubkey(), env.scas.pubkey(), env.compliance.pubkey());
     let admin = env.admin.insecure_clone();
-    send_err(&mut env.svm, &[i], &admin, &[]);
+    env.send_err(&[i], &admin, &[]);
 }

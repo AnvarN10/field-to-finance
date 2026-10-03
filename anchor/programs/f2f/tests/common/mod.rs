@@ -28,6 +28,18 @@ pub struct Env {
     pub usdc_mint: Keypair,
 }
 
+impl Env {
+    /// Method form so callers can build instructions from `&env` inside the argument list
+    /// (two-phase borrows apply to method receivers, not to `&mut env.svm` arguments).
+    pub fn send(&mut self, ixs: &[Instruction], payer: &Keypair, extra: &[&Keypair]) -> Result<(), String> {
+        send(&mut self.svm, ixs, payer, extra)
+    }
+
+    pub fn send_err(&mut self, ixs: &[Instruction], payer: &Keypair, extra: &[&Keypair]) -> String {
+        send_err(&mut self.svm, ixs, payer, extra)
+    }
+}
+
 pub fn program_id() -> Pubkey {
     f2f::id()
 }
@@ -96,7 +108,8 @@ pub fn fund_usdc(env: &mut Env, owner: &Pubkey, amount: u64) -> Pubkey {
     let account = ata(owner, &env.usdc_mint.pubkey(), &spl_token::ID);
     let create = create_associated_token_account_idempotent(&env.admin.pubkey(), owner, &env.usdc_mint.pubkey(), &spl_token::ID);
     let mint_to = spl_token::instruction::mint_to(&spl_token::ID, &env.usdc_mint.pubkey(), &account, &env.admin.pubkey(), &[], amount).unwrap();
-    send(&mut env.svm, &[create, mint_to], &env.admin, &[]).unwrap();
+    let admin = env.admin.insecure_clone();
+    env.send(&[create, mint_to], &admin, &[]).unwrap();
     account
 }
 
@@ -149,9 +162,44 @@ pub fn setup_configured() -> Env {
     let mut env = setup();
     let i = init_config_ix(&env, env.issuer.pubkey(), env.scas.pubkey(), env.compliance.pubkey());
     let admin = env.admin.insecure_clone();
-    send(&mut env.svm, &[i], &admin, &[]).unwrap();
+    env.send(&[i], &admin, &[]).unwrap();
     env
 }
 
 pub const SPL_TOKEN: Pubkey = spl_token::ID;
 pub const TOKEN_2022: Pubkey = spl_token_2022::ID;
+
+pub fn register_project_ix(env: &Env, project_id: u64, crop: &str, season: u16, expected_kg: u64, requested: u64) -> Instruction {
+    let producer = env.producer.pubkey();
+    ix(
+        f2f::instruction::RegisterProject { project_id, crop: crop.to_string(), season, expected_kg, requested_amount: requested },
+        f2f::accounts::RegisterProject {
+            producer,
+            project: pda_project(&producer, project_id),
+            system_program: system_program::ID,
+        },
+    )
+}
+
+pub fn register_field_ix(env: &Env, project: Pubkey, index: u8, polygon_hash: [u8; 32], area_ha_x100: u32) -> Instruction {
+    ix(
+        f2f::instruction::RegisterField { polygon_hash, area_ha_x100 },
+        f2f::accounts::RegisterField {
+            producer: env.producer.pubkey(),
+            project,
+            field: pda_field(&project, index),
+            system_program: system_program::ID,
+        },
+    )
+}
+
+/// Registers a wheat 2027 project with `fields` fields of 1,000 ha each. Expected 4,000 t, requests 100,000 USDC.
+pub fn seed_project(env: &mut Env, project_id: u64, fields: u8) -> Pubkey {
+    let producer = env.producer.insecure_clone();
+    let project = pda_project(&producer.pubkey(), project_id);
+    env.send(&[register_project_ix(env, project_id, "wheat", 2027, 4_000_000, 100_000 * USDC)], &producer, &[]).unwrap();
+    for i in 0..fields {
+        env.send(&[register_field_ix(env, project, i, [i + 1; 32], 100_000)], &producer, &[]).unwrap();
+    }
+    project
+}
