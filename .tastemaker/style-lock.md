@@ -26,7 +26,13 @@ Revised 2026-10-03 at the user's request ("color combinations don't work"): dark
 Matrix: `check_contrast.py --matrix text=#EDEFEA bg=#0B0D0C surface=#151916 primary=#F2C14E accent=#3DDC97 border=#2A302C on-primary=#1A1405`
 
 - Text-safe (>=4.5): text/bg, text/surface, text/border, text/on-primary, bg/primary, surface/primary, primary/border, primary/on-primary, bg/accent, surface/accent, accent/border, accent/on-primary. Extra pairs: muted on bg 6.47, muted on surface 5.90, info on bg 9.07, danger on bg 6.98.
-- Decorative (<3.0): border against bg/surface (hairlines only), raised against surface.
+- Decorative (<3.0): border against bg/surface (hairlines only), raised against surface, skeleton shimmer band #262C28.
+- Added 2026-10-03 (redesign build, measured with check_contrast.py):
+  - Control border #646E66: 3.35 on surface, 3.68 on background (inputs, selects, checkboxes, disabled-button dashed outline; WCAG 1.4.11 non-text 3:1).
+  - Status tints = status colour at 12% over surface: green on #1A3025 7.96, wheat on #302D1D 8.24, danger on #31231F 5.40, info on #1F2C32 6.67.
+  - Muted on raised measures 5.42 (passes) but the rule below still stands; table heads sit on the surface, not on raised.
+  - Wheat on raised 9.73; text on raised 14.11; on-primary on primary hover 12.27.
+  - Overlay for dialogs and the wallet modal: rgb(5 6 5 / 0.72); popover shadow 0 8px 24px rgb(0 0 0 / 0.45).
 
 Rules: wheat is the one brand colour; use it for the primary action, the key number on a card and the funding meter, not as decoration on every element. Green is semantic (open, verified, success), never a second brand colour. Focus ring: 2px wheat outline, offset 2px. Never put muted text on raised.
 
@@ -38,8 +44,8 @@ Rules: wheat is the one brand colour; use it for the primary action, the key num
 
 ## Shape language
 - Corner radius: 6px controls and chips, 10px panels, 999px only for status pills. No nested rounded containers.
-- Shadow depth: flat. Separation by surface tint and 1px hairlines; a single soft shadow (0 8px 24px rgb(13 32 25 / 0.08)) only for popovers and dialogs.
-- Border usage: 1px #b2b9a8 hairlines between table rows and panel edges.
+- Shadow depth: flat. Separation by surface tint and 1px hairlines; a single shadow (0 8px 24px rgb(0 0 0 / 0.45)) only for popovers, dialogs and the hero pool card that overlaps the imagery.
+- Border usage: 1px #2A302C hairlines between table rows and panel edges; #646E66 for control boundaries.
 
 ## Density & spacing
 - Base unit: 4px.
@@ -53,7 +59,7 @@ Rules: wheat is the one brand colour; use it for the primary action, the key num
 ## Structure
 - Landing: Long-Scroll Narrative. Arc: hook (farmer needs money before harvest) → problem (no grain to pledge yet) → solution (verified fields become an instrument) → how it works (seven-step deal path as a visual rail) → proof (live devnet pool card, explorer links, pilot partners) → close (open the pool).
 - App screens: top bar app shell (no sidebar): logo, Pools, Portfolio, Farmer, Admin, wallet button.
-- Build stamp / log: `.tastemaker/log.json` once the landing is built.
+- Build stamp / log: `.tastemaker/log.json` and the stamp at the top of `apps/web/src/app/globals.css`.
 
 ## Reference intelligence
 - Reference board: family brand site viewed via its CSS, rhythm not judged (URL mode blind spot).
@@ -66,11 +72,11 @@ Rules: wheat is the one brand colour; use it for the primary action, the key num
 ## Taste memory
 - Profile priors used: none.
 - Decision log: `.tastemaker/decisions.log`.
-- Pending review: palette and font choice (logged 2026-10-03).
+- Pending review: font choice; redesign motion and hero visual (logged 2026-10-03). Palette kept by the user.
 
 ## Navigation chrome
 - Top bar background: Background with bottom hairline. Content area: Background.
-- Active nav item: Primary text with 2px Primary underline. Hover: Inlay background.
+- Active nav item: Primary text with 2px Primary underline. Hover: Raised background.
 - Shell density: 56px top bar, 14px UI text.
 
 ## Mood descriptors
@@ -87,13 +93,14 @@ Raised 2026-10-03 at the user's request ("where are the animations"): expressive
 
 - Feel: confident and smooth on the landing; quick and purposeful in the app.
 - Engine: GSAP + ScrollTrigger on the landing (tastemaker gsap-starter pattern, `gsap.matchMedia()` for reduced motion); Motion (motion/react) or CSS transitions in the app.
-- Curves: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)`; `--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1)` for scrubbed scroll.
+- Curves: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)` (CSS token); cubic-bezier(0.65, 0, 0.35, 1) for scrubbed scroll, applied as GSAP `power2.inOut` (identical cubic) so no `ease-in*` token exists in CSS (audit_motion flags the name).
 - Durations: press 100ms, hover 150ms, popover 160ms, panel 220ms, list item stagger 40ms (max 8 items), landing reveals 500–700ms, number tickers 900ms.
 - Landing: hero field outline draws itself over the satellite tile (stroke-dashoffset), then the pool card rises; the seven-step deal path animates as a scrubbed rail on scroll; the problem tagline lights word by word; funded amounts count up once when in view; one pinned section is allowed.
-- App: list and table rows enter with a short stagger on first data load; funding meter animates width once on mount (transform: scaleX, not width); transaction status changes animate once (pending spinner → success check draw → explorer link); buttons press-scale 0.98; skeletons shimmer while loading.
+- App: list and table rows enter with a short stagger on first data load; funding meter fills once on mount with a transform, not width (translate slide-in; scaleX(0) trips the audit's scale-zero rule and squashes the rounded end); transaction status changes animate once (pending spinner → success check draw → explorer link); buttons press-scale 0.98; skeletons shimmer while loading.
 - Frequency rules: nothing animates on refetch or polling; no animation on repeated table updates; hover lift only under (hover: hover).
 - Reduced motion: no movement, opacity fades ≤150ms, tickers show the final value.
-- Verified by: `scripts/audit_motion.py` clean + browser check.
+- Verified by: `scripts/audit_motion.py` 0 HIGH + browser frames (2026-10-03).
+- Implementation map: hero intro in globals.css ("Hero intro"), scroll beats in `components/landing/landing-motion.tsx`, tickers `components/landing/usd-ticker.tsx`, app classes `.enter-row`, `.meter-fill`, `.check-draw-*`, `.skeleton-shimmer` in globals.css.
 
 ## Do not
 - Purple, cyan or neon accents; gradient text; glowing card shadows.

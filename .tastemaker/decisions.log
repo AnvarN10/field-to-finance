@@ -4,3 +4,8 @@
 2026-10-03 rejected surface=global axis=palette choice="CommodityChain paper/forest/gold light palette" reason="user: color combinations don't work"
 2026-10-03 kept surface=global axis=palette choice="dark Night field: #0B0D0C bg, #F2C14E wheat, #3DDC97 field green" reason="user picked variant A of three"
 2026-10-03 kept surface=global axis=motion choice="expressive landing (GSAP scroll) + alive app" reason="user asked where the animations are"
+2026-10-03 pending-review surface=landing axis=motion choice="hero: sample field outlines draw over Kostanay satellite imagery (CSS, 700ms each), then the live pool card rises (600ms)" reason="style-lock Motion; CSS so it starts with first paint without hydration flash"
+2026-10-03 pending-review surface=landing axis=motion choice="seven-step deal path as a scrubbed GSAP ScrollTrigger rail, the one pinned section, pinned only >=1280px wide and >=760px tall" reason="style-lock Motion; vertical rail without pin on narrow screens"
+2026-10-03 pending-review surface=landing axis=motion choice="problem tagline scrubbed word by word; raised amounts count up once in view (900ms); reveals 600ms power3.out" reason="style-lock Motion"
+2026-10-03 pending-review surface=app axis=motion choice="first-load row stagger, funding meter slide-in via translate (not scaleX), drawn success check before explorer link, 0.98 press, skeleton shimmer" reason="style-lock Motion; translate instead of scaleX avoids audit scale-zero and keeps the rounded end"
+2026-10-03 pending-review surface=landing axis=visual choice="hero proof visual: Esri satellite crop of the two sample strip fields 12 km east of Kostanay with wheat outlines" reason="direction contract first viewport: a field outline drawing itself on satellite imagery"

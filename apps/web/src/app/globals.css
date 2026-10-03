@@ -1,3 +1,8 @@
+/* tastemaker · macrostructure: Long-Scroll Narrative · mood: calm, grounded, exact · page: landing + app shell · build: night-field redesign 2026-10-03
+ * arc: hook(split hero: promise + satellite field outline + rising live pool card) -> problem(scrubbed word-lit tagline) -> solution(prose) -> how(7-step scrubbed rail, pinned >=1280px) -> proof(rules list + explorer ledger) -> close(repeat CTA)
+ * nav: top bar app shell · hero: split, proof visual right · footer: surface band, one line each side · knobs: hero=satellite-outline-draw/card-overlap; how=rail/pinned
+ * palette: style-lock "Night field" (no seed; user-picked variant A) · contrast: pass (check_contrast matrix + control border 3.35, tints >=5.40)
+ * motion: CSS hero intro + GSAP 3.15.0 ScrollTrigger scroll beats + CSS app motion · audit_motion: 0 HIGH · anti_slop_scan: pass */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -44,7 +49,6 @@
 }
 
 /* Values from .tastemaker/style-lock.md (Palette, Color contract). Do not invent new colours here. */
-/* tastemaker: night-field | long-scroll-narrative | 2026-10-03 */
 :root {
   color-scheme: dark;
   --background: #0b0d0c;       /* page */

@@ -2,10 +2,44 @@
   "builds": [
     {
       "date": "2026-10-03",
+      "surface": "landing + app shell (redesign pass)",
+      "file": "apps/web/src/app/page.tsx, apps/web/src/app/globals.css",
+      "macrostructure": "Long-Scroll Narrative",
+      "arc": [
+        "hook",
+        "problem",
+        "solution",
+        "how-it-works",
+        "proof",
+        "close"
+      ],
+      "archetypes": {
+        "nav": "top bar app shell (unchanged)",
+        "hero": "split: promise + CTAs left; satellite imagery of the sample fields with self-drawing outlines and the live pool card rising over its lower edge right",
+        "proof": "stat strip with count-up raised amount + rules list + explorer ledger card",
+        "feature": "seven-step deal path rail (vertical on phones, horizontal >=1280px), scrubbed, pinned on wide screens",
+        "section-head": "scrubbed word-by-word tagline",
+        "cta": "repeat of the hero primary CTA",
+        "footer": "surface band with top hairline"
+      },
+      "mood": "calm, grounded, exact, trustworthy",
+      "palette": "style-lock Night field: #0B0D0C / #151916 / #1C211E, wheat #F2C14E, field green #3DDC97",
+      "motion": "hero intro CSS (outline draw 700ms, card rise 600ms @1.3s); GSAP ScrollTrigger reveals 600ms power3.out, tagline scrub, rail scrub + one pin; tickers 900ms; app: first-load row stagger 40ms/220ms, meter slide-in 700ms, tx check draw 260ms+200ms, press 0.98, skeleton shimmer; reduced motion = end states",
+      "checks": "audit_motion 0 HIGH (MEDIUMs: marketing durations; missing-reduced-motion false positives covered by globals.css and motion-reduce: variants); anti_slop_scan pass; check_contrast pass"
+    },
+    {
+      "date": "2026-10-03",
       "surface": "landing",
       "file": "apps/web/src/app/page.tsx",
       "macrostructure": "Long-Scroll Narrative",
-      "arc": ["hook", "problem", "solution", "how-it-works", "proof", "close"],
+      "arc": [
+        "hook",
+        "problem",
+        "solution",
+        "how-it-works",
+        "proof",
+        "close"
+      ],
       "archetypes": {
         "nav": "top bar app shell (shared with app pages)",
         "hero": "split: promise + CTA left, live pool card in an ink frame right",
