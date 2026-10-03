@@ -30,14 +30,14 @@ export function GeojsonUpload({ onUploaded }: { onUploaded: (fields: UploadedFie
     try {
       parsed = JSON.parse(text);
     } catch {
-      setError("The file is not valid JSON.");
+      setError("The file is not valid JSON. Export the boundaries as GeoJSON, or use the sample file.");
       return;
     }
     let items: unknown[];
     try {
       items = splitFeatures(parsed);
     } catch (e) {
-      setError(e instanceof GeoJsonInputError ? e.message : "The file could not be read.");
+      setError(e instanceof GeoJsonInputError ? e.message : "The file could not be read. Export it again as GeoJSON with one Polygon per field.");
       return;
     }
     setBusy(true);
@@ -46,14 +46,14 @@ export function GeojsonUpload({ onUploaded }: { onUploaded: (fields: UploadedFie
       for (const [i, item] of items.entries()) {
         const res = await fetch("/api/polygons", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(item) });
         const body = await res.json();
-        if (!res.ok) throw new Error(`${nameOf(item, i)}: ${body.error ?? "upload failed"}`);
+        if (!res.ok) throw new Error(`${nameOf(item, i)}: ${body.error ?? "upload failed"}. Fix this boundary and choose the file again.`);
         fields.push({ name: nameOf(item, i), polygonHash: body.polygonHash, areaHa: body.areaHa, areaHaX100: body.areaHaX100, polygon: body.polygon, declaredHa: body.areaHa.toFixed(2) });
       }
       setCount(fields.length);
       track("fields_uploaded", { count: fields.length });
       onUploaded(fields);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed.");
+      setError(e instanceof Error ? e.message : "Upload failed. Check your connection and choose the file again.");
     } finally {
       setBusy(false);
     }

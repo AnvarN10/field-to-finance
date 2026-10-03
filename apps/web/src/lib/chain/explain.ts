@@ -115,7 +115,7 @@ export function explainChainError(input: { logs?: readonly string[] | null; erro
     const code = m[1] as string;
     const known = PROGRAM[code];
     if (known) return { code, title: known[0], detail: known[1], action: known[2] ?? "none" };
-    return { code, title: "The program rejected this transaction", detail: `Program error ${code}.`, action: "none" };
+    return { code, title: "The program rejected this transaction", detail: `Program error ${code}. Reload the page and try again; if it repeats, the pool may have changed state.`, action: "none" };
   }
   return {
     code: "Unknown",

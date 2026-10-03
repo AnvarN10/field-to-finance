@@ -37,7 +37,7 @@ export function KycDialog({
     };
     const res = await fetch("/api/kyc", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
       .then((r) => r.json())
-      .catch(() => ({ ok: false, error: { title: "Could not reach the server", detail: "" } }));
+      .catch(() => ({ ok: false, error: { title: "Could not reach the server", detail: "Check your connection and submit again." } }));
     setBusy(false);
     if (res.ok) {
       track("kyc_approved");
@@ -80,7 +80,7 @@ export function KycDialog({
                 name="country"
                 required
                 defaultValue=""
-                className="h-9 rounded-md border border-input bg-card px-3 text-sm font-normal invalid:text-muted-foreground"
+                className="h-9 rounded-md border border-input bg-card px-3 text-base font-normal invalid:text-muted-foreground md:text-sm"
               >
                 <option value="" disabled>
                   Choose a country

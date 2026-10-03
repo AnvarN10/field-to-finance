@@ -6,7 +6,7 @@ import { PoolStatusBadge } from "../status-badge";
 export function PoolSummaryCard({ pool }: { pool: PoolView }) {
   const symbol = pool.instrument?.symbol ?? `POOL-${pool.poolId}`;
   return (
-    <article className="relative flex flex-col gap-4 rounded-lg border border-border bg-card p-6 text-foreground transition-colors duration-150 ease-(--ease-out) has-[a:focus-visible]:border-ring [@media(hover:hover)]:hover:border-primary">
+    <article className="relative flex flex-col gap-4 rounded-lg border border-border bg-card p-6 text-foreground transition-colors duration-150 ease-(--ease-out) has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-ring [.dark-band_&]:has-[a:focus-visible]:outline-[#e6ca8b] [@media(hover:hover)]:hover:border-primary">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-xl font-semibold">
           {/* The link covers the whole card so the card is one target. */}

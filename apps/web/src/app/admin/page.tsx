@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ActionButton } from "@/components/admin/action-button";
+import { ExplorerLink } from "@/components/explorer-link";
 import { CreatePoolForm } from "@/components/admin/create-pool-form";
 import { PoolConsole } from "@/components/admin/pool-console";
 import { ScasStubBadge } from "@/components/scas-stub-badge";
@@ -57,7 +58,7 @@ export default async function AdminPage() {
 
       {mismatches.length || missing.length ? (
         <div role="alert" className="rounded-lg border border-destructive bg-card p-4 text-sm">
-          {missing.length ? <p>{`Missing keys on the server: ${missing.join(", ")}.`}</p> : null}
+          {missing.length ? <p>{`Missing keys on the server: ${missing.join(", ")}. Add them to Infisical (field-to-finance, dev) and restart the server.`}</p> : null}
           {mismatches.map((m) => <p key={m}>{m}</p>)}
         </div>
       ) : null}
@@ -69,7 +70,11 @@ export default async function AdminPage() {
         </div>
         {unverified.length ? (
           <ul className="tabular text-sm text-muted-foreground">
-            {unverified.map((f) => <li key={f.address}>{`Field ${f.index + 1} of project ${f.project.slice(0, 4)}…, ${formatHa(f.areaHaX100)}`}</li>)}
+            {unverified.map((f) => (
+              <li key={f.address} className="flex flex-wrap items-center gap-2">
+                {`Field ${f.index + 1}, ${formatHa(f.areaHaX100)}, project`} <ExplorerLink kind="address" value={f.project} />
+              </li>
+            ))}
           </ul>
         ) : (
           <p className="text-sm text-muted-foreground">Every field of every project waiting for a pool is verified.</p>

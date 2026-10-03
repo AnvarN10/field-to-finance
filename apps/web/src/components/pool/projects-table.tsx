@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { SETTLEMENT_LABELS } from "../../lib/chain/enums";
 import type { ProjectWithFields } from "../../lib/chain/views";
-import { formatHa, formatTonnes, formatUsd, shortKey } from "../../lib/format";
+import { formatHa, formatTonnes, formatUsd } from "../../lib/format";
+import { ExplorerLink } from "../explorer-link";
 
 export function ProjectsTable({ projects }: { projects: ProjectWithFields[] }) {
   return (
@@ -21,7 +22,9 @@ export function ProjectsTable({ projects }: { projects: ProjectWithFields[] }) {
         <tbody>
           {projects.map((p) => (
             <tr key={p.address} className="border-b border-border last:border-0">
-              <td className="px-2.5 py-3 font-mono text-[13px]">{shortKey(p.producer)}</td>
+              <td className="px-2.5 py-3">
+                <ExplorerLink kind="address" value={p.producer} />
+              </td>
               <td className="px-2.5 py-3">{formatTonnes(p.expectedKg)}</td>
               <td className="px-2.5 py-3">{formatTonnes(p.tokenizedKg)}</td>
               <td className="px-2.5 py-3">{formatUsd(p.requestedAmount)}</td>

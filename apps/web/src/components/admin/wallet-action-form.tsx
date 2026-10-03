@@ -10,15 +10,17 @@ export function WalletActionForm({ poolId, mode }: { poolId: string; mode: "appr
   const valid = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet);
   return (
     <div className="flex flex-col gap-2">
+      <label className="flex flex-col gap-1.5 text-sm font-medium">
+        {mode === "approve" ? "Wallet to approve" : "Wallet to revoke"}
       <Input
         value={wallet}
         onChange={(e) => setWallet(e.target.value.trim())}
         placeholder="Investor wallet address"
-        aria-label={`Wallet to ${mode}`}
         spellCheck={false}
         autoComplete="off"
-        className="font-mono text-[13px]"
+        className="font-mono text-[13px] font-normal"
       />
+      </label>
       <ActionButton
         label={mode === "approve" ? "Approve investor (all pools)" : "Revoke investor"}
         role="Compliance"

@@ -68,3 +68,10 @@ describe("explainChainError", () => {
     expect(extractLogs(null)).toEqual([]);
   });
 });
+
+describe("explainChainError fallback for unknown program errors", () => {
+  it("names a way to recover", () => {
+    const e = explainChainError({ logs: ["Program log: AnchorError occurred. Error Code: SomethingNew. Error Number: 6099."] });
+    expect(e.detail).toMatch(/Reload the page and try again/);
+  });
+});

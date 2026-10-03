@@ -38,7 +38,7 @@ describe("InstrumentCard", () => {
   it("links the pool, mint and vault to the explorer", () => {
     render(<InstrumentCard detail={detail} />);
     const links = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
-    for (const k of [detail.pool.address, detail.pool.mint, detail.pool.vault, detail.pool.issuer]) {
+    for (const k of [detail.pool.address, detail.pool.mint, detail.pool.vault, detail.pool.issuer, detail.projects[0]!.producer]) {
       expect(links).toContain(`https://explorer.solana.com/address/${k}?cluster=devnet`);
     }
   });

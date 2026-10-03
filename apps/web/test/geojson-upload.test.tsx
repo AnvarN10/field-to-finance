@@ -40,6 +40,6 @@ describe("GeojsonUpload", () => {
   it("rejects a file that is not JSON", async () => {
     render(<GeojsonUpload onUploaded={vi.fn()} />);
     await userEvent.upload(screen.getByLabelText("Field boundaries (GeoJSON)"), new File(["not json"], "x.geojson"));
-    expect(await screen.findByRole("alert")).toHaveTextContent("The file is not valid JSON.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The file is not valid JSON. Export the boundaries as GeoJSON, or use the sample file.");
   });
 });

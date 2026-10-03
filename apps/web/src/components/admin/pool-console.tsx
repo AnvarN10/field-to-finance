@@ -44,14 +44,18 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
           <h3 className="text-sm font-semibold">1. Build the pool</h3>
           {eligible.length === 0 ? <p className="text-xs text-muted-foreground">No verified project with this crop and season is waiting.</p> : null}
           {eligible.map((p) => (
-            <ActionButton
-              key={p.address}
-              label={`Add project ${shortKey(p.address)} (${formatUsd(p.requestedAmount)})`}
-              role="Issuer"
-              action={addProjectAction.bind(null, id, p.address)}
-              disabled={s !== "Draft"}
-              disabledReason={s !== "Draft" ? "Only a Draft pool accepts projects" : undefined}
-            />
+            <div key={p.address} className="flex flex-col gap-1">
+              <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                Project <ExplorerLink kind="address" value={p.address} />
+              </span>
+              <ActionButton
+                label={`Add project ${shortKey(p.address)} (${formatUsd(p.requestedAmount)})`}
+                role="Issuer"
+                action={addProjectAction.bind(null, id, p.address)}
+                disabled={s !== "Draft"}
+                disabledReason={s !== "Draft" ? "Only a Draft pool accepts projects" : undefined}
+              />
+            </div>
           ))}
           <ActionButton label="Open pool" role="Issuer" action={openPoolAction.bind(null, id)} disabled={s !== "Draft" || pool.projectCount === 0} disabledReason={s !== "Draft" ? "Already opened" : pool.projectCount === 0 ? "Add a project first" : undefined} />
         </div>
@@ -74,7 +78,10 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
           <h3 className="text-sm font-semibold">4. Settle and redeem</h3>
           {projects.map((p) => (
             <div key={p.address} className="flex flex-col gap-1">
-              <span className="text-xs text-muted-foreground">{`Project ${shortKey(p.address)}${p.settlement ? `: ${SETTLEMENT_LABELS[p.settlement]}` : ""}`}</span>
+              <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                Project <ExplorerLink kind="address" value={p.address} />
+                {p.settlement ? `Settled: ${SETTLEMENT_LABELS[p.settlement]}` : null}
+              </span>
               <SettlementForm
                 poolId={id}
                 project={p.address}
