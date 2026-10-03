@@ -12,14 +12,18 @@ Durable, repo-local documentation for humans and AI agents. Source code is the i
 
 System docs live in [systems/](systems/). Planned systems, created once code exists:
 
-- `program.md` — the Solana program: pools, attestations, subscriptions, settlement.
+- [program.md](systems/program.md) — the Solana program: pools, attestations, subscriptions, settlement.
 - `scas.md` — field verification worker and satellite data pipeline.
 - `kyc.md` — investor and farmer onboarding, account thaw.
 - `web.md` — farmer, investor and admin web app.
 
 ## Flows
 
-Flow docs live in [flows/](flows/). Planned flows:
+Flow docs live in [flows/](flows/).
+
+- [pool-lifecycle.md](flows/pool-lifecycle.md) — from field registration to redemption.
+
+Planned flows:
 
 - `field-verification.md` — from field registration to the first signed attestation.
 - `pool-issuance.md` — from verified projects to a published pool.
@@ -35,6 +39,10 @@ Flow docs live in [flows/](flows/). Planned flows:
 ## Specs
 
 - [MVP design, 2026-10-03](specs/2026-10-03-mvp-design.md)
+
+## Plans
+
+- [Program, 2026-10-03](plans/2026-10-03-program.md)
 
 ## Other
 

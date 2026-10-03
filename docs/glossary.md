@@ -40,6 +40,10 @@ Normalized Difference Vegetation Index, computed from Sentinel-2 red and near-in
 
 A set of verified Farm Projects for one crop and season, financed by one Instrument with a fixed yield.
 
+## Pool Status
+
+The stage of a Pool: Draft, Open, Funded, Refunding or Redeeming. See the [program doc](systems/program.md#data-and-state).
+
 ## Primary Market
 
 The first sale of a new Instrument. Investor money reaches farmers only through the Primary Market.
