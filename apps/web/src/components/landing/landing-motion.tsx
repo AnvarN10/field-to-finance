@@ -3,7 +3,8 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { markIntroSeen } from "@/lib/intro-seen";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -37,6 +38,9 @@ const token = (name: string) => getComputedStyle(document.documentElement).getPr
  */
 export function LandingMotion({ children }: { children: ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
+
+  // The CSS hero intro plays once per session (lib/intro-seen.ts).
+  useEffect(() => markIntroSeen(document.documentElement), []);
 
   useGSAP(
     () => {

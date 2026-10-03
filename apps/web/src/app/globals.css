@@ -7,7 +7,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Single dark mode "Night field" (style-lock). <html> carries .dark permanently so shadcn dark: utilities apply. */
+/* Single dark mode "Night field" (style-lock). Base classes are the dark values; components carry no dark: overrides
+   (<html class="dark"> is permanent, so shadcn's dark: alternates would win over the tokens). test/interface-review.test.tsx guards this. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -22,6 +23,7 @@
   --color-muted: var(--raised);
   --color-muted-foreground: var(--muted-foreground);
   --color-raised: var(--raised);
+  --color-hover: var(--hover);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -34,7 +36,6 @@
   --color-accent-foreground: var(--foreground);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
-  --color-warning: var(--primary);
   --color-info: var(--info);
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -54,6 +55,7 @@
   --background: #0b0d0c;       /* page */
   --card: #151916;             /* surface: cards, panels, inputs */
   --raised: #1c211e;           /* table head, hover rows, meter track, skeletons */
+  --hover: #323833;            /* quiet-button hover: 1.36 on raised, 1.48 on surface, 1.62 on bg; text 10.37 */
   --foreground: #edefea;       /* text primary */
   --muted-foreground: #8e978f; /* text muted, 5.90 on surface */
   --border: #2a302c;           /* decorative hairlines only */
@@ -95,12 +97,15 @@
 @keyframes meter-fill { from { transform: translateX(-100%); } }
 @keyframes check-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 
-/* Hero intro (marketing, first view only): each sample field outline draws itself (700ms), its fill fades in; the pool card rises (600ms) while the second outline finishes. */
-.hero-field-line { fill: none; stroke: var(--primary); stroke-width: 7; stroke-linejoin: round; stroke-dasharray: 1; animation: field-draw 700ms var(--ease-out) both; }
-.hero-field-casing { fill: none; stroke: var(--background); stroke-opacity: 0.55; stroke-width: 14; stroke-linejoin: round; stroke-dasharray: 1; animation: field-draw 700ms var(--ease-out) both; }
-.hero-field-fill { fill: var(--primary); fill-opacity: 0.14; stroke: none; animation: fade-in 500ms var(--ease-out) both; }
-.hero-card { animation: rise-in 600ms var(--ease-out) 750ms both; }
-.intro-fade { animation: fade-in 500ms var(--ease-out) 900ms both; }
+/* Hero intro, first view per session: each sample field outline draws itself (700ms), its fill fades in; the pool card rises (600ms) while the second outline finishes.
+   lib/intro-seen.ts sets html[data-seen] before paint on later visits (and after the intro has played), so the hero renders in its end state. */
+.hero-field-line { fill: none; stroke: var(--primary); stroke-width: 7; stroke-linejoin: round; stroke-dasharray: 1; }
+.hero-field-casing { fill: none; stroke: var(--background); stroke-opacity: 0.55; stroke-width: 14; stroke-linejoin: round; stroke-dasharray: 1; }
+.hero-field-fill { fill: var(--primary); fill-opacity: 0.14; stroke: none; }
+html:not([data-seen]) .hero-field-line, html:not([data-seen]) .hero-field-casing { animation: field-draw 700ms var(--ease-out) both; }
+html:not([data-seen]) .hero-field-fill { animation: fade-in 500ms var(--ease-out) both; }
+html:not([data-seen]) .hero-card { animation: rise-in 600ms var(--ease-out) 750ms both; }
+html:not([data-seen]) .intro-fade { animation: fade-in 500ms var(--ease-out) 900ms both; }
 
 /* App: rows of a list or table enter once, on first data load only (40ms stagger set inline, max 8 items). */
 .enter-row { animation: enter-row 220ms var(--ease-out) both; }
@@ -117,8 +122,10 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .skeleton-shimmer { animation: none; }
-  .hero-field-line, .hero-field-casing, .hero-field-fill, .meter-fill, .check-draw-circle, .check-draw-tick, .enter-row { animation: none; }
-  .hero-card, .intro-fade, .tx-link-in { animation: fade-in 150ms ease both; }
+  .meter-fill, .check-draw-circle, .check-draw-tick, .enter-row { animation: none; }
+  html:not([data-seen]) .hero-field-line, html:not([data-seen]) .hero-field-casing, html:not([data-seen]) .hero-field-fill { animation: none; }
+  html:not([data-seen]) .hero-card, html:not([data-seen]) .intro-fade { animation: fade-in 150ms ease both; }
+  .tx-link-in { animation: fade-in 150ms ease both; }
 }
 
 /* Wallet adapter modal restyled to the style-lock (its default dark purple theme is an anti-reference). */

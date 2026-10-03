@@ -61,7 +61,7 @@ export function InvestPanel({ pool }: { pool: PoolView }) {
       <dl className="tabular flex flex-col gap-2 text-sm">
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">KYC</dt>
-          <dd className={`inline-flex items-center gap-1.5 font-medium ${kycDone ? "text-success" : "text-warning"}`}>
+          <dd className={`inline-flex items-center gap-1.5 font-medium ${kycDone ? "text-success" : "text-foreground"}`}>
             {investor.data ? (
               kycDone ? (
                 <CircleCheck aria-hidden strokeWidth={1.5} className="size-4" />

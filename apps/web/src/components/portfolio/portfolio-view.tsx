@@ -46,7 +46,7 @@ export function PortfolioView() {
         </div>
         <div className="flex flex-col gap-1 bg-card p-4">
           <dt className="text-xs text-muted-foreground">KYC</dt>
-          <dd className={`text-xl font-semibold ${data.approved ? "text-success" : "text-warning"}`}>{data.approved ? "Approved" : "Not completed"}</dd>
+          <dd className={`text-xl font-semibold ${data.approved ? "text-success" : "text-foreground"}`}>{data.approved ? "Approved" : "Not completed"}</dd>
           {data.approved ? null : (
             <dd>
               <Button type="button" variant="link" className="h-auto px-0" onClick={() => setKycOpen(true)}>

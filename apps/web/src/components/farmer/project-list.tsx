@@ -13,7 +13,7 @@ const TONE: Record<ProjectStatus["tone"], { className: string; Icon: LucideIcon 
   pending: { className: "text-muted-foreground", Icon: CircleDashed },
   progress: { className: "text-info", Icon: CircleDot },
   success: { className: "text-success", Icon: CircleCheck },
-  warning: { className: "text-warning", Icon: TriangleAlert },
+  warning: { className: "text-muted-foreground", Icon: TriangleAlert },
 };
 
 export function ProjectList({ wallet, refreshKey }: { wallet: string; refreshKey: number }) {

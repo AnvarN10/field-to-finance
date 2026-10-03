@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { MAIN_ID, SkipLink } from "@/components/skip-link";
 import { HeaderWalletButton } from "@/components/wallet/connect-button";
 import { WalletProviders } from "@/components/wallet/wallet-providers";
+import { introSeenScript } from "@/lib/intro-seen";
 import "./globals.css";
 
 const brand = Instrument_Sans({ subsets: ["latin"], variable: "--font-brand", display: "swap" });
@@ -17,7 +18,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${brand.variable} ${code.variable}`}>
+    // suppressHydrationWarning: introSeenScript may add data-seen to <html> before React hydrates.
+    <html lang="en" className={`dark ${brand.variable} ${code.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: introSeenScript }} />
+      </head>
       <body className="flex min-h-dvh flex-col font-sans">
         <SkipLink />
         <WalletProviders>

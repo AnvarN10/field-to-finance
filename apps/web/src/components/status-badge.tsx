@@ -6,7 +6,8 @@ const STYLE: Record<PoolStatusName, { label: string; className: string; Icon: Lu
   Draft: { label: "Draft", className: "border-border text-muted-foreground", Icon: CircleDashed },
   Open: { label: "Open for subscription", className: "border-success/40 bg-success/12 text-success", Icon: CircleDot },
   Funded: { label: "Funded", className: "border-success/40 text-success", Icon: CircleCheck },
-  Refunding: { label: "Refunding", className: "border-warning/40 bg-warning/12 text-warning", Icon: RotateCcw },
+  // Refunding is a neutral state like Draft: wheat stays the brand colour, never a warning.
+  Refunding: { label: "Refunding", className: "border-border text-muted-foreground", Icon: RotateCcw },
   Redeeming: { label: "Redeeming", className: "border-info/40 bg-info/12 text-info", Icon: Wallet },
 };
 

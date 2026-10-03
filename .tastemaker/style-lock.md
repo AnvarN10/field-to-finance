@@ -18,7 +18,7 @@ Revised 2026-10-03 at the user's request ("color combinations don't work"): dark
 - Success / field green: #3DDC97 (open status, verified checks, positive deltas)
 - Info: #6CB6FF (stub badge, links in prose when not wheat) — 9.07 vs background
 - Danger: #FF6B5E — 6.98 vs background
-- Warning: wheat #F2C14E
+- Warning: no warning hue. Revised 2026-10-04: caution states (Refunding pool, refunded project, KYC not completed) are neutral, muted or foreground text plus their icon (RotateCcw, TriangleAlert, CircleAlert), so wheat stays the one brand colour. No `--color-warning` token exists.
 - Dark mode: this IS the single mode. No light theme, no runtime toggle. Map basemap (satellite) sits directly on the dark surface.
 
 ## Color contract
@@ -33,6 +33,11 @@ Matrix: `check_contrast.py --matrix text=#EDEFEA bg=#0B0D0C surface=#151916 prim
   - Muted on raised measures 5.42 (passes) but the rule below still stands; table heads sit on the surface, not on raised.
   - Wheat on raised 9.73; text on raised 14.11; on-primary on primary hover 12.27.
   - Overlay for dialogs and the wallet modal: rgb(5 6 5 / 0.72); popover shadow 0 8px 24px rgb(0 0 0 / 0.45).
+- Added 2026-10-04 (interface-review fixes, measured with check_contrast.py):
+  - Hover surface `--hover` #323833 for ghost and secondary buttons: 1.36 against raised (secondary resting), 1.48 against surface, 1.62 against background (ghost resting); text on it 10.37, wheat on it 7.15. Muted on it is 3.99 (fails), so hover always sets foreground text.
+  - Outline buttons and the hero secondary CTA: hover brightens the boundary from control border #646E66 to muted #8E978F (5.90 on surface, 1.76 step from the resting border) and fills with raised (button) or surface (hero CTA on background).
+  - Invalid controls: full danger border, 6.36 on surface, plus a 3px danger/20 halo. Disabled controls match the disabled Button: dashed #646E66 outline (3.68 on background), transparent fill, muted text (6.47 on background), no opacity dimming.
+  - Components carry no `dark:` variants: <html class="dark"> is permanent, so shadcn's dark alternates would override these tokens.
 
 Rules: wheat is the one brand colour; use it for the primary action, the key number on a card and the funding meter, not as decoration on every element. Green is semantic (open, verified, success), never a second brand colour. Focus ring: 2px wheat outline, offset 2px. Never put muted text on raised.
 
@@ -95,7 +100,7 @@ Raised 2026-10-03 at the user's request ("where are the animations"): expressive
 - Engine: GSAP + ScrollTrigger on the landing (tastemaker gsap-starter pattern, `gsap.matchMedia()` for reduced motion); Motion (motion/react) or CSS transitions in the app.
 - Curves: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)` (CSS token); cubic-bezier(0.65, 0, 0.35, 1) for scrubbed scroll, applied as GSAP `power2.inOut` (identical cubic) so no `ease-in*` token exists in CSS (audit_motion flags the name).
 - Durations: press 100ms, hover 150ms, popover 160ms, panel 220ms, list item stagger 40ms (max 8 items), landing reveals 500–700ms, number tickers 900ms.
-- Landing: hero field outline draws itself over the satellite tile (stroke-dashoffset), then the pool card rises; the seven-step deal path animates as a scrubbed rail on scroll; the problem tagline lights word by word; funded amounts count up once when in view; one pinned section is allowed.
+- Landing: hero field outline draws itself over the satellite tile (stroke-dashoffset), then the pool card rises, once per browser session (later visits paint the end state: `lib/intro-seen.ts` sets html[data-seen] from sessionStorage before paint, CSS animates only under html:not([data-seen])); the seven-step deal path animates as a scrubbed rail on scroll; the problem tagline lights word by word; funded amounts count up once when in view; one pinned section is allowed.
 - App: list and table rows enter with a short stagger on first data load; funding meter fills once on mount with a transform, not width (translate slide-in; scaleX(0) trips the audit's scale-zero rule and squashes the rounded end); transaction status changes animate once (pending spinner → success check draw → explorer link); buttons press-scale 0.98; skeletons shimmer while loading.
 - Frequency rules: nothing animates on refetch or polling; no animation on repeated table updates; hover lift only under (hover: hover).
 - Reduced motion: no movement, opacity fades ≤150ms, tickers show the final value.

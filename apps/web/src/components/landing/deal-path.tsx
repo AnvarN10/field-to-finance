@@ -20,23 +20,26 @@ const TRACK = "absolute left-[11px] top-3 bottom-3 w-px xl:inset-x-3 xl:top-[11p
 export function DealPath() {
   return (
     <div data-rail className="flex flex-col gap-8">
-      <ol className="relative grid gap-8 xl:grid-cols-7 xl:gap-6">
+      {/* The track and fill are decorative siblings of the list, so the <ol> holds only <li> children. */}
+      <div className="relative">
         <span aria-hidden className={`${TRACK} bg-border`} />
         <span aria-hidden data-rail-fill className={`${TRACK} origin-top bg-primary xl:origin-left`} />
-        {DEAL_STEPS.map(({ Icon, title, body }, i) => (
-          <li key={title} data-rail-step className="relative flex flex-col gap-2 pl-10 xl:pt-10 xl:pl-0">
-            <span aria-hidden className="absolute top-0 left-0 grid size-6 place-items-center rounded-full border border-border bg-card">
-              <span data-rail-dot className="size-2.5 rounded-full bg-primary" />
-            </span>
-            <span className="tabular text-xs text-muted-foreground">Step {i + 1}</span>
-            <h3 className="flex items-center gap-2 text-base font-semibold">
-              <Icon aria-hidden strokeWidth={1.5} className="size-4 shrink-0 text-primary" />
-              {title}
-            </h3>
-            <p className="text-sm text-pretty text-muted-foreground">{body}</p>
-          </li>
-        ))}
-      </ol>
+        <ol className="relative grid gap-8 xl:grid-cols-7 xl:gap-6">
+          {DEAL_STEPS.map(({ Icon, title, body }, i) => (
+            <li key={title} data-rail-step className="relative flex flex-col gap-2 pl-10 xl:pt-10 xl:pl-0">
+              <span aria-hidden className="absolute top-0 left-0 grid size-6 place-items-center rounded-full border border-border bg-card">
+                <span data-rail-dot className="size-2.5 rounded-full bg-primary" />
+              </span>
+              <span className="tabular text-xs text-muted-foreground">Step {i + 1}</span>
+              <h3 className="flex items-center gap-2 text-base font-semibold">
+                <Icon aria-hidden strokeWidth={1.5} className="size-4 shrink-0 text-primary" />
+                {title}
+              </h3>
+              <p className="text-sm text-pretty text-muted-foreground">{body}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
       <p className="text-sm text-muted-foreground">Every step is a Solana transaction you can open in Explorer.</p>
     </div>
   );
