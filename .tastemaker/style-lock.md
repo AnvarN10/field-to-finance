@@ -3,32 +3,32 @@
 Established: 2026-10-03. Source: palette from the CSS custom properties of https://www.commochain.ltd/kk (public site of the same management team, used as the family brand reference at the user's request), adapted for a separate Field-to-Finance product. Fonts, shapes and motion chosen for this project.
 
 ## Palette
-- Background: #f5f2ea (paper; page background) — source `--paper`
-- Surface: #fbfaf5 (panels, table body, inputs; nudged lighter than paper so panels lift without shadows)
-- Inlay: #e1e4d3 (table headers, selected rows, quiet chips) — source `--surface-inlay`
-- Primary: #142d23 (forest; primary buttons, active nav, key numbers) — source `--surface-forest`
-- Primary hover: #19382b — source `--text-forest`
-- Accent: #c9a227 (gold; only on Primary or ink fills: badges, progress fill, highlights on dark) — source `--gold`
-- Accent text: #79632e (gold as text on paper or surface; "Fixed yield" labels, links in prose) — source `--editorial-gold`
-- Ink section: #0d2019 (dark bands: hero visual frame, footer) — source `--surface-ink`
-- Text on dark: #dae2d0 — source `--text-on-dark`
-- Text primary: #0d2019 — contrast vs background: 15.17 (AA pass)
-- Text muted: #455347 — contrast vs background: 7.27 (AA pass) — source `--editorial-muted`
-- Border: #b2b9a8 (hairlines, decorative only) — source `--editorial-line`
-- Focus ring: #72571f on light (6.06 vs bg), #e6ca8b on dark — source `--focus-light` / `--focus-dark`
-- Semantic (added, verified): success #2f6b3f (5.70 vs bg), danger #a3352b (6.05 vs bg), info #2d5a7b (6.56 vs bg). Warning uses Accent text #79632e (5.16 vs bg).
-- Button label color: on-primary #f5f2ea — contrast vs Primary: 13.13
-- Dark mode: not needed for this project, single light mode with dark ink bands.
+
+Revised 2026-10-03 at the user's request ("color combinations don't work"): dark theme with a wheat accent, variant "Night field". The previous CommodityChain paper/forest palette is rejected (see decisions.log).
+
+- Background: #0B0D0C (near-black with a green cast; page background)
+- Surface: #151916 (cards, panels, inputs)
+- Raised: #1C211E (table headers, hover rows, meter track, skeletons)
+- Border: #2A302C (hairlines; decorative only)
+- Text primary: #EDEFEA — contrast vs background 17+ (AA pass)
+- Text muted: #8E978F — 6.47 vs background, 5.90 vs surface
+- Primary / accent: #F2C14E (wheat; primary buttons, key numbers, funding meter, focus ring) — 10.58 vs surface
+- On-primary (label on wheat): #1A1405
+- Primary hover: #F6CF6E
+- Success / field green: #3DDC97 (open status, verified checks, positive deltas)
+- Info: #6CB6FF (stub badge, links in prose when not wheat) — 9.07 vs background
+- Danger: #FF6B5E — 6.98 vs background
+- Warning: wheat #F2C14E
+- Dark mode: this IS the single mode. No light theme, no runtime toggle. Map basemap (satellite) sits directly on the dark surface.
 
 ## Color contract
 
-Matrix: `check_contrast.py --matrix text=#0d2019 bg=#f5f2ea surface=#fbfaf5 primary=#142d23 accent=#c9a227 border=#b2b9a8 on-primary=#f5f2ea`
+Matrix: `check_contrast.py --matrix text=#EDEFEA bg=#0B0D0C surface=#151916 primary=#F2C14E accent=#3DDC97 border=#2A302C on-primary=#1A1405`
 
-- Text-safe (>=4.5): text/surface, text/bg, text/on-primary, surface/primary, bg/primary, primary/on-primary, text/border, primary/border, text/accent, primary/accent. Extra single pairs: muted #455347 on bg 7.27 and on inlay 6.29; text on inlay 13.12; accent-text #79632e on bg 5.16 and on surface 5.52; gold #c9a227 on primary 6.07; text-on-dark #dae2d0 on primary 11.03; success, danger, info on bg as listed above.
-- UI-safe (>=3.0 and <4.5): none in the base matrix.
-- Decorative (<3.0): surface/accent, bg/accent, accent/on-primary, surface/border, bg/border, border/on-primary, accent/border, text/primary, bg/surface, surface/on-primary, bg/on-primary.
+- Text-safe (>=4.5): text/bg, text/surface, text/border, text/on-primary, bg/primary, surface/primary, primary/border, primary/on-primary, bg/accent, surface/accent, accent/border, accent/on-primary. Extra pairs: muted on bg 6.47, muted on surface 5.90, info on bg 9.07, danger on bg 6.98.
+- Decorative (<3.0): border against bg/surface (hairlines only), raised against surface.
 
-Rules that follow: gold #c9a227 never sits on paper or surface as text, icon or the only state cue; use #79632e there. Borders #b2b9a8 are decorative; any state-carrying border (focus, error, selected) uses focus #72571f, danger #a3352b or primary #142d23. Olive #6e7d5b from the source fails on paper (3.95) and is not used for text.
+Rules: wheat is the one brand colour; use it for the primary action, the key number on a card and the funding meter, not as decoration on every element. Green is semantic (open, verified, success), never a second brand colour. Focus ring: 2px wheat outline, offset 2px. Never put muted text on raised.
 
 ## Typography
 - Family: Instrument Sans (Google Fonts, variable 400–700), one family for headings, body and UI. The reference site uses a proprietary "CC Sans"; Instrument Sans is an open grotesk with similar width and a slightly editorial character.
@@ -48,7 +48,7 @@ Rules that follow: gold #c9a227 never sits on paper or surface as text, icon or 
 - Compact rows (tables, attestation timeline): space-3 (12px) vertical, 44px min row height.
 - Showcase card (Instrument card on the pool page): space-8 (32px).
 - Overall density: app pages medium-dense, data first; landing generous and editorial.
-- Section separation: alternating paper and inlay bands, with one ink band for the hero visual and the footer.
+- Section separation: background and surface bands, plus hairline dividers; the hero sits on the background with a satellite field visual.
 
 ## Structure
 - Landing: Long-Scroll Narrative. Arc: hook (farmer needs money before harvest) → problem (no grain to pledge yet) → solution (verified fields become an instrument) → how it works (seven-step deal path as a visual rail) → proof (live devnet pool card, explorer links, pilot partners) → close (open the pool).
@@ -58,9 +58,9 @@ Rules that follow: gold #c9a227 never sits on paper or surface as text, icon or 
 ## Reference intelligence
 - Reference board: family brand site viewed via its CSS, rhythm not judged (URL mode blind spot).
 - Design read: transactional data product for investors, farmers and hackathon judges, mode Operate on app pages and Persuade on the landing, lane "editorial agri-finance".
-- Dials: variance 4, motion 3, density 6, art direction 5.
+- Dials: variance 5, motion 6, density 6, art direction 6.
 - Foundation: Next.js + Tailwind + shadcn/ui primitives restyled to these tokens.
-- Direction contract: Thesis "a trustworthy field ledger, not a crypto casino"; First viewport "one promise, one live pool card"; System "paper, forest, gold, hairlines, tabular numbers"; Risk "looking like a bank brochure; offset with real map imagery and live on-chain data".
+- Direction contract: Thesis "a trustworthy field ledger, not a crypto casino"; First viewport "one promise, a field outline drawing itself on satellite imagery, one live pool card"; System "near-black, wheat, field green, hairlines, tabular numbers, purposeful motion"; Risk "dark DeFi cliché; offset with real map imagery, restraint in colour and no neon".
 - Anti-references: neon DeFi dashboards, purple gradients, glowing cards, APY casino styling.
 
 ## Taste memory
@@ -82,15 +82,20 @@ calm, grounded, exact, trustworthy
 - Logo: none yet; build a simple geometric field-row mark in Primary and Accent.
 
 ## Motion
-- Feel: quick and restrained.
-- Curves: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)`.
-- Durations: press 100ms, popover 160ms, panel 220ms, landing reveals 400ms.
-- Screen tracks: landing uses light scroll reveals; app pages use list entrance on data load, skeletons and state transitions only.
-- Frequency rules: no animation on repeated table updates; transaction status changes animate once.
-- Reduced motion: fades only, no movement.
+
+Raised 2026-10-03 at the user's request ("where are the animations"): expressive landing, alive app.
+
+- Feel: confident and smooth on the landing; quick and purposeful in the app.
+- Engine: GSAP + ScrollTrigger on the landing (tastemaker gsap-starter pattern, `gsap.matchMedia()` for reduced motion); Motion (motion/react) or CSS transitions in the app.
+- Curves: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)`; `--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1)` for scrubbed scroll.
+- Durations: press 100ms, hover 150ms, popover 160ms, panel 220ms, list item stagger 40ms (max 8 items), landing reveals 500–700ms, number tickers 900ms.
+- Landing: hero field outline draws itself over the satellite tile (stroke-dashoffset), then the pool card rises; the seven-step deal path animates as a scrubbed rail on scroll; the problem tagline lights word by word; funded amounts count up once when in view; one pinned section is allowed.
+- App: list and table rows enter with a short stagger on first data load; funding meter animates width once on mount (transform: scaleX, not width); transaction status changes animate once (pending spinner → success check draw → explorer link); buttons press-scale 0.98; skeletons shimmer while loading.
+- Frequency rules: nothing animates on refetch or polling; no animation on repeated table updates; hover lift only under (hover: hover).
+- Reduced motion: no movement, opacity fades ≤150ms, tickers show the final value.
+- Verified by: `scripts/audit_motion.py` clean + browser check.
 
 ## Do not
-- Gold as text or icons on paper.
-- Purple, cyan or neon accents; gradient text.
+- Purple, cyan or neon accents; gradient text; glowing card shadows.
 - APY-style hype numbers; show "Fixed yield 12.0%" with the term.
 - Em dashes in UI copy.

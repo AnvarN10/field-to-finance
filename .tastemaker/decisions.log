@@ -1,3 +1,6 @@
 2026-10-03 pending-review surface=global axis=palette choice="CommodityChain family palette: paper #f5f2ea, forest #142d23, gold #c9a227" reason="user asked to take palette from commochain.ltd"
 2026-10-03 pending-review surface=global axis=typography choice="Instrument Sans single family + JetBrains Mono for addresses" reason="CC Sans is proprietary"
 2026-10-03 pending-review surface=landing axis=structure choice="Long-Scroll Narrative: split hero with live pool card in ink frame, stat strip, tagline problem, deal path rail on inlay, proof ledger, repeat CTA" reason="style-lock structure; autonomous build, no reviewer available"
+2026-10-03 rejected surface=global axis=palette choice="CommodityChain paper/forest/gold light palette" reason="user: color combinations don't work"
+2026-10-03 kept surface=global axis=palette choice="dark Night field: #0B0D0C bg, #F2C14E wheat, #3DDC97 field green" reason="user picked variant A of three"
+2026-10-03 kept surface=global axis=motion choice="expressive landing (GSAP scroll) + alive app" reason="user asked where the animations are"
