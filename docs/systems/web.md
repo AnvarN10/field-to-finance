@@ -108,6 +108,9 @@ Program and wallet errors go through `explainChainError` into a title, a detail 
 - Demo Pools need a maturity a few minutes out.
 - maplibre-gl 6 starts its worker from a URL Turbopack does not emit; the worker files are copied to `public/maplibre/<version>/` and a test fails when the installed version changes until they are re-copied.
 - `@solana-program/memo` is an optional Privy peer that `/farmer` needs at bundle time; `test/privy-deps.test.ts` guards it.
+- The UI is dark-only ("Night field" in `.tastemaker/style-lock.md`); colours come from the tokens in `globals.css`, never hex in components. MapLibre paint needs literal colours, kept in `src/lib/map.ts`.
+- Motion: the landing hero intro is CSS (starts with first paint), the scroll beats are GSAP ScrollTrigger in `landing-motion.tsx`, the app uses CSS classes. Nothing animates on refetch: row stagger runs on the first data load only (`use-enter-once.ts`), the funding meter animates only on mount. Reduced motion shows end states. The deal path pin needs `pinSpacing: true` because the landing column is a flex container.
+- The landing hero image and its outline paths (`hero-visual.tsx`) are generated from `public/samples/demo-fields.geojson`; regenerate both if the sample fields move.
 
 ## Source map
 
@@ -120,6 +123,8 @@ Program and wallet errors go through `explainChainError` into a title, a detail 
 - [src/lib/server/context.ts](../../apps/web/src/lib/server/context.ts) — keys and singletons
 - [src/app/admin/actions.ts](../../apps/web/src/app/admin/actions.ts) — demo console actions
 - [src/lib/demo/main-flow.ts](../../apps/web/src/lib/demo/main-flow.ts) — end-to-end script
+- [src/app/globals.css](../../apps/web/src/app/globals.css) — theme tokens and CSS motion
+- [src/components/landing/landing-motion.tsx](../../apps/web/src/components/landing/landing-motion.tsx) — landing scroll choreography
 
 ## Related docs
 

@@ -14,7 +14,7 @@ import { getReader } from "@/lib/server/context";
 export const dynamic = "force-dynamic";
 
 const primaryCta =
-  "inline-flex h-11 items-center rounded-md bg-primary px-5 text-base font-semibold text-primary-foreground transition-[background-color,scale] duration-100 ease-(--ease-out) active:scale-[0.98] [@media(hover:hover)]:hover:bg-primary-hover";
+  "inline-flex h-11 items-center rounded-md bg-primary px-5 text-base font-semibold text-primary-foreground transition-[background-color,scale] duration-100 ease-(--ease-out) active:scale-[0.98] motion-reduce:active:scale-100 [@media(hover:hover)]:hover:bg-primary-hover";
 
 export default async function Home() {
   const stats = await getReader()
@@ -42,7 +42,7 @@ export default async function Home() {
               </Link>
               <Link
                 href="/farmer"
-                className="inline-flex h-11 items-center rounded-md border border-border px-5 text-base font-semibold text-foreground transition-[background-color,scale] duration-100 ease-(--ease-out) active:scale-[0.98] active:bg-muted [@media(hover:hover)]:hover:bg-muted"
+                className="inline-flex h-11 items-center rounded-md border border-input px-5 text-base font-semibold text-foreground transition-[background-color,scale] duration-100 ease-(--ease-out) active:scale-[0.98] motion-reduce:active:scale-100 active:bg-muted [@media(hover:hover)]:hover:bg-muted"
               >
                 Register fields
               </Link>
@@ -79,7 +79,7 @@ export default async function Home() {
         <section className="flex flex-col gap-6 py-24">
           <h2 className="text-sm font-semibold text-muted-foreground">The problem</h2>
           <Tagline
-            className="max-w-[880px] text-2xl leading-[1.15] sm:text-[40px] font-semibold tracking-[-0.02em] text-balance"
+            className="max-w-[880px] text-2xl leading-[1.25] sm:text-[40px] sm:leading-[1.15] font-semibold tracking-[-0.02em] text-balance"
             text="Seed, fertilizer and fuel are paid in spring. The grain arrives in autumn. Banks want collateral the farmer does not have yet."
           />
           <p data-reveal className="max-w-2xl text-base text-pretty text-muted-foreground">

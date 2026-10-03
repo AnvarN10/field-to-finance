@@ -75,7 +75,7 @@ function TxError({ state, onAction }: { state: Extract<TxPhase, { phase: "error"
         <button
           type="button"
           onClick={() => onAction(state.error.action)}
-          className="self-start rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground transition-[background-color,transform] duration-100 ease-(--ease-out) hover:bg-primary-hover active:scale-[0.98]"
+          className="self-start rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground transition-[background-color,transform] duration-100 ease-(--ease-out) hover:bg-primary-hover active:scale-[0.98] motion-reduce:active:scale-100"
         >
           {label}
         </button>

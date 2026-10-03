@@ -11,7 +11,7 @@ const buttonVariants = cva(
         // Disabled primary turns neutral (muted text on the surface, 5.90:1) instead of a dimmed wheat that reads as olive on the dark ground.
         default: "bg-primary text-primary-foreground hover:bg-primary-hover disabled:border-dashed disabled:border-input disabled:bg-transparent disabled:text-muted-foreground",
         outline:
-          "border-border bg-card text-foreground hover:bg-muted aria-expanded:bg-muted disabled:opacity-50",
+          "border-input bg-card text-foreground hover:bg-muted aria-expanded:bg-muted disabled:opacity-50",
         secondary:
           "bg-muted text-foreground disabled:opacity-50 hover:bg-[color-mix(in_oklab,var(--raised),var(--foreground)_6%)] aria-expanded:bg-muted",
         ghost:

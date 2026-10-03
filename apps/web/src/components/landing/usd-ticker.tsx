@@ -67,7 +67,8 @@ export function UsdTicker({ value, cents = true }: { value: string; cents?: bool
 
   return (
     <>
-      <span ref={ref} aria-hidden className="tabular">
+      {/* key: frames are written to this node directly, so a new value must get a fresh node React owns. */}
+      <span key={final} ref={ref} aria-hidden className="tabular">
         {final}
       </span>
       <span className="sr-only">{final}</span>
