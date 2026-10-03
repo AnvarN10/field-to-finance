@@ -24,3 +24,13 @@ Keys and endpoints live in Infisical, project `field-to-finance`, environment `d
 cd anchor && anchor deploy --provider.cluster devnet --provider.wallet ~/.config/f2f/deployer.json && cd ..
 infisical run --env=dev -- ./node_modules/.bin/tsx scripts/devnet-bootstrap.ts
 ```
+
+### Devnet test scripts
+
+```bash
+scripts/inf.sh ./node_modules/.bin/tsx scripts/devnet-seed-pool.ts                 # open pool WHEAT-2027 (idempotent)
+scripts/inf.sh ./node_modules/.bin/tsx scripts/devnet-onboard-investor.ts <wallet>  # KYC + 10,000 test USDC + fee SOL
+scripts/inf.sh ./node_modules/.bin/tsx scripts/buy/server.ts                        # http://localhost:4400, buy from Phantom
+```
+
+`scripts/inf.sh` injects the Infisical `dev` secrets using the local machine identity. SCAS attestations in these scripts come from the stub.

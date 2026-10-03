@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buy WHEAT-2027 · devnet test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<style>
+  :root { --bg:#f5f2ea; --surface:#fbfaf5; --inlay:#e1e4d3; --primary:#142d23; --primary-hover:#19382b; --on-primary:#f5f2ea;
+          --gold:#c9a227; --gold-text:#79632e; --text:#0d2019; --muted:#455347; --line:#b2b9a8; --focus:#72571f;
+          --danger:#a3352b; --success:#2f6b3f; --ease:cubic-bezier(0.23,1,0.32,1); }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 "Instrument Sans", system-ui, sans-serif; }
+  main { max-width: 560px; margin: 48px auto; padding: 0 16px; }
+  .tag { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:2px 10px; }
+  h1 { font-size:24px; letter-spacing:-0.02em; line-height:1.15; margin:12px 0 4px; }
+  .muted { color:var(--muted); font-size:14px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:24px; margin-top:24px; }
+  .row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--inlay); font-size:14px; }
+  .row:last-child { border-bottom:0; }
+  .num { font-variant-numeric: tabular-nums; font-weight:500; }
+  .yield { color:var(--gold-text); font-weight:600; }
+  .bar { height:8px; background:var(--inlay); border-radius:999px; overflow:hidden; margin:12px 0 4px; }
+  .bar > i { display:block; height:100%; background:var(--primary); width:0; transition: width 400ms var(--ease); }
+  button { font:inherit; font-weight:600; border-radius:6px; padding:10px 16px; cursor:pointer; border:1px solid var(--primary);
+           transition: background-color 100ms var(--ease), transform 100ms var(--ease); }
+  button.primary { background:var(--primary); color:var(--on-primary); }
+  button.ghost { background:transparent; color:var(--primary); }
+  @media (hover:hover) { button.primary:hover { background:var(--primary-hover); } button.ghost:hover { background:var(--inlay); } }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  button:focus-visible, input:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+  input { font:inherit; width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:6px; background:#fff; font-variant-numeric:tabular-nums; }
+  label { font-size:14px; color:var(--muted); display:block; margin-bottom:6px; }
+  .actions { display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; }
+  .mono { font-family:"JetBrains Mono", monospace; font-size:12px; }
+  #log { margin-top:16px; font-size:14px; }
+  #log p { margin:6px 0; }
+  .err { color:var(--danger); } .ok { color:var(--success); }
+  a { color:var(--gold-text); }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <span class="tag">Devnet test page · SCAS stub</span>
+  <h1>Buy WHEAT-2027</h1>
+  <p class="muted">Pool of verified wheat fields near Kostanay, season 2027. Paid in test USDC. Switch Phantom to Solana Devnet first.</p>
+
+  <section class="card" aria-label="Pool">
+    <div class="row"><span>Fixed yield</span><span class="yield num" id="yield">…</span></div>
+    <div class="row"><span>Status</span><span class="num" id="status">…</span></div>
+    <div class="row"><span>Subscription closes</span><span class="num" id="close">…</span></div>
+    <div class="row"><span>Maturity</span><span class="num" id="maturity">…</span></div>
+    <div class="bar" aria-hidden="true"><i id="fill"></i></div>
+    <div class="muted num" id="raised">…</div>
+  </section>
+
+  <section class="card" aria-label="Your position">
+    <div class="actions" style="margin-top:0"><button class="primary" id="connect">Connect Phantom</button></div>
+    <div id="pos" hidden>
+      <div class="row"><span>Wallet</span><span class="mono" id="wallet"></span></div>
+      <div class="row"><span>KYC</span><span id="kyc"></span></div>
+      <div class="row"><span>Test USDC</span><span class="num" id="usdc"></span></div>
+      <div class="row"><span>WHEAT-2027</span><span class="num" id="wheat"></span></div>
+      <div class="actions"><button class="ghost" id="onboard">Get test access (KYC + 10,000 USDC)</button></div>
+      <div style="margin-top:16px">
+        <label for="amount">Amount, USD</label>
+        <input id="amount" type="number" min="1" step="1" value="1000" inputmode="numeric">
+      </div>
+      <div class="actions"><button class="primary" id="buy">Buy WHEAT-2027</button></div>
+    </div>
+    <div id="log" role="status" aria-live="polite"></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+const date = (ts) => new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(ts * 1000));
+let wallet = null;
+const provider = () => window.phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
+function log(msg, cls = "") { const p = document.createElement("p"); p.className = cls; p.innerHTML = msg; $("log").prepend(p); }
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {});
+  const j = await r.json();
+  if (!r.ok) throw Object.assign(new Error(j.error), { logs: j.logs });
+  return j;
+}
+function explain(e) {
+  const text = (e.message || "") + " " + (e.logs || []).join(" ");
+  if (/AccountNotInitialized|InvestorNotApproved|frozen/i.test(text)) return "This wallet has not passed KYC yet, so its WHEAT-2027 account is frozen. Use “Get test access” first.";
+  if (/ExceedsTarget/.test(text)) return "That amount is more than what is left in the pool.";
+  if (/insufficient funds|0x1\b/i.test(text)) return "Not enough test USDC or SOL in this wallet.";
+  if (/User rejected/i.test(text)) return "You cancelled the signature in Phantom.";
+  return e.message;
+}
+async function loadPool() {
+  const p = await api("/api/pool");
+  $("yield").textContent = (p.yieldBps / 100).toFixed(1) + "%";
+  $("status").textContent = p.status;
+  $("close").textContent = date(p.closeTs);
+  $("maturity").textContent = date(p.maturityTs);
+  $("raised").textContent = `${fmt(p.raised)} raised of ${fmt(p.target)}`;
+  $("fill").style.width = Math.min(100, (p.raised / p.target) * 100) + "%";
+}
+async function loadPos() {
+  if (!wallet) return;
+  const p = await api("/api/position?wallet=" + wallet);
+  $("pos").hidden = false;
+  $("wallet").textContent = wallet.slice(0, 4) + "…" + wallet.slice(-4);
+  $("kyc").innerHTML = p.approved ? '<span class="ok">Approved</span>' : "Not approved";
+  $("usdc").textContent = fmt(p.usdc);
+  $("wheat").textContent = p.wheat.toLocaleString("en-US");
+}
+$("connect").onclick = async () => {
+  const ph = provider();
+  if (!ph) return log('Phantom not found. Install it from <a href="https://phantom.app" target="_blank" rel="noopener">phantom.app</a>.', "err");
+  const r = await ph.connect();
+  wallet = r.publicKey.toString();
+  $("connect").textContent = "Connected";
+  $("connect").disabled = true;
+  await loadPos();
+};
+$("onboard").onclick = async (ev) => {
+  ev.target.disabled = true;
+  log("Approving wallet and minting test USDC…");
+  try { const r = await api("/api/onboard", { wallet }); r.log.forEach((l) => log(l.replace(/(https:\S+)/, '<a href="$1" target="_blank" rel="noopener">explorer</a>'), "ok")); }
+  catch (e) { log(explain(e), "err"); }
+  ev.target.disabled = false;
+  await loadPos();
+};
+$("buy").onclick = async (ev) => {
+  const amount = Number($("amount").value);
+  if (!(amount > 0)) return log("Enter an amount above zero.", "err");
+  ev.target.disabled = true;
+  ev.target.textContent = "Waiting for Phantom…";
+  try {
+    const { tx } = await api("/api/subscribe-tx", { wallet, amount });
+    const t = solanaWeb3.Transaction.from(Uint8Array.from(atob(tx), (c) => c.charCodeAt(0)));
+    const signed = await provider().signTransaction(t);
+    ev.target.textContent = "Sending…";
+    const b64 = btoa(String.fromCharCode(...signed.serialize()));
+    const r = await api("/api/send", { signed: b64 });
+    log(`Bought ${amount.toLocaleString("en-US")} WHEAT-2027. <a href="${r.url}" target="_blank" rel="noopener">View on explorer</a>`, "ok");
+  } catch (e) { log(explain(e), "err"); }
+  ev.target.disabled = false;
+  ev.target.textContent = "Buy WHEAT-2027";
+  await Promise.all([loadPool(), loadPos()]);
+};
+loadPool().catch((e) => log(e.message, "err"));
+</script>
+</body>
+</html>

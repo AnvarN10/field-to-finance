@@ -10,8 +10,13 @@
     "@anchor-lang/core": "1.2.0",
     "@solana/spl-token": "0.4.15",
     "@solana/web3.js": "^1.99.0",
+    "@types/bn.js": "^5.2.0",
     "nx": "23.2.1",
     "tsx": "4.23.15",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@f2f/sdk": "workspace:*",
+    "bn.js": "5.2.5"
   }
 }
