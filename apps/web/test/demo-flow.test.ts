@@ -40,3 +40,23 @@ describe("demo flow helpers", () => {
     expect(ACTOR_LAMPORTS).toBeLessThanOrEqual(50_000_000);
   });
 });
+
+describe("sample fields sit on farmland, not on Kostanay town blocks", () => {
+  // Built-up Kostanay (with Tobol riverside districts) lies inside this box; the sample fields are east of it.
+  const TOWN = { west: 63.52, east: 63.72, south: 53.13, north: 53.3 };
+  it("keeps every vertex east of the town box and within 25 km of the centre", () => {
+    for (const f of DEMO_FIELDS) {
+      const ring = (f.geojson as { geometry: { coordinates: number[][][] } }).geometry.coordinates[0]!;
+      for (const [lon, lat] of ring as [number, number][]) {
+        expect(lon > TOWN.east || lon < TOWN.west || lat > TOWN.north || lat < TOWN.south).toBe(true);
+        expect(Math.hypot((lon - 63.62) * 67, (lat - 53.21) * 111)).toBeLessThan(25);
+      }
+    }
+  });
+
+  it("draws the same two fields in the landing hero", async () => {
+    const { HERO_FIELDS } = await import("../src/components/landing/hero-visual");
+    expect(HERO_FIELDS.map((f) => f.name)).toEqual(DEMO_FIELDS.map((f) => f.name));
+  });
+});
+

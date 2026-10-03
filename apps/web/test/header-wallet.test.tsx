@@ -3,8 +3,10 @@ import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 let pathname = "/pools";
+let connected = false;
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
-const { HeaderWalletButton, WALLET_LABELS } = await import("../src/components/wallet/connect-button");
+vi.mock("@solana/wallet-adapter-react", () => ({ useWallet: () => ({ connected }) }));
+const { HeaderWalletButton, WALLET_LABELS, pageHasConnect } = await import("../src/components/wallet/connect-button");
 
 describe("HeaderWalletButton", () => {
   it("shows the investor wallet button on investor pages", () => {
@@ -17,6 +19,35 @@ describe("HeaderWalletButton", () => {
     pathname = "/farmer";
     const { container } = render(<HeaderWalletButton />);
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("one Connect wallet button at phone width", () => {
+  it("hides the header button below 640px on pages that show their own connect call to action", () => {
+    connected = false;
+    pathname = "/pools/1";
+    const { container } = render(<HeaderWalletButton />);
+    expect(container.firstElementChild).toHaveClass("max-sm:hidden");
+  });
+
+  it("keeps it on pages without one, and everywhere once a wallet is connected", () => {
+    connected = false;
+    pathname = "/pools";
+    const a = render(<HeaderWalletButton />);
+    expect(a.container.firstElementChild).not.toHaveClass("max-sm:hidden");
+    a.unmount();
+    connected = true;
+    pathname = "/portfolio";
+    const b = render(<HeaderWalletButton />);
+    expect(b.container.firstElementChild).not.toHaveClass("max-sm:hidden");
+    connected = false;
+  });
+
+  it("knows which pages carry a connect button", () => {
+    expect(pageHasConnect("/pools/7")).toBe(true);
+    expect(pageHasConnect("/portfolio")).toBe(true);
+    expect(pageHasConnect("/pools")).toBe(false);
+    expect(pageHasConnect("/fields/abc")).toBe(false);
   });
 });
 
