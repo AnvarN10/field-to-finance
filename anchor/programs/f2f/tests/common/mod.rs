@@ -203,3 +203,34 @@ pub fn seed_project(env: &mut Env, project_id: u64, fields: u8) -> Pubkey {
     }
     project
 }
+
+pub fn attest_ix(env: &Env, project: Pubkey, field_index: u8, seq: u32, kind: f2f::AttestationKind, verdict: f2f::Verdict) -> Instruction {
+    let field = pda_field(&project, field_index);
+    ix(
+        f2f::instruction::RecordAttestation {
+            kind,
+            verdict,
+            evidence_hash: [7; 32],
+            evidence_uri: "https://evidence.example/abc.json".to_string(),
+            ndvi_mean_x10k: 6_500,
+            scene_date: 1_780_000_000,
+        },
+        f2f::accounts::RecordAttestation {
+            scas: env.scas.pubkey(),
+            config: pda_config(),
+            project,
+            field,
+            attestation: pda_attestation(&field, seq),
+            system_program: system_program::ID,
+        },
+    )
+}
+
+/// Records one FieldVerified/Pass Attestation per field, assuming each field has no Attestations yet.
+pub fn verify_all_fields(env: &mut Env, project: Pubkey, fields: u8) {
+    let scas = env.scas.insecure_clone();
+    for i in 0..fields {
+        let a = attest_ix(env, project, i, 0, f2f::AttestationKind::FieldVerified, f2f::Verdict::Pass);
+        env.send(&[a], &scas, &[]).unwrap();
+    }
+}

@@ -7,3 +7,6 @@ pub mod register_field;
 
 pub use register_project::*;
 pub use register_field::*;
+
+pub mod record_attestation;
+pub use record_attestation::*;

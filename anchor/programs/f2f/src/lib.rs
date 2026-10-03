@@ -33,4 +33,16 @@ pub mod f2f {
     pub fn register_field(ctx: Context<RegisterField>, polygon_hash: [u8; 32], area_ha_x100: u32) -> Result<()> {
         instructions::register_field::handle_register_field(ctx, polygon_hash, area_ha_x100)
     }
+
+    pub fn record_attestation(
+        ctx: Context<RecordAttestation>,
+        kind: AttestationKind,
+        verdict: Verdict,
+        evidence_hash: [u8; 32],
+        evidence_uri: String,
+        ndvi_mean_x10k: i16,
+        scene_date: i64,
+    ) -> Result<()> {
+        instructions::record_attestation::handle_record_attestation(ctx, kind, verdict, evidence_hash, evidence_uri, ndvi_mean_x10k, scene_date)
+    }
 }
