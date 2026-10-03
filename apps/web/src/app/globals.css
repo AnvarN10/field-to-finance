@@ -73,3 +73,27 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Wallet adapter modal restyled to the style-lock (its default is a dark purple theme, an anti-reference). */
+.wallet-adapter-modal-overlay { background: rgb(13 32 25 / 0.45); }
+.wallet-adapter-modal-wrapper {
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(13 32 25 / 0.08);
+  font-family: var(--font-sans);
+}
+.wallet-adapter-modal-title { color: var(--foreground); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.wallet-adapter-modal-button-close { background: var(--muted); }
+.wallet-adapter-modal-button-close svg { fill: var(--muted-foreground); }
+.wallet-adapter-modal-list .wallet-adapter-button { color: var(--foreground); font-family: var(--font-sans); font-size: 14px; border-radius: 6px; }
+.wallet-adapter-modal-list .wallet-adapter-button:not([disabled]):hover { background: var(--muted); }
+.wallet-adapter-modal-list-more { color: var(--muted-foreground); font-family: var(--font-sans); }
+.wallet-adapter-modal-list-more svg { fill: var(--muted-foreground); }
+.wallet-adapter-modal-middle-button { background: var(--primary); color: var(--primary-foreground); border-radius: 6px; font-family: var(--font-sans); }
+.wallet-adapter-modal-middle svg path, .wallet-adapter-modal-middle svg circle { filter: grayscale(1); }
+.wallet-adapter-dropdown-list { background: var(--card); color: var(--foreground); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgb(13 32 25 / 0.08); font-family: var(--font-sans); }
+.wallet-adapter-dropdown-list-item { color: var(--foreground); font-family: var(--font-sans); font-size: 14px; border-radius: 6px; }
+.wallet-adapter-dropdown-list-item:not([disabled]):hover { background: var(--muted); }
+.wallet-adapter-button-trigger:not([disabled]):hover { background: var(--primary-hover) !important; }

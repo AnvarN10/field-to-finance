@@ -2,10 +2,12 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  '@reown/appkit': false
   bigint-buffer: true
   bufferutil: true
   core-js: false
   esbuild: true
+  keccak: false
   nx: true
   utf-8-validate: true
 minimumReleaseAgeExclude:
@@ -25,3 +27,10 @@ minimumReleaseAgeExclude:
   - '@sentry/server-utils@11.4.0'
   - '@sentry/vercel-edge@11.4.0'
   - posthog-js@1.435.8
+  - '@privy-io/are-addresses-equal@0.0.14'
+  - '@privy-io/encoding@0.4.0'
+  - '@privy-io/ethereum@0.2.5'
+  - '@privy-io/js-sdk-core@0.78.0'
+  - '@privy-io/react-auth@3.47.0'
+  - '@privy-io/routes@0.4.3'
+  - '@privy-io/std@0.0.2'
