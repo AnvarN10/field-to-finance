@@ -1,0 +1,19 @@
+{
+  "data": [
+    {
+      "interval": { "from": "2026-09-12T00:00:00Z", "to": "2026-09-13T00:00:00Z" },
+      "outputs": {
+        "ndvi": { "bands": { "B0": { "stats": { "min": 0.08, "max": 0.4, "mean": 0.25, "stDev": 0.05, "sampleCount": 1600, "noDataCount": 1100 } } } },
+        "footprint": { "bands": { "B0": { "stats": { "min": 1, "max": 1, "mean": 1, "stDev": 0, "sampleCount": 1600, "noDataCount": 600 } } } }
+      }
+    },
+    {
+      "interval": { "from": "2026-09-22T00:00:00Z", "to": "2026-09-23T00:00:00Z" },
+      "outputs": {
+        "ndvi": { "bands": { "B0": { "stats": { "min": "NaN", "max": "NaN", "mean": "NaN", "stDev": "NaN", "sampleCount": 1600, "noDataCount": 1600 } } } },
+        "footprint": { "bands": { "B0": { "stats": { "min": 1, "max": 1, "mean": 1, "stDev": 0, "sampleCount": 1600, "noDataCount": 600 } } } }
+      }
+    }
+  ],
+  "status": "OK"
+}

@@ -1,0 +1,33 @@
+{
+  "data": [
+    {
+      "interval": { "from": "2026-09-10T00:00:00Z", "to": "2026-09-11T00:00:00Z" },
+      "outputs": {
+        "ndvi": { "bands": { "B0": { "stats": { "min": 0.05, "max": 0.41, "mean": 0.21, "stDev": 0.04, "sampleCount": 1600, "noDataCount": 650 } } } },
+        "footprint": { "bands": { "B0": { "stats": { "min": 1, "max": 1, "mean": 1, "stDev": 0, "sampleCount": 1600, "noDataCount": 600 } } } }
+      }
+    },
+    {
+      "interval": { "from": "2026-09-15T00:00:00Z", "to": "2026-09-16T00:00:00Z" },
+      "outputs": {
+        "ndvi": { "bands": { "B0": { "stats": { "min": 0.11, "max": 0.44, "mean": 0.3, "stDev": 0.06, "sampleCount": 1600, "noDataCount": 1500 } } } },
+        "footprint": { "bands": { "B0": { "stats": { "min": 1, "max": 1, "mean": 1, "stDev": 0, "sampleCount": 1600, "noDataCount": 600 } } } }
+      }
+    },
+    {
+      "interval": { "from": "2026-09-17T00:00:00Z", "to": "2026-09-18T00:00:00Z" },
+      "outputs": {
+        "ndvi": { "bands": { "B0": { "stats": { "min": "NaN", "max": "NaN", "mean": "NaN", "stDev": "NaN", "sampleCount": 1600, "noDataCount": 1600 } } } },
+        "footprint": { "bands": { "B0": { "stats": { "min": "NaN", "max": "NaN", "mean": "NaN", "stDev": "NaN", "sampleCount": 1600, "noDataCount": 1600 } } } }
+      }
+    },
+    {
+      "interval": { "from": "2026-09-20T00:00:00Z", "to": "2026-09-21T00:00:00Z" },
+      "outputs": {
+        "ndvi": { "bands": { "B0": { "stats": { "min": 0.04, "max": 0.38, "mean": 0.19, "stDev": 0.04, "sampleCount": 1600, "noDataCount": 610 } } } },
+        "footprint": { "bands": { "B0": { "stats": { "min": 1, "max": 1, "mean": 1, "stDev": 0, "sampleCount": 1600, "noDataCount": 600 } } } }
+      }
+    }
+  ],
+  "status": "OK"
+}
