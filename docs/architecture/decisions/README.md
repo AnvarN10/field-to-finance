@@ -13,3 +13,4 @@ Only `Accepted` ADRs are current guidance. Decisions are human-owned; agents dra
 | [0007](0007-program-replaces-exchange-clearing-registrar.md) | Accepted | MVP scope: Primary Market only, Program plays Exchange, Clearing and Registrar |
 | [0008](0008-scas-sentinel2-signed-attestations.md) | Accepted | SCAS uses real Sentinel-2 NDVI and signs Attestations |
 | [0009](0009-worker-language.md) | Accepted | TypeScript for the SCAS worker and backend |
+| [0010](0010-deploy-on-railway.md) | Accepted | Deploy web app and SCAS worker on Railway |

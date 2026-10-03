@@ -1,6 +1,6 @@
 # Field-to-Finance MVP design
 
-Status: draft for review, 2026-10-03. Deadline: 2026-10-12 23:59 PT.
+Status: approved 2026-10-03. Deadline: 2026-10-12 23:59 PT.
 
 ## 1. Goal and success criteria
 
@@ -38,11 +38,13 @@ Out of scope: Secondary Market, regulator and system admin views, a real KYC pro
 ```
 apps/web            Next.js app: farmer, investor, admin views
 apps/scas-worker    TypeScript service: Sentinel-2 statistics, evidence, Attestations
-programs/f2f        Anchor program
+anchor/             Anchor workspace; program in anchor/programs/f2f
 packages/sdk        generated Anchor client, PDA helpers, shared domain types
 ```
 
 Nx manages the workspace ([ADR 0001](../architecture/decisions/0001-nx-monorepo.md)). The Anchor build runs as an Nx `run-commands` target.
+
+Hosting: the web app and the SCAS worker run as two Railway services in the "Yesset's projects" workspace; evidence goes to a Railway bucket ([ADR 0010](../architecture/decisions/0010-deploy-on-railway.md)). The Program runs on Solana devnet.
 
 There is no application database. State lives in Program accounts; evidence lives in object storage addressed by its SHA-256 hash.
 
@@ -52,7 +54,7 @@ There is no application database. State lives in Program accounts; evidence live
 | --- | --- | --- |
 | Config | `config` | admin, scas authority, compliance authority, USDC mint |
 | Pool | `pool`, issuer, pool id | crop, season, Instrument mint, USDC vault, target and raised amounts, fixed yield bps, premium bps, subscription close time, maturity time, status |
-| FarmProject | `project`, pool, producer | expected tonnes, tokenized tonnes, requested USDC, disbursed flag, settlement rule |
+| FarmProject | `project`, producer, project id | expected tonnes, tokenized tonnes, requested USDC, disbursed flag, settlement rule |
 | Field | `field`, project, index | polygon hash, area in hectares × 100, verified flag |
 | Attestation | `attestation`, field, sequence | kind, evidence hash, evidence URI, NDVI mean × 10 000, scene date, verdict, signer |
 | InvestorRecord | `investor`, wallet | approved flag, approved at. No personal data on-chain. |
@@ -72,7 +74,8 @@ One Token-2022 mint per Pool ([ADR 0003](../architecture/decisions/0003-token-20
 | Instruction | Signer | Effect |
 | --- | --- | --- |
 | `init_config` | admin | Creates Config. |
-| `register_project` | Producer | Creates FarmProject and its Fields. Tokenized tonnes are set to 30% of expected tonnes by the Program. |
+| `register_project` | Producer | Creates FarmProject. Tokenized volume is set to 30% of expected volume by the Program. |
+| `register_field` | Producer | Adds a Field to a FarmProject that is not yet in a Pool. |
 | `record_attestation` | SCAS authority | Creates an Attestation. A `FieldVerified` with `Pass` sets the Field's verified flag. |
 | `create_pool` | Issuer | Creates Pool and Instrument mint. Rejects premium outside 500–600 bps. |
 | `add_project` | Issuer | Adds a FarmProject. Requires every Field verified. Adds requested USDC to the target. |
@@ -92,7 +95,7 @@ The fixed yield is the same for every investor whichever Shortfall rule applied 
 
 - Data source: Sentinel Hub Statistical API on the Copernicus Data Space Ecosystem. It returns NDVI statistics for a polygon over a date range, so the worker processes no rasters. Credentials live in Infisical.
 - Cloud handling: scenes with more than 30% cloud cover over the polygon are skipped. No usable scene in the window gives an `InsufficientData` Attestation.
-- Evidence: a JSON document with the polygon, the request, the response, scene dates and the computed verdict. Stored in object storage under its SHA-256 hash; the hash and URI go on-chain.
+- Evidence: a JSON document with the polygon, the request, the response, scene dates and the computed verdict. Stored in the Railway bucket under its SHA-256 hash; the hash and URI go on-chain.
 - Verdict rules for the demo:
   - `FieldVerified`: the polygon is valid, its area matches the declared area within 5%, and at least one clear scene exists in the last 90 days.
   - `Vegetation`: NDVI mean in the expected range for the crop and date.
