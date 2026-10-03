@@ -9,11 +9,12 @@ import { KycDialog } from "../pool/kyc-dialog";
 import { EmptyState, ErrorState } from "../state";
 import { Button } from "../ui/button";
 import { PoolStatusBadge } from "../status-badge";
+import { useEnterOnce } from "../use-enter-once";
 import { useJson } from "../use-json";
 import { ConnectButton } from "../wallet/connect-button";
 import { FaucetButton } from "../wallet/faucet-button";
 
-const link = "rounded-sm text-gold-text underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current";
+const link = "rounded-sm text-primary underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current";
 
 const positionAction = (status: string) => (status === "Redeeming" ? "Redeem" : status === "Refunding" ? "Refund" : "View pool");
 
@@ -22,14 +23,15 @@ export function PortfolioView() {
   const wallet = publicKey?.toBase58() ?? null;
   const { data, error, loading, reload } = useJson<InvestorState>(wallet ? `/api/investor/${wallet}` : null);
   const [kycOpen, setKycOpen] = useState(false);
+  const enter = useEnterOnce(Boolean(data));
 
   if (!wallet) return <EmptyState title="Connect a wallet" body="Your positions appear here once you connect a devnet wallet." action={<ConnectButton />} />;
   if (error) return <ErrorState title="Could not load your portfolio" body={error} onRetry={reload} />;
   if (loading || !data)
     return (
       <div className="flex flex-col gap-6" role="status" aria-busy="true" aria-label="Loading portfolio">
-        <div className="h-20 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" />
-        <div className="h-40 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" />
+        <div className="h-20 skeleton-shimmer rounded-lg" />
+        <div className="h-40 skeleton-shimmer rounded-lg" />
       </div>
     );
 
@@ -71,7 +73,7 @@ export function PortfolioView() {
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label="Positions table" tabIndex={0}>
           <table className="tabular w-full text-sm whitespace-nowrap">
-            <thead className="bg-muted text-left text-xs text-muted-foreground">
+            <thead className="border-b border-border text-left text-xs text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium">Instrument</th>
                 <th className="px-3 py-2 font-medium">Status</th>
@@ -83,8 +85,8 @@ export function PortfolioView() {
               </tr>
             </thead>
             <tbody>
-              {held.map((p) => (
-                <tr key={p.pool} className="border-t border-border">
+              {held.map((p, i) => (
+                <tr key={p.pool} className={`border-t border-border ${enter(i).className}`} style={enter(i).style}>
                   <td className="px-3 py-3 font-medium">{p.symbol}</td>
                   <td className="px-3 py-3">
                     <PoolStatusBadge status={p.status} />

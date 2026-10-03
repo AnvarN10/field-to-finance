@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, Loader2, TriangleAlert } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import type { ErrorAction } from "../../lib/chain/explain";
 import type { TxPhase } from "../../lib/tx-client";
 import { ExplorerLink } from "../explorer-link";
@@ -28,15 +28,30 @@ export function TxStatus({ state, onAction, successLabel = "Confirmed on devnet"
             {state.phase === "confirming" ? <ExplorerLink kind="tx" value={state.signature} /> : null}
           </div>
         ) : state.phase === "success" ? (
-          <div className="flex min-h-11 items-center gap-2 text-sm text-success animate-in fade-in-0 duration-200 ease-(--ease-out)">
-            <CircleCheck aria-hidden strokeWidth={1.5} className="size-4" />
+          <div className="flex min-h-11 flex-wrap items-center gap-2 text-sm text-success">
+            <DrawnCheck />
             <span className="font-medium">{successLabel}</span>
-            <ExplorerLink kind="tx" value={state.signature} />
+            <span className="tx-link-in">
+              <ExplorerLink kind="tx" value={state.signature} />
+            </span>
           </div>
         ) : null}
       </div>
       {state.phase === "error" ? <TxError state={state} onAction={onAction} /> : null}
     </>
+  );
+}
+
+/**
+ * Success mark that draws itself once when the success row mounts: circle 320ms, then the tick
+ * (globals.css .check-draw-*). With reduced motion it appears complete.
+ */
+export function DrawnCheck() {
+  return (
+    <svg data-slot="drawn-check" viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" pathLength={1} className="check-draw-circle" transform="rotate(-90 12 12)" />
+      <path d="m8 12.5 2.7 2.7L16 9.8" pathLength={1} className="check-draw-tick" />
+    </svg>
   );
 }
 
@@ -68,7 +83,7 @@ function TxError({ state, onAction }: { state: Extract<TxPhase, { phase: "error"
       {state.logs.length ? (
         <details className="text-xs text-muted-foreground">
           <summary className="cursor-pointer select-none">Program logs</summary>
-          <pre className="mt-2 max-h-48 overflow-auto rounded-md bg-muted p-2 font-mono whitespace-pre-wrap">{state.logs.join("\n")}</pre>
+          <pre className="mt-2 max-h-48 overflow-auto rounded-md border border-border bg-background p-2 font-mono whitespace-pre-wrap">{state.logs.join("\n")}</pre>
         </details>
       ) : null}
     </div>

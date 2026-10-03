@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Single light mode (style-lock): dark: utilities only apply under a .dark ancestor, which the app never sets. */
+/* Single dark mode "Night field" (style-lock). <html> carries .dark permanently so shadcn dark: utilities apply. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -12,55 +12,59 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--foreground);
-  --color-popover: var(--card);
+  --color-popover: var(--raised);
   --color-popover-foreground: var(--foreground);
-  --color-muted: var(--muted);
+  --color-muted: var(--raised);
   --color-muted-foreground: var(--muted-foreground);
+  --color-raised: var(--raised);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--muted);
+  --color-secondary: var(--raised);
   --color-secondary-foreground: var(--foreground);
-  --color-accent: var(--muted);
+  --color-accent: var(--raised);
   --color-accent-foreground: var(--foreground);
-  --color-gold: var(--gold);
-  --color-gold-text: var(--gold-text);
-  --color-ink: var(--ink);
-  --color-on-dark: var(--on-dark);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
-  --color-warning: var(--gold-text);
+  --color-warning: var(--primary);
   --color-info: var(--info);
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 10px;
   --radius-xl: 10px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  @keyframes shimmer {
+    from { background-position: 150% 0; }
+    to { background-position: -50% 0; }
+  }
 }
 
-/* Values from .tastemaker/style-lock.md (Palette). Do not invent new colours here. */
+/* Values from .tastemaker/style-lock.md (Palette, Color contract). Do not invent new colours here. */
+/* tastemaker: night-field | long-scroll-narrative | 2026-10-03 */
 :root {
-  --background: #f5f2ea;   /* paper */
-  --card: #fbfaf5;         /* surface */
-  --muted: #e1e4d3;        /* inlay */
-  --foreground: #0d2019;   /* text primary */
-  --muted-foreground: #455347;
-  --border: #b2b9a8;       /* decorative hairlines only */
-  --input: #b2b9a8;
-  --ring: #72571f;         /* focus on light */
-  --primary: #142d23;      /* forest */
-  --primary-hover: #19382b;
-  --primary-foreground: #f5f2ea;
-  --gold: #c9a227;         /* only on forest or ink fills */
-  --gold-text: #79632e;    /* gold as text on paper/surface; also warning */
-  --ink: #0d2019;
-  --on-dark: #dae2d0;
-  --destructive: #a3352b;
-  --success: #2f6b3f;
-  --info: #2d5a7b;
+  color-scheme: dark;
+  --background: #0b0d0c;       /* page */
+  --card: #151916;             /* surface: cards, panels, inputs */
+  --raised: #1c211e;           /* table head, hover rows, meter track, skeletons */
+  --foreground: #edefea;       /* text primary */
+  --muted-foreground: #8e978f; /* text muted, 5.90 on surface */
+  --border: #2a302c;           /* decorative hairlines only */
+  --input: #646e66;            /* control boundary, 3.35 on surface */
+  --ring: #f2c14e;             /* focus: 2px wheat */
+  --primary: #f2c14e;          /* wheat */
+  --primary-hover: #f6cf6e;
+  --primary-foreground: #1a1405;
+  --success: #3ddc97;          /* field green, semantic only */
+  --info: #6cb6ff;
+  --destructive: #ff6b5e;
+  --shimmer: #262c28;          /* skeleton highlight band, decorative */
+  --overlay: rgb(5 6 5 / 0.72);
+  --shadow-pop: 0 8px 24px rgb(0 0 0 / 0.45);
 }
 
 @layer base {
@@ -69,37 +73,85 @@
   body { @apply bg-background text-foreground antialiased; font-size: 14px; line-height: 1.6; }
   h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.15; }
   :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-  .dark-band :focus-visible { outline-color: #e6ca8b; }
+  ::selection { background: rgb(242 193 78 / 0.3); }
   .tabular { font-variant-numeric: tabular-nums; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+/* Skeleton shimmer: a soft band across the raised surface (style-lock: skeletons shimmer while loading). */
+.skeleton-shimmer {
+  background: linear-gradient(90deg in oklab, var(--raised) 30%, var(--shimmer) 50%, var(--raised) 70%) var(--raised);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
 }
 
-/* Wallet adapter modal restyled to the style-lock (its default is a dark purple theme, an anti-reference). */
-.wallet-adapter-modal-overlay { background: rgb(13 32 25 / 0.45); }
+/* ---- Motion (style-lock Motion section). Transform and opacity only. ---- */
+@keyframes field-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(24px); } }
+@keyframes enter-row { from { opacity: 0; transform: translateY(6px); } }
+@keyframes meter-fill { from { transform: scaleX(0); } }
+@keyframes check-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+/* Hero intro: each sample field outline draws itself (700ms), its fill fades in, then the pool card rises (600ms). */
+.hero-field-line { fill: none; stroke: var(--primary); stroke-width: 7; stroke-linejoin: round; stroke-dasharray: 1; animation: field-draw 700ms var(--ease-in-out) both; }
+.hero-field-casing { fill: none; stroke: var(--background); stroke-opacity: 0.55; stroke-width: 14; stroke-linejoin: round; stroke-dasharray: 1; animation: field-draw 700ms var(--ease-in-out) both; }
+.hero-field-fill { fill: var(--primary); fill-opacity: 0.14; stroke: none; animation: fade-in 500ms var(--ease-out) both; }
+.hero-card { animation: rise-in 600ms var(--ease-out) 1300ms both; }
+.intro-fade { animation: fade-in 500ms var(--ease-out) 1500ms both; }
+
+/* App: rows of a list or table enter once, on first data load only (40ms stagger set inline, max 8 items). */
+.enter-row { animation: enter-row 220ms var(--ease-out) both; }
+
+/* Funding meter fills once when it mounts; later value changes jump without animating. */
+.meter-fill { transform-origin: left center; animation: meter-fill 700ms var(--ease-out) 150ms both; }
+
+/* Transaction success: the check draws once (circle, then tick), then the explorer link fades in. */
+.check-draw-circle { stroke-dasharray: 1; animation: check-draw 320ms var(--ease-out) both; }
+.check-draw-tick { stroke-dasharray: 1; animation: check-draw 220ms var(--ease-out) 200ms both; }
+.tx-link-in { animation: fade-in 150ms var(--ease-out) 400ms both; }
+
+/* Reduced motion: no movement; opacity fades stay short. Components also branch on the media query. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  .skeleton-shimmer { animation: none; }
+  .hero-field-line, .hero-field-casing, .hero-field-fill, .meter-fill, .check-draw-circle, .check-draw-tick, .enter-row { animation: none; }
+  .hero-card, .intro-fade, .tx-link-in { animation: fade-in 150ms ease both; }
+}
+
+/* Wallet adapter modal restyled to the style-lock (its default dark purple theme is an anti-reference). */
+.wallet-adapter-modal-overlay { background: var(--overlay); }
 .wallet-adapter-modal-wrapper {
-  background: var(--card);
+  background: var(--raised);
   color: var(--foreground);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgb(13 32 25 / 0.08);
+  box-shadow: var(--shadow-pop);
   font-family: var(--font-sans);
 }
 .wallet-adapter-modal-title { color: var(--foreground); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
-.wallet-adapter-modal-button-close { background: var(--muted); }
+.wallet-adapter-modal-button-close { background: var(--card); }
 .wallet-adapter-modal-button-close svg { fill: var(--muted-foreground); }
 .wallet-adapter-modal-list .wallet-adapter-button { color: var(--foreground); font-family: var(--font-sans); font-size: 14px; border-radius: 6px; }
-.wallet-adapter-modal-list .wallet-adapter-button:not([disabled]):hover { background: var(--muted); }
+.wallet-adapter-modal-list .wallet-adapter-button:not([disabled]):hover { background: var(--card); }
 .wallet-adapter-modal-list-more { color: var(--muted-foreground); font-family: var(--font-sans); }
 .wallet-adapter-modal-list-more svg { fill: var(--muted-foreground); }
 .wallet-adapter-modal-middle-button { background: var(--primary); color: var(--primary-foreground); border-radius: 6px; font-family: var(--font-sans); }
 .wallet-adapter-modal-middle svg path, .wallet-adapter-modal-middle svg circle { filter: grayscale(1); }
-.wallet-adapter-dropdown-list { background: var(--card); color: var(--foreground); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgb(13 32 25 / 0.08); font-family: var(--font-sans); }
+.wallet-adapter-dropdown-list { background: var(--raised); color: var(--foreground); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-pop); font-family: var(--font-sans); }
 .wallet-adapter-dropdown-list-item { color: var(--foreground); font-family: var(--font-sans); font-size: 14px; border-radius: 6px; }
-.wallet-adapter-dropdown-list-item:not([disabled]):hover { background: var(--muted); }
+.wallet-adapter-dropdown-list-item:not([disabled]):hover { background: var(--card); }
 .wallet-adapter-button-trigger:not([disabled]):hover { background: var(--primary-hover) !important; }
+.wallet-adapter-modal-wrapper .wallet-adapter-button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* MapLibre controls on the dark surface. */
+.maplibregl-ctrl-group { background: var(--raised) !important; border: 1px solid var(--border); box-shadow: none !important; border-radius: 6px !important; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid var(--border) !important; }
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(0.92); }
+.maplibregl-ctrl-group button:not(:disabled):hover { background: var(--card) !important; }
+.maplibregl-ctrl.maplibregl-ctrl-attrib, .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact { background: rgb(11 13 12 / 0.85) !important; color: var(--foreground); }
+.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner, .maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner a { color: var(--foreground) !important; }
+.maplibregl-ctrl-attrib-button { filter: invert(0.92); background-color: transparent !important; }
+.maplibregl-cooperative-gesture-screen { background: var(--overlay) !important; color: var(--foreground) !important; font-family: var(--font-sans); }
 
 /* Full-bleed band inside the centred main column without horizontal overflow. */
-.band-inlay { background: var(--muted); box-shadow: 0 0 0 100vmax var(--muted); clip-path: inset(0 -100vmax); }
+.band-surface { background: var(--card); box-shadow: 0 0 0 100vmax var(--card); clip-path: inset(0 -100vmax); }

@@ -6,6 +6,7 @@ import type { ProducerProject } from "../../lib/chain/views";
 import { formatHa, formatTonnes, formatUsd } from "../../lib/format";
 import { projectStatus, type ProjectStatus } from "../../lib/project-status";
 import { EmptyState, ErrorState } from "../state";
+import { useEnterOnce } from "../use-enter-once";
 import { useJson } from "../use-json";
 
 const TONE: Record<ProjectStatus["tone"], { className: string; Icon: LucideIcon }> = {
@@ -17,16 +18,17 @@ const TONE: Record<ProjectStatus["tone"], { className: string; Icon: LucideIcon 
 
 export function ProjectList({ wallet, refreshKey }: { wallet: string; refreshKey: number }) {
   const { data, error, loading, reload } = useJson<{ projects: ProducerProject[] }>(`/api/producer/${wallet}?k=${refreshKey}`);
+  const enter = useEnterOnce(Boolean(data?.projects.length));
   if (error) return <ErrorState title="Could not load your projects" body={error} onRetry={reload} />;
-  if (loading && !data) return <div className="h-24 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" role="status" aria-label="Loading projects" />;
+  if (loading && !data) return <div className="h-24 skeleton-shimmer rounded-lg" role="status" aria-label="Loading projects" />;
   if (!data?.projects.length) return <EmptyState title="No projects yet" body="Register your fields below to request financing for next season." />;
   return (
     <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
-      {data.projects.map((p) => {
+      {data.projects.map((p, i) => {
         const s = projectStatus(p);
         const tone = TONE[s.tone];
         return (
-          <li key={p.address} className="flex flex-col gap-2 p-4 text-sm">
+          <li key={p.address} className={`flex flex-col gap-2 p-4 text-sm ${enter(i).className}`} style={enter(i).style}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium">
                 <span className="capitalize">{p.crop}</span> {p.season}

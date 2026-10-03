@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PoolSummaryCard } from "@/components/pool/pool-summary-card";
 import { EmptyState, ErrorState } from "@/components/state";
+import { staggerDelay } from "@/lib/motion";
 import { getReader } from "@/lib/server/context";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,11 @@ export default async function PoolsPage() {
           <section className="flex flex-col gap-4">
             <h2 className="text-base font-semibold">Open for subscription</h2>
             {open.length ? (
-              <div className="grid gap-4 md:grid-cols-2">{open.map((p) => <PoolSummaryCard key={p.address} pool={p} />)}</div>
+              <div className="grid gap-4 md:grid-cols-2">{open.map((p, i) => (
+                <div key={p.address} className="enter-row" style={{ animationDelay: staggerDelay(i) }}>
+                  <PoolSummaryCard pool={p} className="h-full" />
+                </div>
+              ))}</div>
             ) : (
               <p className="text-sm text-muted-foreground">No pool is open right now.</p>
             )}
@@ -36,7 +41,11 @@ export default async function PoolsPage() {
           {rest.length ? (
             <section className="flex flex-col gap-4">
               <h2 className="text-base font-semibold">Other pools</h2>
-              <div className="grid gap-4 md:grid-cols-2">{rest.map((p) => <PoolSummaryCard key={p.address} pool={p} />)}</div>
+              <div className="grid gap-4 md:grid-cols-2">{rest.map((p, i) => (
+                <div key={p.address} className="enter-row" style={{ animationDelay: staggerDelay(i) }}>
+                  <PoolSummaryCard pool={p} className="h-full" />
+                </div>
+              ))}</div>
             </section>
           ) : null}
         </>

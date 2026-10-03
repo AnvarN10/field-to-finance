@@ -15,7 +15,8 @@ export function FundingMeter({ raised, target }: { raised: string; target: strin
         aria-valuetext={`${formatUsd(raised)} of ${formatUsd(target)}`}
         className="h-2 overflow-hidden rounded-full bg-muted"
       >
-        <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(pct, 100)}%` }} />
+        {/* scaleX, not width: the fill animates once on mount (globals.css .meter-fill) on the compositor. */}
+        <div data-slot="meter-fill" className="meter-fill h-full w-full bg-primary" style={{ transform: `scaleX(${Math.min(pct, 100) / 100})` }} />
       </div>
       <div className="tabular flex justify-between text-sm">
         <span className="font-medium">{`${formatUsd(raised)} of ${formatUsd(target)}`}</span>

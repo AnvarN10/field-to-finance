@@ -1,4 +1,6 @@
-export function StatTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
+import type { ReactNode } from "react";
+
+export function StatTile({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
   return (
     <div className="flex flex-col gap-1 border-l border-border pl-4">
       <span className="text-xs tracking-wide text-muted-foreground uppercase">{label}</span>
