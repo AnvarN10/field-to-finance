@@ -293,3 +293,59 @@ pub fn seed_open_pool(env: &mut Env) -> (Pubkey, Pubkey) {
     env.send(&[add_project_ix(env, 1, project), open_pool_ix(env, 1)], &issuer, &[]).unwrap();
     (pda_pool(1), project)
 }
+
+pub fn approve_ix(env: &Env, pool_id: u64, wallet: Pubkey) -> Instruction {
+    let pool = pda_pool(pool_id);
+    let mint = pda_mint(&pool);
+    ix(
+        f2f::instruction::ApproveInvestor {},
+        f2f::accounts::ApproveInvestor {
+            compliance: env.compliance.pubkey(),
+            config: pda_config(),
+            pool,
+            mint,
+            investor: wallet,
+            investor_record: pda_investor(&wallet),
+            investor_instrument: ata(&wallet, &mint, &TOKEN_2022),
+            token_program: TOKEN_2022,
+            associated_token_program: spl_associated_token_account_interface::program::ID,
+            system_program: system_program::ID,
+        },
+    )
+}
+
+pub fn subscribe_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64) -> Instruction {
+    let pool = pda_pool(pool_id);
+    let mint = pda_mint(&pool);
+    ix(
+        f2f::instruction::Subscribe { amount },
+        f2f::accounts::Subscribe {
+            investor,
+            pool,
+            investor_record: pda_investor(&investor),
+            mint,
+            investor_instrument: ata(&investor, &mint, &TOKEN_2022),
+            usdc_mint: env.usdc_mint.pubkey(),
+            investor_usdc: ata(&investor, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            token_program: TOKEN_2022,
+            usdc_token_program: SPL_TOKEN,
+        },
+    )
+}
+
+pub fn close_ix(env: &Env, pool_id: u64, caller: Pubkey) -> Instruction {
+    let _ = env;
+    ix(f2f::instruction::CloseSubscription {}, f2f::accounts::CloseSubscription { caller, pool: pda_pool(pool_id) })
+}
+
+/// Open pool from `seed_open_pool`, investor approved and fully subscribed, subscription closed: status Funded.
+pub fn seed_funded_pool(env: &mut Env) -> (Pubkey, Pubkey) {
+    let (pool, project) = seed_open_pool(env);
+    let investor = env.investor.insecure_clone();
+    let compliance = env.compliance.insecure_clone();
+    fund_usdc(env, &investor.pubkey(), 100_000 * USDC);
+    env.send(&[approve_ix(env, 1, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[subscribe_ix(env, 1, investor.pubkey(), 100_000 * USDC), close_ix(env, 1, investor.pubkey())], &investor, &[]).unwrap();
+    (pool, project)
+}

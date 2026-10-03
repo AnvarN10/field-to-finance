@@ -18,3 +18,11 @@ pub mod open_pool;
 pub use create_pool::*;
 pub use add_project::*;
 pub use open_pool::*;
+
+pub mod approve_investor;
+pub mod subscribe;
+pub mod close_subscription;
+
+pub use approve_investor::*;
+pub use subscribe::*;
+pub use close_subscription::*;

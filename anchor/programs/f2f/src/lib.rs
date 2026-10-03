@@ -57,4 +57,16 @@ pub mod f2f {
     pub fn open_pool(ctx: Context<OpenPool>) -> Result<()> {
         instructions::open_pool::handle_open_pool(ctx)
     }
+
+    pub fn approve_investor(ctx: Context<ApproveInvestor>) -> Result<()> {
+        instructions::approve_investor::handle_approve_investor(ctx)
+    }
+
+    pub fn subscribe(ctx: Context<Subscribe>, amount: u64) -> Result<()> {
+        instructions::subscribe::handle_subscribe(ctx, amount)
+    }
+
+    pub fn close_subscription(ctx: Context<CloseSubscription>) -> Result<()> {
+        instructions::close_subscription::handle_close_subscription(ctx)
+    }
 }
