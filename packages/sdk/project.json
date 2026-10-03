@@ -7,11 +7,32 @@
     "test": {
       "executor": "nx:run-commands",
       "dependsOn": [],
-      "options": { "command": "pnpm exec vitest run", "cwd": "packages/sdk" }
+      "options": {
+        "command": "pnpm exec vitest run",
+        "cwd": "packages/sdk"
+      }
     },
     "typecheck": {
       "executor": "nx:run-commands",
-      "options": { "command": "pnpm exec tsc --noEmit", "cwd": "packages/sdk" }
+      "options": {
+        "command": "pnpm exec tsc --noEmit",
+        "cwd": "packages/sdk"
+      }
+    },
+    "sync-idl": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        {
+          "projects": [
+            "f2f-program"
+          ],
+          "target": "build"
+        }
+      ],
+      "options": {
+        "command": "node scripts/sync-idl.mjs",
+        "cwd": "packages/sdk"
+      }
     }
   }
 }
