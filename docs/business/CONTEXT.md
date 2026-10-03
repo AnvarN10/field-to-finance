@@ -53,6 +53,10 @@ Settled decisions are recorded as ADRs in [../architecture/decisions/](../archit
 
 Real farmers and a contracted Swiss payment on-ramp are lined up for a pilot. Letters of intent from both are expected before the submission deadline. The demo uses real field contours from the pilot farmers, plus test investors and test USDC on devnet.
 
+## Legal structure
+
+Roles, AFSA licence names, placement options, custody and money flows: [legal-structure.md](legal-structure.md).
+
 ## Open questions
 
 - Legal form of the Issuer and the jurisdiction of the Instrument.
