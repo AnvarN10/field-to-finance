@@ -46,6 +46,22 @@ const PROGRAM: Record<string, Entry> = {
   FeeTooHigh: ["Fee is above the cap", "Arrangement fees are capped by FeeConfig and by the program at 10%; flat fees have program caps too."],
   InvalidTreasury: ["Wrong treasury account", "Fees must go to the USDC account of the treasury named in FeeConfig."],
   MissingFeeAccount: ["Fee accounts are missing", "A fee is due but the transaction did not include the treasury or USDC accounts. Reload and try again.", "retry"],
+  // Instrument terms (ADR 0014)
+  IssuerNotApproved: ["The issuer of record hasn't passed KYC", "Approve the farmer's wallet in KYC before making it the issuer."],
+  IssuerMismatch: ["Wrong issuer for this pool", "A farmer-issued pool takes only that farmer's projects, and its issuer cannot change once projects joined."],
+  InvalidTerms: ["Check the instrument terms", "Nominal and volume must be above zero and the tokenized share at most 30%."],
+  InvalidCoupon: ["Coupon is too high", "The annual coupon can be at most 30%."],
+  UnsupportedDayCount: ["Day count not supported", "Only Act/360 is supported."],
+  NotWholeTokens: ["Buy whole tokens", "This instrument is sold in whole tokens. Enter a multiple of the token nominal."],
+  TargetNotWholeTokens: ["Pool target is not whole tokens", "The projects' requested total must be a multiple of the token nominal."],
+  NotHybrid: ["No election for this instrument", "Only a Hybrid instrument lets the issuer choose buyback or delivery."],
+  AlreadyElected: ["Settlement already elected", "The issuer's election is final."],
+  ElectionClosed: ["The election window has closed", "The issuer can elect buyback or delivery up to maturity. After it, delivery applies."],
+  DeliveryNotElected: ["Grain delivery does not apply", "This pool settles by cash buyback."],
+  DeliveryElected: ["Cash redemption is closed", "Grain delivery applies to this pool, so holders claim grain instead of cash."],
+  DeliveryNotAttested: ["Delivery is not confirmed yet", "Grain claims open once the elevator receipt and a passing lab certificate are recorded.", "retry"],
+  InvalidAttestationKind: ["Wrong attestation kind", "Elevator receipts and lab certificates go through the delivery step, season checks through SCAS."],
+  NotMatured: ["Not matured yet", "Grain claims open at maturity.", "retry"],
 };
 
 export function messageOf(e: unknown): string {

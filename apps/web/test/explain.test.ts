@@ -91,3 +91,20 @@ describe("expired transaction", () => {
     expect(e.action).toBe("retry");
   });
 });
+
+describe("explainChainError covers every program error", () => {
+  it("has plain words for each F2fError in the IDL, including the instrument-terms errors", async () => {
+    const { F2F_IDL } = await import("@f2f/sdk");
+    const names = (F2F_IDL.errors as { name: string }[]).map((e) => e.name);
+    expect(names).toContain("NotWholeTokens");
+    for (const name of names) {
+      const r = explainChainError({ logs: [`Program log: AnchorError occurred. Error Code: ${name}. Error Number: 6000.`] });
+      expect(r.title, name).not.toBe("The program rejected this transaction");
+    }
+  });
+
+  it("tells an investor to buy whole tokens", () => {
+    const r = explainChainError({ logs: ["Error Code: NotWholeTokens."] });
+    expect(r.title).toMatch(/whole tokens/i);
+  });
+});
