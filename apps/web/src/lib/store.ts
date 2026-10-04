@@ -71,7 +71,7 @@ export async function serveHashed(store: BlobStore, key: string, hashHex: string
     if (!bytes) return Response.json({ error: "not found" }, { status: 404 });
     return new Response(bytes.slice(), {
       status: 200,
-      headers: { "content-type": "application/json", "cache-control": "public, max-age=31536000, immutable" },
+      headers: { "content-type": "application/json", "cache-control": "private, max-age=31536000, immutable" },
     });
   } catch (e) {
     if (e instanceof RequestError) return Response.json({ error: e.message }, { status: e.status });

@@ -276,6 +276,19 @@ export async function fundRedemption(ctx: OpsContext, poolId: bigint) {
   return { signatures, deposited: deficit, required, maturityPassed: ctx.now() >= account.maturityTs.toNumber() };
 }
 
+/** Admin-only test-USDC mint for demo investors buying $100,000 tokens; the public faucet stays small. */
+export const ADMIN_MINT_MAX_USD = 5_000_000;
+
+export async function adminMintUsdc(ctx: OpsContext, wallet: PublicKey, usd: number): Promise<string> {
+  if (!Number.isInteger(usd) || usd < 1 || usd > ADMIN_MINT_MAX_USD) {
+    throw new RequestError(`Mint between $1 and $${ADMIN_MINT_MAX_USD.toLocaleString("en-US")} of test USDC`, 422);
+  }
+  return ctx.send("deployer", [
+    createUsdcAtaIx(ctx.roles.deployer, wallet, ctx.usdcMint),
+    mintUsdcIx(ctx.usdcMint, usdcAta(ctx.usdcMint, wallet), ctx.roles.deployer, BigInt(usd) * 1_000_000n),
+  ]);
+}
+
 /** Hybrid pools: the arranger records the issuer's election (ADR 0014). */
 export async function electSettlement(ctx: OpsContext, poolId: bigint, election: SettlementElectionName): Promise<string> {
   return ctx.send("issuer", [await electSettlementIx(ctx.program, { signer: ctx.roles.issuer, pool: poolKey(ctx, poolId), election })]);

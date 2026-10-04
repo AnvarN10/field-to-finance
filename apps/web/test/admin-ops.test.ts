@@ -5,6 +5,8 @@ import BN from "bn.js";
 import { describe, expect, it, vi } from "vitest";
 import type { PoolAccount, ProjectAccount } from "../src/lib/chain/views";
 import {
+  ADMIN_MINT_MAX_USD,
+  adminMintUsdc,
   approveInvestor,
   createPool,
   createPoolInput,
@@ -292,5 +294,27 @@ describe("pilot pools (ADR 0014)", () => {
     const field = sent[0]!.ixs[0]!.keys[5]!.pubkey;
     expect(sent[0]!.ixs[0]!.keys.some((m) => m.pubkey.equals(attestationPda(program.programId, field, 4)))).toBe(true);
     expect(projects).toHaveLength(1);
+  });
+});
+
+describe("admin test-USDC mint", () => {
+  it("mints up to the demo cap to any wallet with the deployer key", async () => {
+    const { c, sent } = await ctx();
+    const wallet = Keypair.generate().publicKey;
+    await adminMintUsdc(c, wallet, 1_000_000);
+    expect(sent[0]?.role).toBe("deployer");
+    expect(sent[0]!.ixs.map((ix) => ix.programId.toBase58())).toEqual([
+      "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+      TOKEN_PROGRAM_ID.toBase58(),
+    ]);
+    // mintTo data: [7, u64 amount LE]
+    expect(Buffer.from(sent[0]!.ixs[1]!.data).readBigUInt64LE(1)).toBe(1_000_000_000_000n);
+  });
+
+  it("refuses amounts above the cap or below one dollar", async () => {
+    const { c, sent } = await ctx();
+    await expect(adminMintUsdc(c, Keypair.generate().publicKey, ADMIN_MINT_MAX_USD + 1)).rejects.toMatchObject({ status: 422 });
+    await expect(adminMintUsdc(c, Keypair.generate().publicKey, 0)).rejects.toMatchObject({ status: 422 });
+    expect(sent).toHaveLength(0);
   });
 });
