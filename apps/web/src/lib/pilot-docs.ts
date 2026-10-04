@@ -121,3 +121,33 @@ export interface DeliveryEvidence {
 /** Evidence JSON for a delivery attestation; readable past basic auth, the document itself is not. */
 export const storeDeliveryEvidence = (store: BlobStore, e: DeliveryEvidence, publicBaseUrl: string, now: number) =>
   putEvidence(store, { version: 1, ...e, recordedAt: now }, publicBaseUrl);
+
+export interface FieldSetEntry {
+  polygonHash: string;
+  areaHaX100: number;
+  name: string;
+  cadastralNumber: string | null;
+  declaredAreaHa: number | null;
+}
+
+export const fieldSetKey = (hashHex: string) => `fieldsets/${hashHex}.json`;
+
+/** An imported farm's fields with their cadastral numbers, kept in the bucket only (never on-chain). */
+export async function storeFieldSet(store: BlobStore, fields: FieldSetEntry[]): Promise<{ hash: string }> {
+  if (fields.length === 0 || fields.length > 64) throw new RequestError("A field set holds 1 to 64 fields", 400);
+  for (const f of fields) {
+    if (!/^[0-9a-f]{64}$/.test(f.polygonHash) || !Number.isInteger(f.areaHaX100) || f.areaHaX100 <= 0) throw new RequestError("Invalid field entry", 400);
+    if (f.name.length > 80 || (f.cadastralNumber?.length ?? 0) > 40) throw new RequestError("Field name or cadastral number is too long", 400);
+  }
+  const bytes = new TextEncoder().encode(canonicalJson({ version: 1, fields }));
+  const hash = toHex(sha256(bytes));
+  await store.put(fieldSetKey(hash), bytes, "application/json");
+  return { hash };
+}
+
+export async function loadFieldSet(store: BlobStore, hash: string): Promise<{ version: 1; fields: FieldSetEntry[] } | null> {
+  if (!/^[0-9a-f]{64}$/.test(hash)) return null;
+  const bytes = await store.get(fieldSetKey(hash));
+  if (!bytes || toHex(sha256(bytes)) !== hash) return null;
+  return JSON.parse(new TextDecoder().decode(bytes));
+}

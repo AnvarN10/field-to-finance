@@ -66,3 +66,15 @@ describe("pilot documents", () => {
     expect(res.headers.get("cache-control")).toMatch(/^private/);
   });
 });
+
+describe("field sets", () => {
+  it("stores imported fields with cadastral numbers in the bucket, content-addressed, and reads them back", async () => {
+    const { storeFieldSet, loadFieldSet } = await import("../src/lib/pilot-docs");
+    const store = new MemoryStore();
+    const entries = [{ polygonHash: "ab".repeat(32), areaHaX100: 12_345, name: "North", cadastralNumber: "05-000-000-001", declaredAreaHa: 123.4 }];
+    const { hash } = await storeFieldSet(store, entries);
+    expect(await loadFieldSet(store, hash)).toEqual({ version: 1, fields: entries });
+    await expect(storeFieldSet(store, [{ ...entries[0]!, polygonHash: "nope" }])).rejects.toMatchObject({ status: 400 });
+    expect(await loadFieldSet(store, "0".repeat(64))).toBeNull();
+  });
+});
