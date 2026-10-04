@@ -164,7 +164,7 @@ Run `cd anchor && anchor build && cargo test -p f2f`. Tests are LiteSVM integrat
 - litesvm must be 0.17 or newer to load sbpf v3 programs; the 0.10 pin from the Anchor template fails with `InvalidAccountData`.
 - `spl-token-metadata-interface` must be 0.8.0, the version Token-2022 interface 2.1.0 uses; 1.x types do not implement `Extension`.
 - In Anchor 1.x `CpiContext::new` takes a program id, not an `AccountInfo`.
-- `anchor deploy` of a larger program auto-extends the program data account; the upgrade buffer needs about 2.9 SOL of rent up front (refunded after the upgrade), so keep the deployer above 3.5 SOL.
+- `anchor deploy` of a larger program auto-extends the program data account; the upgrade buffer needs rent for the whole `.so` up front (about 3.85 SOL at 552 KB, refunded after the upgrade), so keep the deployer above 4 SOL. The release profile builds with `opt-level = "s"` (2026-10-05): the program fits its existing 560,784-byte allocation (552,096 bytes instead of 655,888 at `opt-level = 3`), so upgrades need no extension; the LiteSVM suite runs on the same build.
 
 ## Source map
 
