@@ -66,7 +66,7 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
   if (!wallet) {
     return (
       <Panel title="Invest">
-        <p className="text-sm text-muted-foreground">{disconnectedCopy(mode, pool.yieldBps)}</p>
+        <p className="text-sm text-muted-foreground">{disconnectedCopy(mode, pool.yieldBps, terms)}</p>
         <div>
           <ConnectButton />
         </div>

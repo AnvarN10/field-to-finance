@@ -165,7 +165,9 @@ export function RequirementsSection({ requirements }: { requirements: Requiremen
         {requirements.map((r) => (
           <li key={r.key} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
             <span>{r.label}</span>
-            <Status ok={r.status === "provided"} okLabel="Provided" pendingLabel="Pending" />
+            <span className="ml-auto">
+              <Status ok={r.status === "provided"} okLabel="Provided" pendingLabel="Pending" />
+            </span>
           </li>
         ))}
       </ul>

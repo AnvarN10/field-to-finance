@@ -53,7 +53,7 @@ export function OnboardingPanel() {
           {rows.map((r) => (
             <li key={r.key} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2.5">
               <span className="min-w-0">{r.label}</span>
-              <span className="flex flex-wrap items-center gap-3">
+              <span className="ml-auto flex flex-wrap items-center gap-3">
                 <span className={`inline-flex items-center gap-1.5 font-medium ${r.status === "provided" ? "text-success" : "text-foreground"}`}>
                   {r.status === "provided" ? <CircleCheck aria-hidden strokeWidth={1.5} className="size-4" /> : <CircleAlert aria-hidden strokeWidth={1.5} className="size-4" />}
                   {r.status === "provided" ? "Provided" : "Pending"}

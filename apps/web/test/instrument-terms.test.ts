@@ -93,3 +93,13 @@ describe("settlement", () => {
     expect(claimableKg(funded, delivered, 3n * NOMINAL)).toBe(900_000n);
   });
 });
+
+describe("disconnected invest copy", () => {
+  it("speaks of whole tokens and the coupon on a term-sheet pool", async () => {
+    const { disconnectedCopy } = await import("../src/lib/invest");
+    const copy = disconnectedCopy("subscribe", 500, terms());
+    expect(copy).toMatch(/tokens of \$100,000\.00/);
+    expect(copy).toMatch(/5\.0% a year, Act\/360/);
+    expect(copy).not.toMatch(/Fixed yield/);
+  });
+});

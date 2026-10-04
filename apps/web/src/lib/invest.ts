@@ -1,6 +1,7 @@
 import type { InvestorState, PoolView, PositionView } from "./chain/views";
 import { formatUsd, formatYield, parseUsd } from "./format";
-import { deliveryOpen } from "./instrument-terms";
+import type { InstrumentTermsView } from "./chain/views";
+import { couponLabel, deliveryOpen } from "./instrument-terms";
 
 export type PanelMode = "draft" | "subscribe" | "closed-funded" | "deliver" | "refund" | "redeem" | "closed";
 
@@ -35,11 +36,15 @@ export const positionFor = (state: InvestorState | null, poolId: string): Positi
   state?.positions.find((p) => p.poolId === poolId) ?? null;
 
 /** Invest panel text before a wallet is connected, matched to what the pool allows right now. */
-export function disconnectedCopy(mode: PanelMode, yieldBps: number): string {
-  const y = formatYield(yieldBps);
+export function disconnectedCopy(mode: PanelMode, yieldBps: number, terms: InstrumentTermsView | null = null): string {
+  const y = terms ? `the coupon (${couponLabel(terms)})` : formatYield(yieldBps);
   switch (mode) {
     case "subscribe":
-      return `Connect a Solana wallet on devnet to subscribe. Fixed yield ${y}, paid at maturity.`;
+      return terms
+        ? `Connect a Solana wallet on devnet to buy whole tokens of ${formatUsd(terms.unitNominal)}. Coupon ${couponLabel(terms)}, paid at maturity.`
+        : `Connect a Solana wallet on devnet to subscribe. Fixed yield ${y}, paid at maturity.`;
+    case "deliver":
+      return "Grain delivery applies. Connect the wallet that holds the tokens to claim your share of the grain.";
     case "redeem":
       return `This pool is paying out. Connect the wallet that holds its Instrument to redeem principal plus ${y}.`;
     case "refund":
