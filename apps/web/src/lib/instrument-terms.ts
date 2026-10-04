@@ -62,10 +62,21 @@ export function settlementStatus(p: Pick<PoolView, "maturityTs">, t: InstrumentT
   const election = effectiveElection(t, nowSec, p.maturityTs);
   if (t.settlementMode === "CashBuyback") return { election, label: "Cash buyback at maturity" };
   if (t.settlementMode === "GrainDelivery") return { election, label: "Grain delivery at maturity" };
+  if (t.election === "Buyback" && election === "Delivery") {
+    return { election, label: "The elected buyback was not funded within 7 days of maturity: grain delivery applies" };
+  }
   if (t.election === "Buyback") return { election, label: "The issuer elected buyback: holders are paid in cash" };
   if (t.election === "Delivery") return { election, label: "The issuer elected grain delivery" };
   if (election === "Delivery") return { election, label: "No buyback was elected by maturity: grain delivery applies" };
   return { election, label: "The issuer has not elected yet. Without a buyback election by maturity, grain delivery applies." };
+}
+
+/** Why "Fund redemption" waits on a term-sheet pool, or undefined when cash may go in. */
+export function fundRedemptionReason(p: Pick<PoolView, "maturityTs">, t: InstrumentTermsView, nowSec: number): string | undefined {
+  const election = effectiveElection(t, nowSec, p.maturityTs);
+  if (election === "Delivery") return "Grain delivery applies: holders claim grain, not cash";
+  if (election === null) return "Elect buyback first: cash is accepted only on the buyback path";
+  return undefined;
 }
 
 /** Grain claims are open: delivery applies, maturity passed, receipt and passing lab certificate recorded. */

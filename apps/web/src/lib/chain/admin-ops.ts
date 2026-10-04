@@ -249,9 +249,10 @@ export async function fundRedemption(ctx: OpsContext, poolId: bigint) {
         election: termsAccount.election ? electionFromAnchor(termsAccount.election) : null,
       }
     : null;
-  if (terms && effectiveElection(terms, ctx.now(), maturityTs) === "Delivery") {
-    throw new RequestError("Grain delivery applies to this pool; cash redemption is closed.", 409);
-  }
+  const election = terms ? effectiveElection(terms, ctx.now(), maturityTs) : null;
+  if (terms && election === "Delivery") throw new RequestError("Grain delivery applies to this pool; cash redemption is closed.", 409);
+  // The program accepts cash only on the buyback path (review I1): elect buyback first.
+  if (terms && election === null) throw new RequestError("Elect buyback first: cash is accepted only on the buyback path.", 409);
   const required = redemptionDue(BigInt(account.raisedAmount.toString()), { yieldBps: account.yieldBps, maturityTs }, terms);
   const inVault = await ctx.tokenBalance(account.vault);
   const deficit = required > inVault ? required - inVault : 0n;

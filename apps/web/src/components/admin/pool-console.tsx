@@ -16,7 +16,7 @@ import { PoolStatusBadge } from "../status-badge";
 import { ActionButton } from "./action-button";
 import { SettlementForm } from "./settlement-form";
 import { TermSheetConsole } from "./term-sheet-console";
-import { settlementStatus } from "../../lib/instrument-terms";
+import { fundRedemptionReason } from "../../lib/instrument-terms";
 import { WalletActionForm } from "./wallet-action-form";
 
 export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unpooled: ProjectWithFields[]; now: number }) {
@@ -32,8 +32,7 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
   const closeBlocker = closeSubscriptionBlocker(s, closeReady);
   const disburseReason = disburseBlocker(s, allDisbursed);
   const terms = detail.terms ?? null;
-  const deliveryApplies = terms ? settlementStatus(pool, terms, now).election === "Delivery" : false;
-  const fundReason = deliveryApplies ? "Grain delivery applies: holders claim grain, not cash" : fundRedemptionBlocker(s);
+  const fundReason = fundRedemptionBlocker(s) ?? (terms ? fundRedemptionReason(pool, terms, now) : undefined);
 
   return (
     <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6">

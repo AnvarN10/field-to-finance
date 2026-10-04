@@ -38,6 +38,9 @@ pub fn handle_fund_redemption(ctx: Context<FundRedemption>, amount: u64) -> Resu
     let election = terms.as_ref().map(|t| t.effective_election(now, ctx.accounts.pool.maturity_ts));
     require!(election != Some(Some(SettlementElection::Delivery)), F2fError::DeliveryElected);
     if amount > 0 {
+        // Cash goes in only once the cash path is settled: a deposit made before a Hybrid election
+        // could otherwise be stranded in the vault if delivery followed.
+        require!(election.is_none_or(|e| e == Some(SettlementElection::Buyback)), F2fError::ElectionPending);
         // Deposits before every project is paid would be swept into disbursements.
         require!(
             ctx.accounts.pool.disbursed_count == ctx.accounts.pool.project_count,

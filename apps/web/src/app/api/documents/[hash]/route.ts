@@ -23,6 +23,6 @@ export async function GET(req: Request, ctx: { params: Promise<{ hash: string }>
   if (!bytes) return Response.json({ error: "not found" }, { status: 404 });
   return new Response(bytes.slice(), {
     status: 200,
-    headers: { "content-type": "application/octet-stream", "content-disposition": "attachment", "cache-control": "private, no-store" },
+    headers: { "content-type": "application/octet-stream", "content-disposition": "attachment", "cache-control": "private, no-store", "x-content-type-options": "nosniff" },
   });
 }

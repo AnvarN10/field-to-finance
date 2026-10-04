@@ -133,6 +133,7 @@ The SCAS worker and the web app build transactions from the IDL. Renaming an ins
 - With InstrumentTerms: `subscribe` amounts and the pool target are multiples of `unit_nominal`; `coupon_bps_annual <= MAX_COUPON_BPS` (3,000); `1 <= tokenized_share_bps <= 3,000`; day count Act360; `start_ts < maturity_ts` and at most 1,830 days apart; terms and issuer of record change only while Draft, and the issuer of record only while no project has joined.
 - A farmer-issued pool (`Pool.issuer != Config.issuer`) holds only projects whose producer is `Pool.issuer`.
 - Cash due with terms is `floor(principal × (3,600,000 + coupon_bps × days) / 3,600,000)`; per-holder payouts sum to at most the pool-level amount `fund_redemption` waits for.
+- On a pool with terms, `fund_redemption` deposits are accepted only on the buyback path (`ElectionPending` before a Hybrid election). An elected buyback still unfunded 7 days after maturity (`BUYBACK_GRACE_SECS`) lapses into delivery.
 - Once delivery applies, `fund_redemption` fails with `DeliveryElected`, so the pool cannot reach Redeeming; `redeem_delivery` claims sum to at most `volume_kg × tokenized_share_bps / 10,000`.
 - `record_attestation` refuses ElevatorReceipt and LabQuality; only `record_delivery` writes them.
 

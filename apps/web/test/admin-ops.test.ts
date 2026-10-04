@@ -279,6 +279,12 @@ describe("pilot pools (ADR 0014)", () => {
     expect(sent).toHaveLength(0);
   });
 
+  it("refuses to deposit cash on a Hybrid pool before buyback is elected", async () => {
+    const { c, sent } = await ctx({ terms: { election: null }, pool: { maturityTs: new BN(1_791_000_000 + 600) } });
+    await expect(fundRedemption(c, 7n)).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/buyback/i) });
+    expect(sent).toHaveLength(0);
+  });
+
   it("elects settlement as the arranger", async () => {
     const { c, sent } = await ctx({ terms: {} });
     await electSettlement(c, 7n, "Buyback");

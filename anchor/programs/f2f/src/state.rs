@@ -231,11 +231,18 @@ impl InstrumentTerms {
 
     /// The settlement that applies at `now`: fixed by the mode, or the Hybrid election, which
     /// defaults to delivery once maturity passes without one (the issuer did not exercise buyback).
+    /// An elected buyback that is still unfunded `BUYBACK_GRACE_SECS` after maturity lapses into
+    /// delivery too; a funded buyback has moved the pool to Redeeming by then, where this no longer matters.
     pub fn effective_election(&self, now: i64, maturity_ts: i64) -> Option<SettlementElection> {
         match self.settlement_mode {
             SettlementMode::CashBuyback => Some(SettlementElection::Buyback),
             SettlementMode::GrainDelivery => Some(SettlementElection::Delivery),
-            SettlementMode::Hybrid => self.election.or(if now > maturity_ts { Some(SettlementElection::Delivery) } else { None }),
+            SettlementMode::Hybrid => match self.election {
+                Some(SettlementElection::Buyback) if now > maturity_ts.saturating_add(BUYBACK_GRACE_SECS) => Some(SettlementElection::Delivery),
+                Some(e) => Some(e),
+                None if now > maturity_ts => Some(SettlementElection::Delivery),
+                None => None,
+            },
         }
     }
 }

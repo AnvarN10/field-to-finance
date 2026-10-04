@@ -103,4 +103,6 @@ pub enum F2fError {
     InvalidAttestationKind,
     #[msg("Maturity has not been reached")]
     NotMatured,
+    #[msg("Cash is accepted only after the issuer elects buyback")]
+    ElectionPending,
 }

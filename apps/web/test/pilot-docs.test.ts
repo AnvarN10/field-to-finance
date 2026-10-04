@@ -76,5 +76,9 @@ describe("field sets", () => {
     expect(await loadFieldSet(store, hash)).toEqual({ version: 1, fields: entries });
     await expect(storeFieldSet(store, [{ ...entries[0]!, polygonHash: "nope" }])).rejects.toMatchObject({ status: 400 });
     expect(await loadFieldSet(store, "0".repeat(64))).toBeNull();
+    await expect(storeFieldSet(store, [{ ...entries[0]!, name: { evil: true } as never }])).rejects.toMatchObject({ status: 400 });
+    await expect(storeFieldSet(store, [{ ...entries[0]!, declaredAreaHa: "1" as never }])).rejects.toMatchObject({ status: 400 });
+    const { hash: h2 } = await storeFieldSet(store, [{ ...entries[0]!, extra: "x" } as never]);
+    expect(h2).toBe(hash);
   });
 });

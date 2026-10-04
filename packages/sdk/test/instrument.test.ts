@@ -2,6 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 import { describe, expect, it } from "vitest";
 import {
   ATTESTATION_KINDS,
+  BUYBACK_GRACE_SECS,
   DAY_COUNTS,
   F2F_IDL,
   PILOT_QUALITY_SPEC,
@@ -62,6 +63,9 @@ describe("settlement election", () => {
     expect(effectiveElection({ settlementMode: "Hybrid", election: null }, maturity, maturity)).toBeNull();
     expect(effectiveElection({ settlementMode: "Hybrid", election: null }, maturity + 1, maturity)).toBe("Delivery");
     expect(effectiveElection({ settlementMode: "Hybrid", election: "Buyback" }, maturity + 1, maturity)).toBe("Buyback");
+    // An unfunded buyback lapses into delivery after the grace period, like the program.
+    expect(effectiveElection({ settlementMode: "Hybrid", election: "Buyback" }, maturity + BUYBACK_GRACE_SECS, maturity)).toBe("Buyback");
+    expect(effectiveElection({ settlementMode: "Hybrid", election: "Buyback" }, maturity + BUYBACK_GRACE_SECS + 1, maturity)).toBe("Delivery");
   });
 
   it("decodes Anchor enums", () => {

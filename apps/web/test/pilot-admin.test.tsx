@@ -72,6 +72,16 @@ describe("TermSheetConsole", () => {
   });
 });
 
+describe("PoolConsole funding guard", () => {
+  it("names the reason fund redemption waits on a Hybrid pool", async () => {
+    const { fundRedemptionReason } = await import("../src/lib/instrument-terms");
+    expect(fundRedemptionReason(pool, terms(), 1_000)).toBe("Elect buyback first: cash is accepted only on the buyback path");
+    expect(fundRedemptionReason(pool, terms({ election: "Buyback" }), 1_000)).toBeUndefined();
+    expect(fundRedemptionReason(pool, terms({ election: "Delivery" }), 1_000)).toMatch(/grain delivery applies/i);
+    expect(fundRedemptionReason(pool, terms({ settlementMode: "CashBuyback" }), 1_000)).toBeUndefined();
+  });
+});
+
 describe("MintUsdcForm", () => {
   it("mints a demo investor's $1,000,000 of test USDC", async () => {
     render(<MintUsdcForm />);

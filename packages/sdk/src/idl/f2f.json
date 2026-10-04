@@ -3095,6 +3095,11 @@
       "code": 6049,
       "name": "NotMatured",
       "msg": "Maturity has not been reached"
+    },
+    {
+      "code": 6050,
+      "name": "ElectionPending",
+      "msg": "Cash is accepted only after the issuer elects buyback"
     }
   ],
   "types": [
@@ -4023,6 +4028,14 @@
       "name": "ATTESTATION_SEED",
       "type": "bytes",
       "value": "[97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110]"
+    },
+    {
+      "name": "BUYBACK_GRACE_SECS",
+      "docs": [
+        "After maturity an elected but unfunded buyback lapses into delivery once this grace period passes (7 days)."
+      ],
+      "type": "i64",
+      "value": "604800"
     },
     {
       "name": "CONFIG_SEED",

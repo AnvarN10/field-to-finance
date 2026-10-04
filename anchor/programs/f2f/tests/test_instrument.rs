@@ -347,18 +347,71 @@ fn election_is_hybrid_only_once_and_before_maturity() {
 #[test]
 fn without_an_election_a_hybrid_pool_defaults_to_delivery_after_maturity() {
     let mut env = setup_configured();
+    let (_, project) = seed_pilot_funded(&mut env, M::Hybrid);
+    let producer = env.producer.insecure_clone();
+    settle(&mut env, project);
+    let m = maturity(&env);
+    warp_to(&mut env.svm, m + 1);
+    let err = env.send_err(&[fund_redemption_by_ix(&env, producer.pubkey(), 1, 0)], &producer, &[]);
+    assert!(err.contains("DeliveryElected"), "{err}");
+}
+
+#[test]
+fn cash_is_accepted_only_once_buyback_is_elected() {
+    // Review I1: a deposit before the election could be locked in the vault if delivery followed.
+    let mut env = setup_configured();
     let (pool, project) = seed_pilot_funded(&mut env, M::Hybrid);
     let producer = env.producer.insecure_clone();
     settle(&mut env, project);
     fund_usdc(&mut env, &producer.pubkey(), POOL_DUE_300D);
-    // At maturity the election window is still open, so funding does not open cash redemption.
-    let m = maturity(&env);
-    warp_to(&mut env.svm, m);
+    let err = env.send_err(&[fund_redemption_by_ix(&env, producer.pubkey(), 1, POOL_DUE_300D)], &producer, &[]);
+    assert!(err.contains("ElectionPending"), "{err}");
+    // A zero re-check is harmless and stays allowed.
+    env.send(&[fund_redemption_by_ix(&env, producer.pubkey(), 1, 0)], &producer, &[]).unwrap();
+    assert_eq!(token_balance(&env.svm, &ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN)), 0);
+    env.send(&[elect_settlement_ix(&env, producer.pubkey(), 1, E::Buyback)], &producer, &[]).unwrap();
     env.send(&[fund_redemption_by_ix(&env, producer.pubkey(), 1, POOL_DUE_300D)], &producer, &[]).unwrap();
-    assert_eq!(fetch::<f2f::Pool>(&env.svm, &pool).status, f2f::PoolStatus::Funded);
-    warp_to(&mut env.svm, m + 1);
+}
+
+#[test]
+fn an_unfunded_buyback_lapses_into_delivery_after_the_grace_period() {
+    // Review I2: a farmer who elects buyback and never funds it cannot lock holders out of the grain.
+    let mut env = setup_configured();
+    let (_, project) = seed_pilot_funded(&mut env, M::Hybrid);
+    let producer = env.producer.insecure_clone();
+    let investor = env.investor.insecure_clone();
+    env.send(&[elect_settlement_ix(&env, producer.pubkey(), 1, E::Buyback)], &producer, &[]).unwrap();
+    let m = maturity(&env);
+    warp_to(&mut env.svm, m + f2f::BUYBACK_GRACE_SECS);
+    // Still inside the grace period: buyback holds, delivery is refused.
+    let err = env.send_err(&[redeem_delivery_ix(&env, 1, investor.pubkey(), NOMINAL)], &investor, &[]);
+    assert!(err.contains("DeliveryNotElected"), "{err}");
+    warp_to(&mut env.svm, m + f2f::BUYBACK_GRACE_SECS + 1);
     let err = env.send_err(&[fund_redemption_by_ix(&env, producer.pubkey(), 1, 0)], &producer, &[]);
     assert!(err.contains("DeliveryElected"), "{err}");
+    record(&mut env, project, 1, K::ElevatorReceipt, Verdict::Pass, [0xE1; 32]);
+    record(&mut env, project, 2, K::LabQuality, Verdict::Pass, [0x1A; 32]);
+    env.send(&[redeem_delivery_ix(&env, 1, investor.pubkey(), NOMINAL)], &investor, &[]).unwrap();
+    assert_eq!(terms(&env).delivered_kg, 300_000);
+}
+
+#[test]
+fn a_funded_buyback_does_not_lapse() {
+    let mut env = setup_configured();
+    let (pool, project) = seed_pilot_funded(&mut env, M::Hybrid);
+    let producer = env.producer.insecure_clone();
+    let investor = env.investor.insecure_clone();
+    env.send(&[elect_settlement_ix(&env, producer.pubkey(), 1, E::Buyback)], &producer, &[]).unwrap();
+    settle(&mut env, project);
+    let m = maturity(&env);
+    warp_to(&mut env.svm, m);
+    fund_usdc(&mut env, &producer.pubkey(), POOL_DUE_300D);
+    env.send(&[fund_redemption_by_ix(&env, producer.pubkey(), 1, POOL_DUE_300D)], &producer, &[]).unwrap();
+    assert_eq!(fetch::<f2f::Pool>(&env.svm, &pool).status, f2f::PoolStatus::Redeeming);
+    warp_to(&mut env.svm, m + f2f::BUYBACK_GRACE_SECS + 10);
+    let err = env.send_err(&[redeem_delivery_ix(&env, 1, investor.pubkey(), NOMINAL)], &investor, &[]);
+    assert!(err.contains("PoolNotFunded"), "{err}");
+    env.send(&[redeem_ix(&env, 1, investor.pubkey(), NOMINAL)], &investor, &[]).unwrap();
 }
 
 // ---- delivery path ----

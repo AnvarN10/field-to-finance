@@ -200,7 +200,10 @@ export const recordDeliveryAction = async (poolId: string, form: FormData) =>
   });
 
 export const adminMintUsdcAction = async (wallet: string, usd: number) =>
-  run(async () => ({ message: `Minted ${formatUsd(BigInt(usd) * 1_000_000n)} of test USDC`, signatures: [await adminMintUsdc(opsContext(), new PublicKey(wallet), usd)] }));
+  run(async () => {
+    const signature = await adminMintUsdc(opsContext(), new PublicKey(wallet), usd);
+    return { message: `Minted ${formatUsd(BigInt(usd) * 1_000_000n)} of test USDC`, signatures: [signature] };
+  });
 
 export type OnboardingResult = { ok: true; rows: RequirementRow[] } | { ok: false; error: string };
 

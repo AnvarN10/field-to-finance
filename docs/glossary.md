@@ -46,7 +46,7 @@ The on-chain record (`GrainClaim` event) that a holder burned Instrument for a p
 
 ## Hybrid
 
-Settlement mode of the pilot Instrument: grain delivery at the elevator, with the issuer's right to buy the token back for cash. Without a buyback election by maturity, delivery applies.
+Settlement mode of the pilot Instrument: grain delivery at the elevator, with the issuer's right to buy the token back for cash. Without a buyback election by maturity, or if an elected buyback is not funded within 7 days after maturity, delivery applies.
 
 ## Instrument
 

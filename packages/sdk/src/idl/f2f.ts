@@ -3101,6 +3101,11 @@ export type F2f = {
       "code": 6049,
       "name": "notMatured",
       "msg": "Maturity has not been reached"
+    },
+    {
+      "code": 6050,
+      "name": "electionPending",
+      "msg": "Cash is accepted only after the issuer elects buyback"
     }
   ],
   "types": [
@@ -4029,6 +4034,14 @@ export type F2f = {
       "name": "attestationSeed",
       "type": "bytes",
       "value": "[97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110]"
+    },
+    {
+      "name": "buybackGraceSecs",
+      "docs": [
+        "After maturity an elected but unfunded buyback lapses into delivery once this grace period passes (7 days)."
+      ],
+      "type": "i64",
+      "value": "604800"
     },
     {
       "name": "configSeed",

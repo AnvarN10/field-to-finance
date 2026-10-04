@@ -135,11 +135,21 @@ export const fieldSetKey = (hashHex: string) => `fieldsets/${hashHex}.json`;
 /** An imported farm's fields with their cadastral numbers, kept in the bucket only (never on-chain). */
 export async function storeFieldSet(store: BlobStore, fields: FieldSetEntry[]): Promise<{ hash: string }> {
   if (fields.length === 0 || fields.length > 64) throw new RequestError("A field set holds 1 to 64 fields", 400);
-  for (const f of fields) {
-    if (!/^[0-9a-f]{64}$/.test(f.polygonHash) || !Number.isInteger(f.areaHaX100) || f.areaHaX100 <= 0) throw new RequestError("Invalid field entry", 400);
-    if (f.name.length > 80 || (f.cadastralNumber?.length ?? 0) > 40) throw new RequestError("Field name or cadastral number is too long", 400);
-  }
-  const bytes = new TextEncoder().encode(canonicalJson({ version: 1, fields }));
+  const clean: FieldSetEntry[] = fields.map((f) => {
+    const ok =
+      typeof f.polygonHash === "string" &&
+      /^[0-9a-f]{64}$/.test(f.polygonHash) &&
+      Number.isInteger(f.areaHaX100) &&
+      f.areaHaX100 > 0 &&
+      typeof f.name === "string" &&
+      f.name.length <= 80 &&
+      (f.cadastralNumber === null || (typeof f.cadastralNumber === "string" && f.cadastralNumber.length <= 40)) &&
+      (f.declaredAreaHa === null || (typeof f.declaredAreaHa === "number" && Number.isFinite(f.declaredAreaHa) && f.declaredAreaHa > 0));
+    if (!ok) throw new RequestError("Invalid field entry", 400);
+    // Only known keys reach the bucket.
+    return { polygonHash: f.polygonHash, areaHaX100: f.areaHaX100, name: f.name, cadastralNumber: f.cadastralNumber, declaredAreaHa: f.declaredAreaHa };
+  });
+  const bytes = new TextEncoder().encode(canonicalJson({ version: 1, fields: clean }));
   const hash = toHex(sha256(bytes));
   await store.put(fieldSetKey(hash), bytes, "application/json");
   return { hash };

@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{
     constants::*,
     error::F2fError,
+    math::actual_days,
     state::{Config, DayCount, InstrumentTerms, InvestorRecord, Pool, PoolStatus, SettlementMode},
 };
 
@@ -60,8 +61,8 @@ pub fn handle_set_instrument_terms(ctx: Context<SetInstrumentTerms>, args: Instr
     require!(args.volume_kg > 0, F2fError::InvalidTerms);
     require!((1..=MAX_TOKENIZED_SHARE_BPS).contains(&args.tokenized_share_bps), F2fError::InvalidTerms);
     require!(args.start_ts < pool.maturity_ts, F2fError::InvalidSchedule);
-    let term_days = (pool.maturity_ts - args.start_ts) / SECONDS_PER_DAY;
-    require!(term_days <= MAX_TERM_DAYS, F2fError::InvalidSchedule);
+    let term_days = actual_days(args.start_ts, pool.maturity_ts)?;
+    require!(term_days <= MAX_TERM_DAYS as u64, F2fError::InvalidSchedule);
     require!(args.spec_uri.len() <= MAX_URI_LEN, F2fError::StringTooLong);
     require!(args.elevator.len() <= MAX_SHORT_STR_LEN, F2fError::StringTooLong);
     require!(args.lab.len() <= MAX_SHORT_STR_LEN, F2fError::StringTooLong);

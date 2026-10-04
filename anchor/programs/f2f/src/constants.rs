@@ -54,3 +54,6 @@ pub const MAX_SHORT_STR_LEN: usize = 32;
 pub const SECONDS_PER_DAY: i64 = 86_400;
 /// Denominator of the Act/360 day count.
 pub const ACT360_YEAR_DAYS: u64 = 360;
+/// After maturity an elected but unfunded buyback lapses into delivery once this grace period passes (7 days).
+#[constant]
+pub const BUYBACK_GRACE_SECS: i64 = 7 * 86_400;

@@ -79,6 +79,9 @@ describe("settlement", () => {
     expect(settlementStatus(pool({ status: "Funded" }), terms(), 0).label).toMatch(/not elected yet/i);
     expect(settlementStatus(pool({ status: "Funded" }), terms({ election: "Buyback" }), 0).label).toMatch(/buyback/i);
     expect(settlementStatus(pool({ status: "Funded" }), terms(), pool().maturityTs + 1).election).toBe("Delivery");
+    const lapsed = settlementStatus(pool({ status: "Funded" }), terms({ election: "Buyback" }), pool().maturityTs + 8 * 86_400);
+    expect(lapsed.election).toBe("Delivery");
+    expect(lapsed.label).toMatch(/not funded/i);
   });
 
   it("opens grain claims at maturity once the receipt and a passing lab certificate are in", () => {

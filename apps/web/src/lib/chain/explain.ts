@@ -62,6 +62,7 @@ const PROGRAM: Record<string, Entry> = {
   DeliveryNotAttested: ["Delivery is not confirmed yet", "Grain claims open once the elevator receipt and a passing lab certificate are recorded.", "retry"],
   InvalidAttestationKind: ["Wrong attestation kind", "Elevator receipts and lab certificates go through the delivery step, season checks through SCAS."],
   NotMatured: ["Not matured yet", "Grain claims open at maturity.", "retry"],
+  ElectionPending: ["Elect buyback first", "A Hybrid instrument accepts cash only after the issuer elects buyback."],
 };
 
 export function messageOf(e: unknown): string {

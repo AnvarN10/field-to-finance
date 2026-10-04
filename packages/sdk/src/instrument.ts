@@ -6,6 +6,8 @@ export const MAX_COUPON_BPS = 3_000;
 export const MAX_TERM_DAYS = 1_830;
 export const MAX_TOKENIZED_SHARE_BPS = 3_000;
 export const MAX_SHORT_STR_LEN = 32;
+/** An elected but unfunded buyback lapses into delivery this long after maturity. */
+export const BUYBACK_GRACE_SECS = 7 * 86_400;
 const SECONDS_PER_DAY = 86_400;
 const ACT360_DENOM = 10_000n * 360n;
 
@@ -47,6 +49,7 @@ export function effectiveElection(
 ): SettlementElectionName | null {
   if (terms.settlementMode === "CashBuyback") return "Buyback";
   if (terms.settlementMode === "GrainDelivery") return "Delivery";
+  if (terms.election === "Buyback") return now > maturityTs + BUYBACK_GRACE_SECS ? "Delivery" : "Buyback";
   return terms.election ?? (now > maturityTs ? "Delivery" : null);
 }
 

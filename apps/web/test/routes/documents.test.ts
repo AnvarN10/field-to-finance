@@ -30,6 +30,7 @@ describe("GET /api/documents/[hash]", () => {
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes);
     expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(res.headers.get("content-disposition")).toBe("attachment");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
   });
 
   it("rejects malformed hashes and missing objects", async () => {
