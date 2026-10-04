@@ -55,7 +55,7 @@ Real farmers and a contracted Swiss payment on-ramp are lined up for a pilot. Le
 
 ## Legal structure
 
-Roles, AFSA licence names, placement options, custody and money flows: [legal-structure.md](legal-structure.md).
+Roles, AFSA licence names, placement options, custody and money flows: [legal-structure.md](legal-structure.md). Full research digest in Russian with a glossary of terms, AIFC rule footnotes and a crypto primer: [research-aifc-f2f-ru.md](research-aifc-f2f-ru.md) ([PDF](research-aifc-f2f-ru.pdf)).
 
 ## Open questions
 
