@@ -5,3 +5,4 @@ export * from "./pda";
 export * from "./enums";
 export * from "./program";
 export * from "./fees";
+export * from "./instrument";

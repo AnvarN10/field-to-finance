@@ -1,4 +1,8 @@
-export const ATTESTATION_KINDS = ["FieldVerified", "Sowing", "Vegetation", "Harvest"] as const;
+/** Order mirrors the program enum; variants are only ever appended. */
+export const ATTESTATION_KINDS = ["FieldVerified", "Sowing", "Vegetation", "Harvest", "ElevatorReceipt", "LabQuality"] as const;
+/** Season attestations recorded by SCAS on a field; the delivery kinds go through record_delivery. */
+export const SEASON_KINDS = ["FieldVerified", "Sowing", "Vegetation", "Harvest"] as const;
+export const DELIVERY_KINDS = ["ElevatorReceipt", "LabQuality"] as const;
 export type AttestationKindName = (typeof ATTESTATION_KINDS)[number];
 
 export const VERDICTS = ["Pass", "Fail", "InsufficientData"] as const;
@@ -20,6 +24,17 @@ function fromAnchorEnum<T extends string>(value: unknown, names: readonly T[]): 
   if (!match) throw new TypeError(`unknown enum variant: ${String(key)}`);
   return match;
 }
+
+export const SETTLEMENT_MODES = ["CashBuyback", "GrainDelivery", "Hybrid"] as const;
+export type SettlementModeName = (typeof SETTLEMENT_MODES)[number];
+export const SETTLEMENT_ELECTIONS = ["Buyback", "Delivery"] as const;
+export type SettlementElectionName = (typeof SETTLEMENT_ELECTIONS)[number];
+export const DAY_COUNTS = ["Act360", "Act365"] as const;
+export type DayCountName = (typeof DAY_COUNTS)[number];
+
+export const settlementModeFromAnchor = (value: unknown): SettlementModeName => fromAnchorEnum(value, SETTLEMENT_MODES);
+export const electionFromAnchor = (value: unknown): SettlementElectionName => fromAnchorEnum(value, SETTLEMENT_ELECTIONS);
+export const dayCountFromAnchor = (value: unknown): DayCountName => fromAnchorEnum(value, DAY_COUNTS);
 
 export const kindFromAnchor = (value: unknown): AttestationKindName => fromAnchorEnum(value, ATTESTATION_KINDS);
 export const verdictFromAnchor = (value: unknown): VerdictName => fromAnchorEnum(value, VERDICTS);

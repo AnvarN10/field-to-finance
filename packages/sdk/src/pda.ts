@@ -11,6 +11,7 @@ export const SEED = {
   investor: "investor",
   fees: "fees",
   terms: "terms",
+  instrument: "instrument",
 } as const;
 
 const utf8 = (s: string) => Buffer.from(s, "utf8");
@@ -61,3 +62,7 @@ export const feesPda = (programId: PublicKey) => find([utf8(SEED.fees)], program
 
 /** PoolTerms of a pool; absent for pools created before fees (arrangement fee 0). */
 export const termsPda = (programId: PublicKey, pool: PublicKey) => find([utf8(SEED.terms), pool.toBuffer()], programId);
+
+/** InstrumentTerms of a pool (ADR 0014); absent for pools without term-sheet terms. */
+export const instrumentPda = (programId: PublicKey, pool: PublicKey) =>
+  find([utf8(SEED.instrument), pool.toBuffer()], programId);

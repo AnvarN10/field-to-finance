@@ -545,6 +545,101 @@ export type F2f = {
       "args": []
     },
     {
+      "name": "electSettlement",
+      "discriminator": [
+        243,
+        14,
+        35,
+        136,
+        101,
+        133,
+        194,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.poolId",
+                "account": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instrumentTerms",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  116,
+                  114,
+                  117,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "election",
+          "type": {
+            "defined": {
+              "name": "settlementElection"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "fundRedemption",
       "discriminator": [
         63,
@@ -559,6 +654,10 @@ export type F2f = {
       "accounts": [
         {
           "name": "issuer",
+          "docs": [
+            "The arranger (Config.issuer) or the pool's issuer of record (`Pool.issuer`, the farmer for",
+            "pilot pools; the same platform key for older pools)."
+          ],
           "signer": true
         },
         {
@@ -611,6 +710,32 @@ export type F2f = {
         {
           "name": "vault",
           "writable": true
+        },
+        {
+          "name": "instrumentTerms",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  116,
+                  114,
+                  117,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
         },
         {
           "name": "usdcTokenProgram"
@@ -882,6 +1007,32 @@ export type F2f = {
               }
             ]
           }
+        },
+        {
+          "name": "instrumentTerms",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  116,
+                  114,
+                  117,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
         }
       ],
       "args": []
@@ -1005,6 +1156,167 @@ export type F2f = {
         {
           "name": "sceneDate",
           "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "recordDelivery",
+      "discriminator": [
+        72,
+        245,
+        251,
+        211,
+        129,
+        177,
+        93,
+        214
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.poolId",
+                "account": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instrumentTerms",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  116,
+                  114,
+                  117,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "field",
+          "writable": true
+        },
+        {
+          "name": "attestation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  101,
+                  115,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "field"
+              },
+              {
+                "kind": "account",
+                "path": "field.attestationCount",
+                "account": "field"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": {
+            "defined": {
+              "name": "attestationKind"
+            }
+          }
+        },
+        {
+          "name": "verdict",
+          "type": {
+            "defined": {
+              "name": "verdict"
+            }
+          }
+        },
+        {
+          "name": "evidenceHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "evidenceUri",
+          "type": "string"
         }
       ]
     },
@@ -1139,11 +1451,122 @@ export type F2f = {
           "writable": true
         },
         {
+          "name": "instrumentTerms",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  116,
+                  114,
+                  117,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
           "name": "usdcTokenProgram"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "redeemDelivery",
+      "discriminator": [
+        57,
+        5,
+        191,
+        174,
+        159,
+        28,
+        137,
+        49
+      ],
+      "accounts": [
+        {
+          "name": "investor",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.poolId",
+                "account": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instrumentTerms",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  116,
+                  114,
+                  117,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "investorInstrument",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         }
       ],
       "args": [
@@ -1682,6 +2105,134 @@ export type F2f = {
       ]
     },
     {
+      "name": "setInstrumentTerms",
+      "discriminator": [
+        118,
+        148,
+        86,
+        113,
+        11,
+        10,
+        112,
+        88
+      ],
+      "accounts": [
+        {
+          "name": "arranger",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.poolId",
+                "account": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "issuerOfRecord"
+        },
+        {
+          "name": "issuerRecord",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  118,
+                  101,
+                  115,
+                  116,
+                  111,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "issuerOfRecord"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instrumentTerms",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  116,
+                  114,
+                  117,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "instrumentTermsArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "subscribe",
       "discriminator": [
         254,
@@ -1844,6 +2395,32 @@ export type F2f = {
           "name": "treasuryUsdc",
           "writable": true,
           "optional": true
+        },
+        {
+          "name": "instrumentTerms",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  115,
+                  116,
+                  114,
+                  117,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
         },
         {
           "name": "tokenProgram",
@@ -2155,6 +2732,19 @@ export type F2f = {
       ]
     },
     {
+      "name": "instrumentTerms",
+      "discriminator": [
+        166,
+        77,
+        194,
+        240,
+        21,
+        71,
+        252,
+        182
+      ]
+    },
+    {
       "name": "investorRecord",
       "discriminator": [
         170,
@@ -2209,6 +2799,19 @@ export type F2f = {
       ]
     },
     {
+      "name": "grainClaim",
+      "discriminator": [
+        58,
+        182,
+        86,
+        147,
+        90,
+        73,
+        214,
+        113
+      ]
+    },
+    {
       "name": "mintFeeCharged",
       "discriminator": [
         87,
@@ -2232,6 +2835,19 @@ export type F2f = {
         202,
         113,
         219
+      ]
+    },
+    {
+      "name": "settlementElected",
+      "discriminator": [
+        36,
+        210,
+        69,
+        80,
+        220,
+        162,
+        168,
+        77
       ]
     }
   ],
@@ -2410,6 +3026,81 @@ export type F2f = {
       "code": 6034,
       "name": "missingFeeAccount",
       "msg": "A fee is due but its accounts were not provided"
+    },
+    {
+      "code": 6035,
+      "name": "issuerNotApproved",
+      "msg": "Issuer of record has no approved KYC record"
+    },
+    {
+      "code": 6036,
+      "name": "issuerMismatch",
+      "msg": "Project or terms do not match the pool's issuer of record"
+    },
+    {
+      "code": 6037,
+      "name": "invalidTerms",
+      "msg": "Instrument terms are invalid"
+    },
+    {
+      "code": 6038,
+      "name": "invalidCoupon",
+      "msg": "Coupon is above the allowed cap"
+    },
+    {
+      "code": 6039,
+      "name": "unsupportedDayCount",
+      "msg": "Day count is not supported"
+    },
+    {
+      "code": 6040,
+      "name": "notWholeTokens",
+      "msg": "Amount must be a whole number of tokens"
+    },
+    {
+      "code": 6041,
+      "name": "targetNotWholeTokens",
+      "msg": "Pool target must be a whole number of tokens"
+    },
+    {
+      "code": 6042,
+      "name": "notHybrid",
+      "msg": "Settlement election applies only to Hybrid instruments"
+    },
+    {
+      "code": 6043,
+      "name": "alreadyElected",
+      "msg": "Settlement was already elected"
+    },
+    {
+      "code": 6044,
+      "name": "electionClosed",
+      "msg": "Settlement election closed at maturity"
+    },
+    {
+      "code": 6045,
+      "name": "deliveryNotElected",
+      "msg": "Grain delivery is not the settlement for this pool"
+    },
+    {
+      "code": 6046,
+      "name": "deliveryElected",
+      "msg": "Grain delivery was elected; cash redemption is closed"
+    },
+    {
+      "code": 6047,
+      "name": "deliveryNotAttested",
+      "msg": "Elevator receipt and a passing lab certificate are required"
+    },
+    {
+      "code": 6048,
+      "name": "invalidAttestationKind",
+      "msg": "Attestation kind is not allowed here"
+    },
+    {
+      "code": 6049,
+      "name": "notMatured",
+      "msg": "Maturity has not been reached"
     }
   ],
   "types": [
@@ -2526,6 +3217,12 @@ export type F2f = {
           },
           {
             "name": "harvest"
+          },
+          {
+            "name": "elevatorReceipt"
+          },
+          {
+            "name": "labQuality"
           }
         ]
       }
@@ -2602,6 +3299,23 @@ export type F2f = {
           {
             "name": "maturityTs",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "dayCount",
+      "docs": [
+        "Interest day count. Only Act/360 is supported; Act/365 is reserved for later terms."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "act360"
+          },
+          {
+            "name": "act365"
           }
         ]
       }
@@ -2759,6 +3473,253 @@ export type F2f = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "grainClaim",
+      "docs": [
+        "An investor burned `amount` Instrument base units for `kg` of grain at the elevator.",
+        "Off-chain, the claim is honoured against the elevator receipt and later maps to a",
+        "grain-receipt token on CommodityChain."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "investor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "kg",
+            "type": "u64"
+          },
+          {
+            "name": "receiptHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "instrumentTerms",
+      "docs": [
+        "Instrument terms from the term sheet, PDA `[\"instrument\", pool]`. Set by the arranger while the pool",
+        "is Draft, usually in the same transaction as `create_pool`. Pools without it keep the flat-yield path."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "unitNominal",
+            "docs": [
+              "USDC base units per whole token (pilot: 100,000 USDC). Subscriptions are whole multiples."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "couponBpsAnnual",
+            "type": "u16"
+          },
+          {
+            "name": "dayCount",
+            "type": {
+              "defined": {
+                "name": "dayCount"
+              }
+            }
+          },
+          {
+            "name": "startTs",
+            "docs": [
+              "Interest accrues from here to `Pool.maturity_ts`, counted in whole days."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "settlementMode",
+            "type": {
+              "defined": {
+                "name": "settlementMode"
+              }
+            }
+          },
+          {
+            "name": "volumeKg",
+            "docs": [
+              "Contracted harvest volume (pilot: 10,000 t)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "tokenizedShareBps",
+            "docs": [
+              "Share of `volume_kg` backing the tokens, at most 30%."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "qualitySpecHash",
+            "docs": [
+              "SHA-256 of the quality spec JSON (the 12 commodity parameters), stored off-chain like evidence."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "specUri",
+            "type": "string"
+          },
+          {
+            "name": "elevator",
+            "type": "string"
+          },
+          {
+            "name": "lab",
+            "type": "string"
+          },
+          {
+            "name": "election",
+            "docs": [
+              "Hybrid only: the issuer's election, made at most once and no later than maturity."
+            ],
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "settlementElection"
+                }
+              }
+            }
+          },
+          {
+            "name": "electedAt",
+            "type": "i64"
+          },
+          {
+            "name": "receiptHash",
+            "docs": [
+              "Evidence hash of the latest passing elevator receipt; zero until recorded."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "labCertHash",
+            "docs": [
+              "Evidence hash of the latest lab certificate and whether it passed."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "labPassed",
+            "type": "bool"
+          },
+          {
+            "name": "deliveredKg",
+            "docs": [
+              "Kilograms already claimed through `redeem_delivery`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "instrumentTermsArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "unitNominal",
+            "type": "u64"
+          },
+          {
+            "name": "couponBpsAnnual",
+            "type": "u16"
+          },
+          {
+            "name": "dayCount",
+            "type": {
+              "defined": {
+                "name": "dayCount"
+              }
+            }
+          },
+          {
+            "name": "startTs",
+            "type": "i64"
+          },
+          {
+            "name": "settlementMode",
+            "type": {
+              "defined": {
+                "name": "settlementMode"
+              }
+            }
+          },
+          {
+            "name": "volumeKg",
+            "type": "u64"
+          },
+          {
+            "name": "tokenizedShareBps",
+            "type": "u16"
+          },
+          {
+            "name": "qualitySpecHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "specUri",
+            "type": "string"
+          },
+          {
+            "name": "elevator",
+            "type": "string"
+          },
+          {
+            "name": "lab",
+            "type": "string"
           }
         ]
       }
@@ -2962,6 +3923,70 @@ export type F2f = {
       }
     },
     {
+      "name": "settlementElected",
+      "docs": [
+        "Settlement chosen for a Hybrid Instrument."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "election",
+            "type": {
+              "defined": {
+                "name": "settlementElection"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "settlementElection",
+      "docs": [
+        "The issuer's choice for a Hybrid Instrument."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "buyback"
+          },
+          {
+            "name": "delivery"
+          }
+        ]
+      }
+    },
+    {
+      "name": "settlementMode",
+      "docs": [
+        "How the Instrument settles at maturity."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "cashBuyback"
+          },
+          {
+            "name": "grainDelivery"
+          },
+          {
+            "name": "hybrid"
+          }
+        ]
+      }
+    },
+    {
       "name": "settlementRule",
       "type": {
         "kind": "enum",
@@ -3021,6 +4046,11 @@ export type F2f = {
       "value": "[102, 105, 101, 108, 100]"
     },
     {
+      "name": "instrumentSeed",
+      "type": "bytes",
+      "value": "[105, 110, 115, 116, 114, 117, 109, 101, 110, 116]"
+    },
+    {
       "name": "investorSeed",
       "type": "bytes",
       "value": "[105, 110, 118, 101, 115, 116, 111, 114]"
@@ -3032,6 +4062,14 @@ export type F2f = {
       ],
       "type": "u16",
       "value": "1000"
+    },
+    {
+      "name": "maxCouponBps",
+      "docs": [
+        "Hard ceiling for an Instrument's annual coupon (30%)."
+      ],
+      "type": "u16",
+      "value": "3000"
     },
     {
       "name": "maxMintFee",
@@ -3048,6 +4086,14 @@ export type F2f = {
       ],
       "type": "u64",
       "value": "10000000"
+    },
+    {
+      "name": "maxTermDays",
+      "docs": [
+        "Longest interest period from `InstrumentTerms.start_ts` to maturity, in days (about five years)."
+      ],
+      "type": "i64",
+      "value": "1830"
     },
     {
       "name": "mintSeed",
