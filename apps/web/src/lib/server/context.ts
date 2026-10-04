@@ -11,7 +11,7 @@ import type { StubDeps } from "../scas-stub";
 import { S3Store, type BlobStore } from "../store";
 import { serverEnv } from "./env";
 import { investorPda, poolPda } from "@f2f/sdk";
-import type { OpsContext } from "../chain/admin-ops";
+import { programReads, type OpsContext } from "../chain/admin-ops";
 import { projectsInPool } from "../chain/filters";
 import type { FaucetDeps } from "../chain/faucet";
 import { createCooldown } from "../cooldown";
@@ -154,6 +154,7 @@ export function opsContext(): OpsContext {
     accountExists: async (account) => (await connection.getAccountInfo(account, "confirmed")) !== null,
     loadFees: () => getReader().fees(),
     now: () => Math.floor(Date.now() / 1000),
+    ...programReads(program),
   };
 }
 

@@ -1,10 +1,10 @@
-import { poolPda } from "@f2f/sdk";
+import { investorPda, poolPda } from "@f2f/sdk";
 import { ACCOUNT_SIZE, AccountLayout, AccountState, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Keypair, PublicKey, type AccountInfo } from "@solana/web3.js";
 import { describe, expect, it, vi } from "vitest";
 import { createChainReader } from "../src/lib/chain/reader";
 import type { PoolAccount } from "../src/lib/chain/views";
-import { fieldValue, offlineConnection, offlineProgram, poolValue, projectValue, roundTrip } from "./fixtures/accounts";
+import { fieldValue, offlineConnection, offlineProgram, poolValue, projectValue, roundTrip, termsValue } from "./fixtures/accounts";
 
 function tokenAccount(mint: PublicKey, owner: PublicKey, amount: bigint, frozen: boolean, programId: PublicKey): AccountInfo<Buffer> {
   const data = Buffer.alloc(ACCOUNT_SIZE);
@@ -42,6 +42,8 @@ async function setup() {
   vi.spyOn(program.account.investorRecord, "fetchNullable").mockResolvedValue(null);
   vi.spyOn(program.account.poolTerms, "fetchNullable").mockResolvedValue(null);
   vi.spyOn(program.account.feeConfig, "fetchNullable").mockResolvedValue(null);
+  vi.spyOn(program.account.instrumentTerms, "fetchNullable").mockResolvedValue(null);
+  vi.spyOn(program.account.instrumentTerms, "all").mockResolvedValue([]);
   const connection = offlineConnection;
   vi.spyOn(connection, "getMultipleAccountsInfo").mockResolvedValue([null]);
   vi.spyOn(connection, "getBalance").mockResolvedValue(5_000_000);
@@ -99,6 +101,39 @@ describe("ChainReader", () => {
     const { reader, program } = await setup();
     vi.mocked(program.account.poolTerms.fetchNullable).mockResolvedValue({ arrangementFeeBps: 200, bump: 254 } as never);
     expect((await reader.getPool("7"))?.arrangementFeeBps).toBe(200);
+  });
+
+  it("has no instrument terms for older pools", async () => {
+    const { reader } = await setup();
+    const detail = await reader.getPool("7");
+    expect(detail?.terms).toBeNull();
+    expect((await reader.listPools())[0]?.terms).toBeNull();
+  });
+
+  it("reads instrument terms and the issuer of record's KYC for pilot pools", async () => {
+    const { reader, program, poolAddr, pool } = await setup();
+    const terms = await roundTrip(program, "instrumentTerms", termsValue({ pool: poolAddr }));
+    vi.mocked(program.account.instrumentTerms.fetchNullable).mockResolvedValue(terms.account as never);
+    vi.mocked(program.account.instrumentTerms.all).mockResolvedValue([{ publicKey: Keypair.generate().publicKey, account: terms.account }] as never);
+    vi.mocked(program.account.investorRecord.fetchNullable).mockImplementation(async (addr) =>
+      String(addr) === investorPda(program.programId, pool.account.issuer).toBase58() ? ({ approved: true } as never) : null,
+    );
+    const detail = await reader.getPool("7");
+    expect(detail?.terms).toMatchObject({
+      unitNominal: "100000000000",
+      couponBpsAnnual: 500,
+      dayCount: "Act360",
+      settlementMode: "Hybrid",
+      volumeKg: "10000000",
+      tokenizedShareBps: 3_000,
+      elevator: "Ust-Kamenogorsk",
+      lab: "Baltic Control",
+      election: null,
+      receiptHash: null,
+      labPassed: false,
+    });
+    expect(detail?.issuerKycApproved).toBe(true);
+    expect((await reader.listPools())[0]?.terms?.couponBpsAnnual).toBe(500);
   });
 
   it("returns null fees while FeeConfig does not exist", async () => {

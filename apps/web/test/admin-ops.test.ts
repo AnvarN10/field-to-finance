@@ -1,4 +1,4 @@
-import { investorPda, poolPda, termsPda } from "@f2f/sdk";
+import { attestationPda, instrumentPda, investorPda, poolPda, termsPda } from "@f2f/sdk";
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Keypair, type PublicKey, type TransactionInstruction } from "@solana/web3.js";
 import BN from "bn.js";
@@ -9,14 +9,17 @@ import {
   createPool,
   createPoolInput,
   disburseAll,
+  electSettlement,
   fundRedemption,
+  recordDelivery,
   nextPoolId,
   revokeInvestor,
   setArrangementFee,
   roleMismatches,
   type OpsContext,
 } from "../src/lib/chain/admin-ops";
-import { ixCoder, offlineProgram, poolValue, projectValue, roundTrip } from "./fixtures/accounts";
+import { fieldValue, ixCoder, offlineProgram, poolValue, projectValue, roundTrip, termsValue } from "./fixtures/accounts";
+import type { FieldAccount, InstrumentTermsAccount } from "../src/lib/chain/views";
 
 const program = offlineProgram();
 const norm = (s: string) => s.replace(/_/g, "").toLowerCase();
@@ -27,7 +30,14 @@ const TREASURY = Keypair.generate().publicKey;
 const FEES = { treasury: TREASURY.toBase58(), networkFee: "500000", mintFee: "3000000", maxArrangementBps: 1_000 };
 
 async function ctx(
-  over: { pool?: Record<string, unknown>; projects?: Record<string, unknown>[]; balances?: Map<string, bigint>; fees?: typeof FEES | null } = {},
+  over: {
+    pool?: Record<string, unknown>;
+    projects?: Record<string, unknown>[];
+    balances?: Map<string, bigint>;
+    fees?: typeof FEES | null;
+    terms?: Record<string, unknown> | null;
+    kyc?: boolean;
+  } = {},
 ) {
   const sent: { role: string; ixs: TransactionInstruction[] }[] = [];
   const pool = (await roundTrip<PoolAccount>(program, "pool", poolValue(over.pool))).account;
@@ -50,6 +60,9 @@ async function ctx(
     tokenBalance: vi.fn(async (a: PublicKey) => over.balances?.get(a.toBase58()) ?? 0n),
     accountExists: vi.fn(async () => false),
     loadFees: vi.fn(async () => (over.fees === undefined ? FEES : over.fees)),
+    loadTerms: vi.fn(async () => (over.terms ? (await roundTrip<InstrumentTermsAccount>(program, "instrumentTerms", termsValue(over.terms))).account : null)),
+    loadField: vi.fn(async () => (await roundTrip<FieldAccount>(program, "field", fieldValue({ attestationCount: 4 }))).account),
+    isKycApproved: vi.fn(async () => over.kyc ?? true),
     now: () => 1_791_000_000,
   };
   return { c, sent, pool, projects };
@@ -189,5 +202,95 @@ describe("helpers", () => {
     const config = { admin: "A", issuer: "I", scas: "S", compliance: "C", usdcMint: "U" };
     expect(roleMismatches(config, { issuer: "I", scas: "S", compliance: "C" })).toEqual([]);
     expect(roleMismatches(config, { scas: "X" })).toEqual(["SCAS key in this deployment is X, but Config.scas on devnet is S"]);
+  });
+});
+
+const FARMER = Keypair.generate().publicKey;
+const pilotPool = {
+  ...validPool,
+  arrangementFeeBps: 0,
+  instrument: {
+    issuerOfRecord: FARMER.toBase58(),
+    unitNominalUsd: 100_000,
+    couponBps: 500,
+    settlementMode: "Hybrid" as const,
+    volumeTonnes: 10_000,
+    tokenizedShareBps: 3_000,
+    elevator: "Ust-Kamenogorsk",
+    lab: "Baltic Control",
+  },
+};
+const SPEC = { hash: "cd".repeat(32), uri: "https://f2f.example/api/evidence/" + "cd".repeat(32) };
+
+describe("pilot pools (ADR 0014)", () => {
+  it("creates the pool and its instrument terms in one Issuer transaction, interest from subscription close", async () => {
+    const { c, sent } = await ctx();
+    await createPool(c, createPoolInput.parse(pilotPool), "https://f2f.example", SPEC);
+    expect(names(sent[0]!.ixs)).toEqual(["createpool", "setinstrumentterms"]);
+    const ix = sent[0]!.ixs[1]!;
+    expect(ix.keys.some((m) => m.pubkey.equals(investorPda(program.programId, FARMER)))).toBe(true);
+    expect(ix.keys.some((m) => m.pubkey.equals(instrumentPda(program.programId, poolPda(program.programId, 7n))))).toBe(true);
+    const a = (ixCoder(program).decode(ix.data)!.data as { args: Record<string, unknown> }).args;
+    expect(String(a.unitNominal)).toBe("100000000000");
+    expect(String(a.volumeKg)).toBe("10000000");
+    expect(String(a.startTs)).toBe(String(1_791_000_000 + 600));
+    expect(a.specUri).toBe(SPEC.uri);
+  });
+
+  it("can backdate the interest start for a compressed demo schedule", async () => {
+    const { c, sent } = await ctx();
+    const input = createPoolInput.parse({ ...pilotPool, instrument: { ...pilotPool.instrument, interestDays: 300 } });
+    await createPool(c, input, "https://f2f.example", SPEC);
+    const a = (ixCoder(program).decode(sent[0]!.ixs[1]!.data)!.data as { args: Record<string, unknown> }).args;
+    expect(String(a.startTs)).toBe(String(1_791_000_000 + 1200 - 300 * 86_400));
+  });
+
+  it("refuses an issuer of record without KYC or a pilot pool without a quality spec", async () => {
+    const noKyc = await ctx({ kyc: false });
+    await expect(createPool(noKyc.c, createPoolInput.parse(pilotPool), "https://f2f.example", SPEC)).rejects.toMatchObject({ status: 422 });
+    await expect(createPool(noKyc.c, createPoolInput.parse(pilotPool), "https://f2f.example")).rejects.toMatchObject({ status: 422 });
+    expect(noKyc.sent).toHaveLength(0);
+  });
+
+  it("validates the term sheet numbers", () => {
+    const bad = (o: Record<string, unknown>) => createPoolInput.safeParse({ ...pilotPool, instrument: { ...pilotPool.instrument, ...o } }).success;
+    expect(bad({ couponBps: 3_001 })).toBe(false);
+    expect(bad({ tokenizedShareBps: 3_001 })).toBe(false);
+    expect(bad({ unitNominalUsd: 0 })).toBe(false);
+    expect(bad({ elevator: "x".repeat(33) })).toBe(false);
+  });
+
+  it("funds a buyback with the Act/360 coupon instead of the flat yield", async () => {
+    // 300 days from start to maturity, $1,000,000 raised.
+    const maturity = 1_790_999_000;
+    const { c } = await ctx({
+      pool: { raisedAmount: new BN("1000000000000"), yieldBps: 1_200, maturityTs: new BN(maturity) },
+      terms: { startTs: new BN(maturity - 300 * 86_400), election: { buyback: {} } },
+    });
+    const r = await fundRedemption(c, 7n);
+    expect(r.required).toBe(1_041_666_666_666n);
+  });
+
+  it("refuses to fund cash redemption once delivery applies", async () => {
+    const { c, sent } = await ctx({ terms: { election: { delivery: {} } } });
+    await expect(fundRedemption(c, 7n)).rejects.toMatchObject({ status: 409 });
+    expect(sent).toHaveLength(0);
+  });
+
+  it("elects settlement as the arranger", async () => {
+    const { c, sent } = await ctx({ terms: {} });
+    await electSettlement(c, 7n, "Buyback");
+    expect(sent[0]?.role).toBe("issuer");
+    expect(names(sent[0]!.ixs)).toEqual(["electsettlement"]);
+  });
+
+  it("records a delivery attestation on the pool's first field at its next sequence", async () => {
+    const { c, sent, pool, projects } = await ctx({ terms: { settlementMode: { grainDelivery: {} } }, projects: [{ fieldCount: 2 }] });
+    void pool;
+    await recordDelivery(c, 7n, { kind: "ElevatorReceipt", verdict: "Pass", evidenceHash: "ef".repeat(32), evidenceUri: "https://f2f.example/api/evidence/x" });
+    expect(names(sent[0]!.ixs)).toEqual(["recorddelivery"]);
+    const field = sent[0]!.ixs[0]!.keys[5]!.pubkey;
+    expect(sent[0]!.ixs[0]!.keys.some((m) => m.pubkey.equals(attestationPda(program.programId, field, 4)))).toBe(true);
+    expect(projects).toHaveLength(1);
   });
 });

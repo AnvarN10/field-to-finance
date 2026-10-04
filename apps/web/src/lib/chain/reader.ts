@@ -1,5 +1,5 @@
 import type { Program } from "@anchor-lang/core";
-import { feesPda, investorPda, poolPda, termsPda, type F2f } from "@f2f/sdk";
+import { feesPda, instrumentPda, investorPda, poolPda, termsPda, type F2f } from "@f2f/sdk";
 import {
   ExtensionType,
   TOKEN_2022_PROGRAM_ID,
@@ -18,6 +18,7 @@ import {
   toAttestationView,
   toConfigView,
   toFieldView,
+  toInstrumentTermsView,
   toPoolView,
   toProjectView,
   type ConfigView,
@@ -89,10 +90,11 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
 
   const listPools = () =>
     cache.get("pools", async () => {
-      const rows = await program.account.pool.all();
+      const [rows, termRows] = await Promise.all([program.account.pool.all(), program.account.instrumentTerms.all()]);
       const meta = await instruments(rows.map((r) => r.account.mint));
+      const termsByPool = new Map(termRows.map((t) => [t.account.pool.toBase58(), toInstrumentTermsView(t.account)]));
       return rows
-        .map((r, i) => toPoolView(r.publicKey, r.account, meta[i] ?? null))
+        .map((r, i) => ({ ...toPoolView(r.publicKey, r.account, meta[i] ?? null), terms: termsByPool.get(r.publicKey.toBase58()) ?? null }))
         .sort((a, b) => (BigInt(b.poolId) > BigInt(a.poolId) ? 1 : -1));
     });
 
@@ -112,11 +114,20 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
         const account = await program.account.pool.fetchNullable(address);
         if (!account) return null;
         const [meta] = await instruments([account.mint]);
-        const [projects, terms] = await Promise.all([
+        const [projects, terms, instrumentTerms, issuerRecord] = await Promise.all([
           withFields(await program.account.farmProject.all([projectsInPool(address)])),
           program.account.poolTerms.fetchNullable(termsPda(programId, address)),
+          program.account.instrumentTerms.fetchNullable(instrumentPda(programId, address)),
+          program.account.investorRecord.fetchNullable(investorPda(programId, account.issuer)),
         ]);
-        return { pool: toPoolView(address, account, meta ?? null), projects, arrangementFeeBps: terms?.arrangementFeeBps ?? 0 };
+        const instrument = instrumentTerms ? toInstrumentTermsView(instrumentTerms) : null;
+        return {
+          pool: { ...toPoolView(address, account, meta ?? null), terms: instrument },
+          projects,
+          arrangementFeeBps: terms?.arrangementFeeBps ?? 0,
+          terms: instrument,
+          issuerKycApproved: issuerRecord?.approved ?? false,
+        };
       }),
 
     getField: (address) =>

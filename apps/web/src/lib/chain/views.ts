@@ -1,5 +1,18 @@
 import type { IdlAccounts } from "@anchor-lang/core";
-import { kindFromAnchor, toHex, verdictFromAnchor, type AttestationKindName, type F2f, type VerdictName } from "@f2f/sdk";
+import {
+  dayCountFromAnchor,
+  electionFromAnchor,
+  kindFromAnchor,
+  settlementModeFromAnchor,
+  toHex,
+  verdictFromAnchor,
+  type AttestationKindName,
+  type DayCountName,
+  type F2f,
+  type SettlementElectionName,
+  type SettlementModeName,
+  type VerdictName,
+} from "@f2f/sdk";
 import type { PublicKey } from "@solana/web3.js";
 import { poolStatusFromAnchor, settlementFromAnchor, type PoolStatusName, type SettlementRuleName } from "./enums";
 
@@ -10,6 +23,28 @@ export type ProjectAccount = Accounts["farmProject"];
 export type FieldAccount = Accounts["field"];
 export type AttestationAccount = Accounts["attestation"];
 export type InvestorRecordAccount = Accounts["investorRecord"];
+export type InstrumentTermsAccount = Accounts["instrumentTerms"];
+
+/** InstrumentTerms (ADR 0014): amounts in USDC base units and kg as strings, hashes as hex (null while zero). */
+export interface InstrumentTermsView {
+  unitNominal: string;
+  couponBpsAnnual: number;
+  dayCount: DayCountName;
+  startTs: number;
+  settlementMode: SettlementModeName;
+  volumeKg: string;
+  tokenizedShareBps: number;
+  qualitySpecHash: string;
+  specUri: string;
+  elevator: string;
+  lab: string;
+  election: SettlementElectionName | null;
+  electedAt: number;
+  receiptHash: string | null;
+  labCertHash: string | null;
+  labPassed: boolean;
+  deliveredKg: string;
+}
 
 export interface ConfigView { admin: string; issuer: string; scas: string; compliance: string; usdcMint: string }
 export interface InstrumentView { name: string; symbol: string; uri: string; supply: string; decimals: number }
@@ -32,6 +67,8 @@ export interface PoolView {
   settledCount: number;
   status: PoolStatusName;
   instrument: InstrumentView | null;
+  /** Term-sheet terms; null for pools created without them, absent when not loaded. */
+  terms?: InstrumentTermsView | null;
 }
 export interface ProjectView {
   address: string;
@@ -74,7 +111,15 @@ export interface AttestationView {
 }
 export type ProjectWithFields = ProjectView & { fields: FieldView[] };
 /** `arrangementFeeBps` comes from the pool's PoolTerms; 0 for pools created before fees (ADR 0013). */
-export interface PoolDetail { pool: PoolView; projects: ProjectWithFields[]; arrangementFeeBps: number }
+export interface PoolDetail {
+  pool: PoolView;
+  projects: ProjectWithFields[];
+  arrangementFeeBps: number;
+  /** InstrumentTerms (ADR 0014); null for pools without them. */
+  terms?: InstrumentTermsView | null;
+  /** Whether `pool.issuer` (the issuer of record) holds an approved KYC record. */
+  issuerKycApproved?: boolean;
+}
 /** FeeConfig (ADR 0013); amounts in USDC base units. */
 export interface FeeView { treasury: string; networkFee: string; mintFee: string; maxArrangementBps: number }
 export type FeeStatus = FeeView & { treasuryUsdc: string };
@@ -179,3 +224,27 @@ export function toAttestationView(address: PublicKey, a: AttestationAccount): At
 }
 
 export type ProducerProject = ProjectWithFields & { poolId: string | null; poolStatus: PoolStatusName | null; symbol: string | null };
+
+const hexOrNull = (bytes: number[]) => (bytes.every((b) => b === 0) ? null : toHex(Uint8Array.from(bytes)));
+
+export function toInstrumentTermsView(a: InstrumentTermsAccount): InstrumentTermsView {
+  return {
+    unitNominal: a.unitNominal.toString(),
+    couponBpsAnnual: a.couponBpsAnnual,
+    dayCount: dayCountFromAnchor(a.dayCount),
+    startTs: a.startTs.toNumber(),
+    settlementMode: settlementModeFromAnchor(a.settlementMode),
+    volumeKg: a.volumeKg.toString(),
+    tokenizedShareBps: a.tokenizedShareBps,
+    qualitySpecHash: toHex(Uint8Array.from(a.qualitySpecHash)),
+    specUri: a.specUri,
+    elevator: a.elevator,
+    lab: a.lab,
+    election: a.election ? electionFromAnchor(a.election) : null,
+    electedAt: a.electedAt.toNumber(),
+    receiptHash: hexOrNull(a.receiptHash),
+    labCertHash: hexOrNull(a.labCertHash),
+    labPassed: a.labPassed,
+    deliveredKg: a.deliveredKg.toString(),
+  };
+}

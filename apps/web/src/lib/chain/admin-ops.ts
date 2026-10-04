@@ -1,9 +1,26 @@
 import type { Program } from "@anchor-lang/core";
-import { MAX_ARRANGEMENT_BPS, MAX_EVIDENCE_URI_LEN, poolPda, type F2f } from "@f2f/sdk";
+import {
+  MAX_ARRANGEMENT_BPS,
+  MAX_COUPON_BPS,
+  MAX_EVIDENCE_URI_LEN,
+  MAX_SHORT_STR_LEN,
+  MAX_TOKENIZED_SHARE_BPS,
+  SETTLEMENT_MODES,
+  effectiveElection,
+  electionFromAnchor,
+  fieldPda,
+  instrumentPda,
+  investorPda,
+  poolPda,
+  redemptionDue,
+  settlementModeFromAnchor,
+  type F2f,
+  type SettlementElectionName,
+  type VerdictName,
+} from "@f2f/sdk";
 import { PublicKey, type TransactionInstruction } from "@solana/web3.js";
 import { z } from "zod";
 import { RequestError } from "../errors";
-import { withYield } from "../format";
 import { poolStatusFromAnchor, type SettlementRuleName } from "./enums";
 import {
   addProjectIx,
@@ -12,17 +29,21 @@ import {
   createPoolIx,
   createUsdcAtaIx,
   disburseIx,
+  electSettlementIx,
   fundRedemptionIx,
+  hexToBytes,
   instrumentAta,
   mintUsdcIx,
   openPoolIx,
+  recordDeliveryIx,
   recordSettlementIx,
   revokeInvestorIx,
   setArrangementFeeIx,
+  setInstrumentTermsIx,
   sweepIx,
   usdcAta,
 } from "./ix";
-import type { ConfigView, FeeView, PoolAccount, ProjectAccount } from "./views";
+import type { ConfigView, FeeView, FieldAccount, InstrumentTermsAccount, PoolAccount, ProjectAccount } from "./views";
 
 export interface OpsContext {
   program: Program<F2f>;
@@ -35,8 +56,39 @@ export interface OpsContext {
   accountExists(account: PublicKey): Promise<boolean>;
   /** FeeConfig (ADR 0013), or null while fees are not configured. */
   loadFees(): Promise<FeeView | null>;
+  /** InstrumentTerms of a pool (ADR 0014), or null. */
+  loadTerms(pool: PublicKey): Promise<InstrumentTermsAccount | null>;
+  loadField(address: PublicKey): Promise<FieldAccount>;
+  /** Whether the wallet's InvestorRecord is approved (platform KYC). */
+  isKycApproved(wallet: PublicKey): Promise<boolean>;
   now(): number;
 }
+
+/** The OpsContext reads every caller builds the same way from a Program. */
+export function programReads(program: Program<F2f>): Pick<OpsContext, "loadTerms" | "loadField" | "isKycApproved"> {
+  return {
+    loadTerms: (pool) => program.account.instrumentTerms.fetchNullable(instrumentPda(program.programId, pool)),
+    loadField: (address) => program.account.field.fetch(address),
+    isKycApproved: async (wallet) => (await program.account.investorRecord.fetchNullable(investorPda(program.programId, wallet)))?.approved ?? false,
+  };
+}
+
+const pubkey = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, "must be a base58 public key");
+
+/** Term-sheet terms (ADR 0014). Amounts in whole USD and tonnes; converted to base units and kg on-chain. */
+export const instrumentInput = z.object({
+  issuerOfRecord: pubkey,
+  unitNominalUsd: z.number().int().min(1, "nominal must be above zero").max(100_000_000),
+  couponBps: z.number().int().min(0).max(MAX_COUPON_BPS, `coupon must be at most ${MAX_COUPON_BPS / 100}%`),
+  settlementMode: z.enum(SETTLEMENT_MODES),
+  volumeTonnes: z.number().int().min(1).max(10_000_000),
+  tokenizedShareBps: z.number().int().min(1).max(MAX_TOKENIZED_SHARE_BPS, `tokenized share must be at most ${MAX_TOKENIZED_SHARE_BPS / 100}%`),
+  elevator: z.string().trim().min(1).max(MAX_SHORT_STR_LEN),
+  lab: z.string().trim().min(1).max(MAX_SHORT_STR_LEN),
+  /** Demo only: start interest this many days before maturity instead of at subscription close. */
+  interestDays: z.number().int().min(1).max(1_830).optional(),
+});
+export type InstrumentInput = z.infer<typeof instrumentInput>;
 
 export const createPoolInput = z
   .object({
@@ -51,17 +103,31 @@ export const createPoolInput = z
     arrangementFeeBps: z.number().int().min(0).max(MAX_ARRANGEMENT_BPS, `arrangement fee must be at most ${MAX_ARRANGEMENT_BPS / 100}%`),
     closeInMinutes: z.number().int().min(1).max(60 * 24 * 30),
     maturityInMinutes: z.number().int().min(2).max(60 * 24 * 365),
+    instrument: instrumentInput.optional(),
   })
   .refine((v) => v.maturityInMinutes > v.closeInMinutes, { message: "maturity must be after subscription close", path: ["maturityInMinutes"] });
 export type CreatePoolInput = z.infer<typeof createPoolInput>;
 
 const poolKey = (ctx: OpsContext, poolId: bigint) => poolPda(ctx.program.programId, poolId);
 
-export async function createPool(ctx: OpsContext, input: CreatePoolInput, publicBaseUrl: string) {
+/** Quality spec JSON already stored in the bucket: its SHA-256 and public URI. */
+export interface StoredSpec {
+  hash: string;
+  uri: string;
+}
+
+export async function createPool(ctx: OpsContext, input: CreatePoolInput, publicBaseUrl: string, spec?: StoredSpec) {
   const poolId = BigInt(input.poolId);
   const uri = `${publicBaseUrl.replace(/\/+$/, "")}/api/instrument/${input.poolId}`;
   if (uri.length > MAX_EVIDENCE_URI_LEN) throw new RequestError("Instrument URI is too long; shorten PUBLIC_BASE_URL", 422);
   await assertArrangementFee(ctx, input.arrangementFeeBps);
+  if (input.instrument) {
+    if (!spec) throw new RequestError("A pilot pool needs its quality spec stored first", 422);
+    if (spec.uri.length > MAX_EVIDENCE_URI_LEN) throw new RequestError("Quality spec URI is too long; shorten PUBLIC_BASE_URL", 422);
+    if (!(await ctx.isKycApproved(new PublicKey(input.instrument.issuerOfRecord)))) {
+      throw new RequestError("The issuer of record has not passed KYC. Approve the farmer first.", 422);
+    }
+  }
   const now = ctx.now();
   const ix = await createPoolIx(ctx.program, {
     issuer: ctx.roles.issuer,
@@ -81,6 +147,32 @@ export async function createPool(ctx: OpsContext, input: CreatePoolInput, public
   // Same transaction: the pool is Draft right after create_pool, which set_arrangement_fee requires.
   if (input.arrangementFeeBps > 0) {
     ixs.push(await setArrangementFeeIx(ctx.program, { issuer: ctx.roles.issuer, pool: poolKey(ctx, poolId), bps: input.arrangementFeeBps }));
+  }
+  if (input.instrument && spec) {
+    const i = input.instrument;
+    const close = now + input.closeInMinutes * 60;
+    const maturity = now + input.maturityInMinutes * 60;
+    // Interest accrues from subscription close, when every investor's money is in (ADR 0014).
+    const startTs = i.interestDays ? maturity - i.interestDays * 86_400 : close;
+    ixs.push(
+      await setInstrumentTermsIx(ctx.program, {
+        arranger: ctx.roles.issuer,
+        pool: poolKey(ctx, poolId),
+        issuerOfRecord: new PublicKey(i.issuerOfRecord),
+        terms: {
+          unitNominal: BigInt(i.unitNominalUsd) * 1_000_000n,
+          couponBpsAnnual: i.couponBps,
+          startTs,
+          settlementMode: i.settlementMode,
+          volumeKg: BigInt(i.volumeTonnes) * 1_000n,
+          tokenizedShareBps: i.tokenizedShareBps,
+          qualitySpecHash: spec.hash,
+          specUri: spec.uri,
+          elevator: i.elevator,
+          lab: i.lab,
+        },
+      }),
+    );
   }
   const signature = await ctx.send("issuer", ixs);
   return { signature, poolId: input.poolId, pool: poolKey(ctx, poolId).toBase58() };
@@ -147,7 +239,20 @@ export async function recordSettlement(ctx: OpsContext, poolId: bigint, project:
 export async function fundRedemption(ctx: OpsContext, poolId: bigint) {
   const pool = poolKey(ctx, poolId);
   const account = await ctx.loadPool(poolId);
-  const required = withYield(BigInt(account.raisedAmount.toString()), account.yieldBps);
+  const termsAccount = await ctx.loadTerms(pool);
+  const maturityTs = account.maturityTs.toNumber();
+  const terms = termsAccount
+    ? {
+        couponBpsAnnual: termsAccount.couponBpsAnnual,
+        startTs: termsAccount.startTs.toNumber(),
+        settlementMode: settlementModeFromAnchor(termsAccount.settlementMode),
+        election: termsAccount.election ? electionFromAnchor(termsAccount.election) : null,
+      }
+    : null;
+  if (terms && effectiveElection(terms, ctx.now(), maturityTs) === "Delivery") {
+    throw new RequestError("Grain delivery applies to this pool; cash redemption is closed.", 409);
+  }
+  const required = redemptionDue(BigInt(account.raisedAmount.toString()), { yieldBps: account.yieldBps, maturityTs }, terms);
   const inVault = await ctx.tokenBalance(account.vault);
   const deficit = required > inVault ? required - inVault : 0n;
   const signatures: string[] = [];
@@ -169,6 +274,41 @@ export async function fundRedemption(ctx: OpsContext, poolId: bigint) {
     ]),
   );
   return { signatures, deposited: deficit, required, maturityPassed: ctx.now() >= account.maturityTs.toNumber() };
+}
+
+/** Hybrid pools: the arranger records the issuer's election (ADR 0014). */
+export async function electSettlement(ctx: OpsContext, poolId: bigint, election: SettlementElectionName): Promise<string> {
+  return ctx.send("issuer", [await electSettlementIx(ctx.program, { signer: ctx.roles.issuer, pool: poolKey(ctx, poolId), election })]);
+}
+
+export interface DeliveryRecordInput {
+  kind: "ElevatorReceipt" | "LabQuality";
+  verdict: VerdictName;
+  /** SHA-256 of the evidence JSON stored in the bucket. */
+  evidenceHash: string;
+  evidenceUri: string;
+}
+
+/** Elevator receipt or lab certificate, recorded by the arranger on field 0 of the pool's first project. */
+export async function recordDelivery(ctx: OpsContext, poolId: bigint, input: DeliveryRecordInput): Promise<string> {
+  const pool = poolKey(ctx, poolId);
+  const [project] = await ctx.loadProjects(pool);
+  if (!project) throw new RequestError("The pool has no projects", 409);
+  const field = fieldPda(ctx.program.programId, project.address, 0);
+  const { attestationCount } = await ctx.loadField(field);
+  return ctx.send("issuer", [
+    await recordDeliveryIx(ctx.program, {
+      signer: ctx.roles.issuer,
+      pool,
+      project: project.address,
+      field,
+      sequence: attestationCount,
+      kind: input.kind,
+      verdict: input.verdict,
+      evidenceHash: hexToBytes(input.evidenceHash),
+      evidenceUri: input.evidenceUri,
+    }),
+  ]);
 }
 
 export async function sweep(ctx: OpsContext, poolId: bigint): Promise<string> {

@@ -13,6 +13,7 @@ import {
   fundRedemption,
   nextPoolId,
   openPool,
+  programReads,
   recordSettlement,
   sweep,
   type OpsContext,
@@ -94,6 +95,7 @@ export async function runFromEnv(source: Record<string, string | undefined> = pr
     accountExists: async (a) => (await connection.getAccountInfo(a, "confirmed")) !== null,
     loadFees: () => reader.fees(),
     now: () => Math.floor(Date.now() / 1000),
+    ...programReads(program),
   };
   const fees = await reader.fees();
   if (!fees) throw new Error("FeeConfig is not initialized; run scripts/devnet-init-fees.ts first");

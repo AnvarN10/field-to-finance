@@ -10,7 +10,7 @@ export function offlineProgram(signer: Keypair = Keypair.generate()): Program<F2
   return new Program<F2f>(F2F_IDL, new AnchorProvider(offlineConnection, new Wallet(signer), { commitment: "confirmed" }));
 }
 
-export type AccountName = "pool" | "farmProject" | "field" | "attestation" | "investorRecord" | "config";
+export type AccountName = "pool" | "farmProject" | "field" | "attestation" | "investorRecord" | "config" | "instrumentTerms";
 
 /** Encodes with the real IDL and decodes back, so fixtures have exactly Anchor's runtime shape. */
 export async function roundTrip<T>(program: Program<F2f>, name: AccountName, value: object): Promise<{ data: Buffer; account: T }> {
@@ -98,4 +98,30 @@ export function attestationValue(o: Partial<Record<string, unknown>> = {}) {
 /** The runtime instruction coder is BorshInstructionCoder; Anchor's InstructionCoder type omits decode. */
 export function ixCoder(program: Program<F2f>) {
   return program.coder.instruction as unknown as { decode(data: Buffer): { name: string; data: unknown } | null };
+}
+
+/** Pilot term sheet InstrumentTerms (ADR 0014). */
+export function termsValue(o: Partial<Record<string, unknown>> = {}) {
+  return {
+    pool: key(),
+    unitNominal: new BN("100000000000"),
+    couponBpsAnnual: 500,
+    dayCount: { act360: {} },
+    startTs: new BN(1_791_000_000),
+    settlementMode: { hybrid: {} },
+    volumeKg: new BN(10_000_000),
+    tokenizedShareBps: 3_000,
+    qualitySpecHash: Array(32).fill(9),
+    specUri: "https://f2f.example/api/evidence/spec",
+    elevator: "Ust-Kamenogorsk",
+    lab: "Baltic Control",
+    election: null,
+    electedAt: new BN(0),
+    receiptHash: Array(32).fill(0),
+    labCertHash: Array(32).fill(0),
+    labPassed: false,
+    deliveredKg: new BN(0),
+    bump: 252,
+    ...o,
+  };
 }
