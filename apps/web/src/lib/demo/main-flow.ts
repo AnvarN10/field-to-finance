@@ -1,8 +1,6 @@
 import { poolPda, projectPda, splitArrangementFee } from "@f2f/sdk";
 import { TOKEN_2022_PROGRAM_ID, createTransferCheckedInstruction } from "@solana/spl-token";
-import { Connection, Keypair, PublicKey, SystemProgram, type TransactionInstruction } from "@solana/web3.js";
-import { cosignAndSend, type SponsorPolicy } from "../chain/sponsor";
-import type { TxAction } from "../chain/user-tx";
+import { Keypair, SystemProgram } from "@solana/web3.js";
 import {
   addProject,
   approveInvestor,
@@ -13,23 +11,16 @@ import {
   fundRedemption,
   nextPoolId,
   openPool,
-  programReads,
   recordSettlement,
   sweep,
-  type OpsContext,
 } from "../chain/admin-ops";
 import { explainChainError } from "../chain/explain";
-import { projectsInPool } from "../chain/filters";
 import { createInstrumentAtaIx, createUsdcAtaIx, instrumentAta, mintUsdcIx, redeemIx, registerFieldIx, registerProjectIx, subscribeIx, usdcAta } from "../chain/ix";
-import { createProgram } from "../chain/program";
-import { createChainReader } from "../chain/reader";
-import { buildV0, bytesToBase64, confirmOrThrow, sendServerTx, sendSkippingPreflight } from "../chain/send";
-import { parseServerEnv } from "../env";
-import { explorerAddress, explorerTx, formatUsd, withYield } from "../format";
-import { parseKeypair } from "../keys";
+import { sendSkippingPreflight } from "../chain/send";
+import { explorerAddress, formatUsd, withYield } from "../format";
 import { uploadPolygon } from "../polygons";
-import { attestStage, attestStub, type StubDeps } from "../scas-stub";
-import { S3Store, polygonKey } from "../store";
+import { attestStage, attestStub } from "../scas-stub";
+import { createDemoContext } from "./context";
 import { DEMO_FIELDS } from "./fields";
 
 export const DEMO_TARGET = 2_000_000_000n; // $2,000.00
@@ -52,80 +43,8 @@ const RPC_BREATHER_MS = 4_000;
 const sleep =(ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function runFromEnv(source: Record<string, string | undefined> = process.env, log: (line: string) => void = console.log) {
-  const env = parseServerEnv(source);
-  const missingBucket = (["BUCKET_NAME", "BUCKET_ENDPOINT", "BUCKET_ACCESS_KEY_ID", "BUCKET_SECRET_ACCESS_KEY"] as const).filter((k) => !env[k]);
-  if (missingBucket.length) throw new Error(`Set ${missingBucket.join(", ")} (Railway bucket credentials) before running the demo`);
-  const cluster = env.SOLANA_CLUSTER;
-  const tx = (sig: string) => explorerTx(sig, cluster);
-  const connection = new Connection(env.SOLANA_RPC_URL, "confirmed");
-  const programId = new PublicKey(env.F2F_PROGRAM_ID);
-  const usdcMint = new PublicKey(env.USDC_MINT);
-  const program = createProgram(connection, programId);
-  const reader = createChainReader({ program, connection, usdcMint, ttlMs: 0 });
-  const store = new S3Store({
-    bucket: env.BUCKET_NAME as string,
-    endpoint: env.BUCKET_ENDPOINT as string,
-    region: env.BUCKET_REGION,
-    accessKeyId: env.BUCKET_ACCESS_KEY_ID as string,
-    secretAccessKey: env.BUCKET_SECRET_ACCESS_KEY as string,
-    forcePathStyle: env.BUCKET_FORCE_PATH_STYLE,
-  });
-  const keys = {
-    deployer: parseKeypair("F2F_DEPLOYER_KEYPAIR", env.F2F_DEPLOYER_KEYPAIR),
-    issuer: parseKeypair("F2F_ISSUER_KEYPAIR", env.F2F_ISSUER_KEYPAIR),
-    compliance: parseKeypair("F2F_COMPLIANCE_KEYPAIR", env.F2F_COMPLIANCE_KEYPAIR),
-    scas: parseKeypair("SCAS_SECRET_KEY", env.SCAS_SECRET_KEY),
-    sponsor: parseKeypair("F2F_SPONSOR_KEYPAIR", env.F2F_SPONSOR_KEYPAIR),
-  };
-  const send = (signers: Keypair[], ixs: TransactionInstruction[]) => sendServerTx(connection, signers, ixs);
-  const ops: OpsContext = {
-    program,
-    usdcMint,
-    roles: { issuer: keys.issuer.publicKey, compliance: keys.compliance.publicKey, deployer: keys.deployer.publicKey },
-    send: (role, ixs) => send([keys[role]], ixs),
-    loadPool: async (id) => program.account.pool.fetch(poolPda(programId, id)),
-    loadProjects: async (pool) => (await program.account.farmProject.all([projectsInPool(pool)])).map((r) => ({ address: r.publicKey, account: r.account })),
-    tokenBalance: async (a) => {
-      try {
-        return BigInt((await connection.getTokenAccountBalance(a, "confirmed")).value.amount);
-      } catch {
-        return 0n;
-      }
-    },
-    accountExists: async (a) => (await connection.getAccountInfo(a, "confirmed")) !== null,
-    loadFees: () => reader.fees(),
-    now: () => Math.floor(Date.now() / 1000),
-    ...programReads(program),
-  };
-  const fees = await reader.fees();
-  if (!fees) throw new Error("FeeConfig is not initialized; run scripts/devnet-init-fees.ts first");
-  const treasury = new PublicKey(fees.treasury);
-  const treasuryUsdc = usdcAta(usdcMint, treasury, true);
-  const treasuryStart = await ops.tokenBalance(treasuryUsdc);
-  const policy: SponsorPolicy = { program, sponsor: keys.sponsor.publicKey, usdcMint, treasury, mintFee: BigInt(fees.mintFee) };
-  /** The production path (ADR 0013): the user signs, the sponsor validates, co-signs as fee payer and submits. */
-  const sponsored = async (action: TxAction, user: Keypair, ixs: TransactionInstruction[]) => {
-    const { tx: unsigned, blockhash, lastValidBlockHeight } = await buildV0(connection, keys.sponsor.publicKey, ixs);
-    unsigned.sign([user]);
-    const signature = await cosignAndSend(
-      { policy, sponsorKey: keys.sponsor, connection, polygonExists: async (h) => (await store.get(polygonKey(h))) !== null, allowRent: () => 0 },
-      action,
-      bytesToBase64(unsigned.serialize()),
-    );
-    await confirmOrThrow(connection, signature, blockhash, lastValidBlockHeight);
-    return signature;
-  };
-  const treasuryGain = async () => (await ops.tokenBalance(treasuryUsdc)) - treasuryStart;
-  const stub: StubDeps = {
-    program,
-    readField: (a) => program.account.field.fetchNullable(a),
-    send: (ixs) => send([keys.scas], ixs),
-    store,
-    scas: keys.scas.publicKey,
-    publicBaseUrl: env.PUBLIC_BASE_URL,
-    cluster,
-  };
-
+  const { env, cluster, tx, connection, programId, usdcMint, program, reader, store, keys, send, ops, fees, treasury, treasuryUsdc, sponsored, treasuryGain, stub } =
+    await createDemoContext(source);
   let n = 0;
   const scene = (title: string, url?: string) => log(sceneLine(++n, title, url));
 
