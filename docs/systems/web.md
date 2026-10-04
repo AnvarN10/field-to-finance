@@ -51,7 +51,8 @@ Pool, Instrument, Farm Project, Field, Attestation, KYC Thaw, Shortfall. See the
 
 | Route | Who | Purpose |
 | --- | --- | --- |
-| `/`, `/pools`, `/pools/[poolId]`, `/fields/[address]` | public | read views |
+| every route except `/api/health` | holders of the basic auth credentials | HTTP Basic Auth gate in `src/proxy.ts` ([ADR 0015](../architecture/decisions/0015-basic-auth-on-the-pilot-platform.md)) |
+| `/`, `/pools`, `/pools/[poolId]`, `/fields/[address]` | anyone past basic auth | read views |
 | `/farmer`, `/portfolio` | Producer, investor | write flows signed in the browser |
 | `/admin`, `/admin/login` | demo operator | server actions with server-held keys |
 | `GET /api/health` | Railway | liveness, no devnet call |
@@ -86,9 +87,11 @@ Program and wallet errors go through `explainChainError` into a title, a detail 
 
 ## Security and privacy notes
 
+- **Basic auth** ([ADR 0015](../architecture/decisions/0015-basic-auth-on-the-pilot-platform.md)). `src/proxy.ts` runs on every request (no matcher: pages, server actions, API routes, static files) and asks for `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD`, compared in constant time. Only `/api/health` is public, matched exactly. In production with either variable unset everything else answers 503 (fail closed); outside production unset variables turn the gate off. Same-origin browser fetches carry the cached credentials. Wallets and other outside clients cannot read `/api/instrument/<poolId>` or evidence URIs.
+
 - The demo console is protected by `ADMIN_PASSWORD` (HMAC session cookie, httpOnly, SameSite strict). It is a demo control, not production auth.
 - Mock KYC values are validated and discarded; nothing personal is stored, logged or sent to analytics.
-- Evidence and polygons are public. Do not upload real pilot contours without the farmers' consent.
+- Evidence and polygons are readable by anyone past basic auth. The user approved real pilot farm data behind basic auth (2026-10-05); identifiers (BIN, cadastral numbers, farm name) stay out of the repository.
 - The gas sponsor key only co-signs validated user transactions (see above). `/api/tx/send` allows 20 requests per IP per 10 minutes and 300 per hour in total, plus the per-wallet rent budget above (all limiters are in process); preflight keeps failing transactions from costing fees. Each new Instrument, project or field account costs the sponsor rent, so its balance is on the admin console with a low-balance warning.
 - The faucet mints only test USDC (SOL top-up off unless `FAUCET_SOL=true`). Limits: 60 s per wallet, 3 requests per IP per 10 minutes, 30 per hour in total. Mock KYC: 5 approvals per IP per 10 minutes, 60 per hour in total, and an already approved wallet costs nothing. Both protect the deployer and compliance balances from fresh-wallet loops.
 - A set but malformed role key fails the server boot (`assertRoleKeys` in `src/instrumentation.ts`), so the Railway healthcheck fails instead of serving a broken console; the admin console names a missing or malformed key by variable.
