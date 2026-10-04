@@ -52,3 +52,13 @@ pub mod set_arrangement_fee;
 
 pub use fee_config::*;
 pub use set_arrangement_fee::*;
+
+pub mod set_instrument_terms;
+pub mod elect_settlement;
+pub mod record_delivery;
+pub mod redeem_delivery;
+
+pub use set_instrument_terms::*;
+pub use elect_settlement::*;
+pub use record_delivery::*;
+pub use redeem_delivery::*;

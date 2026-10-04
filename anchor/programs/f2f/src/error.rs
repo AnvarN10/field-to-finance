@@ -72,4 +72,35 @@ pub enum F2fError {
     InvalidTreasury,
     #[msg("A fee is due but its accounts were not provided")]
     MissingFeeAccount,
+    // Appended for instrument terms (ADR 0014); existing codes keep their numbers.
+    #[msg("Issuer of record has no approved KYC record")]
+    IssuerNotApproved,
+    #[msg("Project or terms do not match the pool's issuer of record")]
+    IssuerMismatch,
+    #[msg("Instrument terms are invalid")]
+    InvalidTerms,
+    #[msg("Coupon is above the allowed cap")]
+    InvalidCoupon,
+    #[msg("Day count is not supported")]
+    UnsupportedDayCount,
+    #[msg("Amount must be a whole number of tokens")]
+    NotWholeTokens,
+    #[msg("Pool target must be a whole number of tokens")]
+    TargetNotWholeTokens,
+    #[msg("Settlement election applies only to Hybrid instruments")]
+    NotHybrid,
+    #[msg("Settlement was already elected")]
+    AlreadyElected,
+    #[msg("Settlement election closed at maturity")]
+    ElectionClosed,
+    #[msg("Grain delivery is not the settlement for this pool")]
+    DeliveryNotElected,
+    #[msg("Grain delivery was elected; cash redemption is closed")]
+    DeliveryElected,
+    #[msg("Elevator receipt and a passing lab certificate are required")]
+    DeliveryNotAttested,
+    #[msg("Attestation kind is not allowed here")]
+    InvalidAttestationKind,
+    #[msg("Maturity has not been reached")]
+    NotMatured,
 }

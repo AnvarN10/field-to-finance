@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{constants::BPS, error::F2fError};
+use crate::{constants::{ACT360_YEAR_DAYS, BPS, SECONDS_PER_DAY}, error::F2fError};
 
 /// `amount * (1 + yield_bps / 10_000)`, computed in u128 so large pools cannot wrap.
 pub fn with_yield(amount: u64, yield_bps: u16) -> Result<u64> {
@@ -24,6 +24,22 @@ pub fn split_fee(amount: u64, bps: u16) -> Result<(u64, u64)> {
     let fee = bps_fee(amount, bps)?;
     let net = amount.checked_sub(fee).ok_or(F2fError::MathOverflow)?;
     Ok((fee, net))
+}
+
+/// Whole days from `start_ts` to `maturity_ts` (Act: actual elapsed days, partial days dropped).
+pub fn actual_days(start_ts: i64, maturity_ts: i64) -> Result<u64> {
+    require!(maturity_ts >= start_ts, F2fError::InvalidSchedule);
+    let secs = maturity_ts.checked_sub(start_ts).ok_or(F2fError::MathOverflow)?;
+    Ok((secs / SECONDS_PER_DAY) as u64)
+}
+
+/// `amount × (1 + coupon_bps / 10_000 × days / 360)`, Act/360, in u128, rounded down.
+pub fn with_coupon(amount: u64, coupon_bps: u16, days: u64) -> Result<u64> {
+    // amount × (10_000 × 360 + coupon × days) / (10_000 × 360): one division, so one floor.
+    let denom = BPS as u128 * ACT360_YEAR_DAYS as u128;
+    let factor = (coupon_bps as u128).checked_mul(days as u128).and_then(|i| i.checked_add(denom)).ok_or(F2fError::MathOverflow)?;
+    let v = (amount as u128).checked_mul(factor).ok_or(F2fError::MathOverflow)? / denom;
+    u64::try_from(v).map_err(|_| error!(F2fError::MathOverflow))
 }
 
 #[cfg(test)]

@@ -90,6 +90,7 @@ pub fn pda_attestation(field: &Pubkey, seq: u32) -> Pubkey {
 pub fn pda_investor(wallet: &Pubkey) -> Pubkey { pda(&[f2f::INVESTOR_SEED, wallet.as_ref()]) }
 pub fn pda_fees() -> Pubkey { pda(&[f2f::FEES_SEED]) }
 pub fn pda_terms(pool: &Pubkey) -> Pubkey { pda(&[f2f::TERMS_SEED, pool.as_ref()]) }
+pub fn pda_instrument(pool: &Pubkey) -> Pubkey { pda(&[f2f::INSTRUMENT_SEED, pool.as_ref()]) }
 
 pub fn ata(owner: &Pubkey, mint: &Pubkey, token_program: &Pubkey) -> Pubkey {
     get_associated_token_address_with_program_id(owner, mint, token_program)
@@ -323,7 +324,12 @@ pub fn add_project_ix(env: &Env, pool_id: u64, project: Pubkey) -> Instruction {
 pub fn open_pool_ix(env: &Env, pool_id: u64) -> Instruction {
     ix(
         f2f::instruction::OpenPool {},
-        f2f::accounts::OpenPool { issuer: env.issuer.pubkey(), config: pda_config(), pool: pda_pool(pool_id) },
+        f2f::accounts::OpenPool {
+            issuer: env.issuer.pubkey(),
+            config: pda_config(),
+            pool: pda_pool(pool_id),
+            instrument_terms: pda_instrument(&pda_pool(pool_id)),
+        },
     )
 }
 
@@ -374,6 +380,7 @@ pub fn subscribe_full_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64,
             vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
             fee_config: pda_fees(),
             treasury_usdc,
+            instrument_terms: pda_instrument(&pool),
             token_program: TOKEN_2022,
             usdc_token_program: SPL_TOKEN,
             associated_token_program: spl_associated_token_account_interface::program::ID,
@@ -453,16 +460,22 @@ pub fn settle_ix(env: &Env, pool_id: u64, project: Pubkey, rule: f2f::Settlement
 }
 
 pub fn fund_redemption_ix(env: &Env, pool_id: u64, amount: u64) -> Instruction {
+    fund_redemption_by_ix(env, env.issuer.pubkey(), pool_id, amount)
+}
+
+/// `signer` funds from its own USDC ATA: the arranger (Config.issuer) or the pool's issuer of record.
+pub fn fund_redemption_by_ix(env: &Env, signer: Pubkey, pool_id: u64, amount: u64) -> Instruction {
     let pool = pda_pool(pool_id);
     ix(
         f2f::instruction::FundRedemption { amount },
         f2f::accounts::FundRedemption {
-            issuer: env.issuer.pubkey(),
+            issuer: signer,
             config: pda_config(),
             pool,
             usdc_mint: env.usdc_mint.pubkey(),
-            issuer_usdc: ata(&env.issuer.pubkey(), &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            issuer_usdc: ata(&signer, &env.usdc_mint.pubkey(), &SPL_TOKEN),
             vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            instrument_terms: pda_instrument(&pool),
             usdc_token_program: SPL_TOKEN,
         },
     )
@@ -481,6 +494,7 @@ pub fn redeem_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64) -> Inst
             usdc_mint: env.usdc_mint.pubkey(),
             investor_usdc: ata(&investor, &env.usdc_mint.pubkey(), &SPL_TOKEN),
             vault: ata(&pool, &env.usdc_mint.pubkey(), &SPL_TOKEN),
+            instrument_terms: pda_instrument(&pool),
             token_program: TOKEN_2022,
             usdc_token_program: SPL_TOKEN,
         },
@@ -593,4 +607,137 @@ pub fn set_arrangement_fee_ix(env: &Env, issuer: Pubkey, pool_id: u64, bps: u16)
             system_program: system_program::ID,
         },
     )
+}
+
+// ---- Instrument terms (ADR 0014) ----
+
+pub const NOMINAL: u64 = 100_000 * USDC;
+
+/// The pilot term sheet: $100,000 per token, 5% a year Act/360, hybrid settlement, 10,000 t, 30% tokenized.
+pub fn pilot_terms_args(start_ts: i64) -> f2f::InstrumentTermsArgs {
+    f2f::InstrumentTermsArgs {
+        unit_nominal: NOMINAL,
+        coupon_bps_annual: 500,
+        day_count: f2f::DayCount::Act360,
+        start_ts,
+        settlement_mode: f2f::SettlementMode::Hybrid,
+        volume_kg: 10_000_000,
+        tokenized_share_bps: 3_000,
+        quality_spec_hash: [9; 32],
+        spec_uri: "https://f2f.example/api/evidence/spec.json".to_string(),
+        elevator: "Ust-Kamenogorsk".to_string(),
+        lab: "Baltic Control".to_string(),
+    }
+}
+
+pub fn set_instrument_terms_ix(env: &Env, signer: Pubkey, pool_id: u64, issuer_of_record: Pubkey, args: f2f::InstrumentTermsArgs) -> Instruction {
+    let _ = env;
+    let pool = pda_pool(pool_id);
+    ix(
+        f2f::instruction::SetInstrumentTerms { args },
+        f2f::accounts::SetInstrumentTerms {
+            arranger: signer,
+            config: pda_config(),
+            pool,
+            issuer_of_record,
+            issuer_record: pda_investor(&issuer_of_record),
+            instrument_terms: pda_instrument(&pool),
+            system_program: system_program::ID,
+        },
+    )
+}
+
+pub fn elect_settlement_ix(env: &Env, signer: Pubkey, pool_id: u64, election: f2f::SettlementElection) -> Instruction {
+    let _ = env;
+    let pool = pda_pool(pool_id);
+    ix(
+        f2f::instruction::ElectSettlement { election },
+        f2f::accounts::ElectSettlement { signer, config: pda_config(), pool, instrument_terms: pda_instrument(&pool) },
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn record_delivery_ix(
+    env: &Env,
+    signer: Pubkey,
+    pool_id: u64,
+    project: Pubkey,
+    field_index: u8,
+    seq: u32,
+    kind: f2f::AttestationKind,
+    verdict: f2f::Verdict,
+    evidence_hash: [u8; 32],
+) -> Instruction {
+    let _ = env;
+    let pool = pda_pool(pool_id);
+    let field = pda_field(&project, field_index);
+    ix(
+        f2f::instruction::RecordDelivery { kind, verdict, evidence_hash, evidence_uri: "https://f2f.example/api/evidence/receipt.json".to_string() },
+        f2f::accounts::RecordDelivery {
+            signer,
+            config: pda_config(),
+            pool,
+            instrument_terms: pda_instrument(&pool),
+            project,
+            field,
+            attestation: pda_attestation(&field, seq),
+            system_program: system_program::ID,
+        },
+    )
+}
+
+pub fn redeem_delivery_ix(env: &Env, pool_id: u64, investor: Pubkey, amount: u64) -> Instruction {
+    let _ = env;
+    let pool = pda_pool(pool_id);
+    let mint = pda_mint(&pool);
+    ix(
+        f2f::instruction::RedeemDelivery { amount },
+        f2f::accounts::RedeemDelivery {
+            investor,
+            pool,
+            instrument_terms: pda_instrument(&pool),
+            mint,
+            investor_instrument: ata(&investor, &mint, &TOKEN_2022),
+            token_program: TOKEN_2022,
+        },
+    )
+}
+
+/// Pilot-style pool 1: the producer is KYC-approved and becomes the issuer of record; one verified
+/// two-field project of 10,000 t asking $1,000,000; pilot terms starting now; opened.
+pub fn seed_pilot_pool(env: &mut Env, mode: f2f::SettlementMode) -> (Pubkey, Pubkey) {
+    let producer = env.producer.insecure_clone();
+    let issuer = env.issuer.insecure_clone();
+    let compliance = env.compliance.insecure_clone();
+    let project = pda_project(&producer.pubkey(), 1);
+    env.send(&[register_project_ix(env, 1, "wheat", 2027, 10_000_000, 1_000_000 * USDC)], &producer, &[]).unwrap();
+    for i in 0..2u8 {
+        env.send(&[register_field_ix(env, project, i, [i + 1; 32], 100_000)], &producer, &[]).unwrap();
+    }
+    verify_all_fields(env, project, 2);
+    env.send(&[approve_ix(env, producer.pubkey())], &compliance, &[]).unwrap();
+    let args = default_pool_args(env);
+    let mut terms = pilot_terms_args(now(&env.svm));
+    terms.settlement_mode = mode;
+    env.send(
+        &[create_pool_ix(env, 1, args), set_instrument_terms_ix(env, issuer.pubkey(), 1, producer.pubkey(), terms)],
+        &issuer,
+        &[],
+    )
+    .unwrap();
+    env.send(&[add_project_ix(env, 1, project), open_pool_ix(env, 1)], &issuer, &[]).unwrap();
+    (pda_pool(1), project)
+}
+
+/// Pilot pool fully subscribed ($1,000,000 = 10 tokens) by `env.investor`, closed (Funded) and disbursed.
+pub fn seed_pilot_funded(env: &mut Env, mode: f2f::SettlementMode) -> (Pubkey, Pubkey) {
+    let (pool, project) = seed_pilot_pool(env, mode);
+    let investor = env.investor.insecure_clone();
+    let compliance = env.compliance.insecure_clone();
+    let issuer = env.issuer.insecure_clone();
+    fund_usdc(env, &investor.pubkey(), 1_000_000 * USDC);
+    env.send(&[approve_ix(env, investor.pubkey())], &compliance, &[]).unwrap();
+    env.send(&[subscribe_ix(env, 1, investor.pubkey(), 1_000_000 * USDC), close_ix(env, 1, investor.pubkey())], &investor, &[]).unwrap();
+    env.send(&[disburse_ix(env, 1, project)], &issuer, &[]).unwrap();
+    (pool, project)
 }

@@ -22,6 +22,10 @@ pub fn handle_add_project(ctx: Context<AddProject>) -> Result<()> {
     require!(project.crop == pool.crop && project.season == pool.season, F2fError::CropMismatch);
     require!(project.field_count > 0, F2fError::NoFields);
     require!(project.verified_field_count == project.field_count, F2fError::FieldsNotVerified);
+    // A farmer-issued pool (issuer of record set by set_instrument_terms) holds only that farmer's projects.
+    if pool.issuer != ctx.accounts.config.issuer {
+        require_keys_eq!(project.producer, pool.issuer, F2fError::IssuerMismatch);
+    }
     pool.target_amount = pool.target_amount.checked_add(project.requested_amount).ok_or(F2fError::MathOverflow)?;
     pool.project_count += 1;
     project.pool = Some(pool.key());

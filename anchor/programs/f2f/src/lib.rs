@@ -2,6 +2,7 @@ pub mod constants;
 pub mod error;
 pub mod events;
 pub mod fees;
+pub mod instrument;
 pub mod instructions;
 pub mod math;
 pub mod state;
@@ -112,5 +113,27 @@ pub mod f2f {
 
     pub fn set_arrangement_fee(ctx: Context<SetArrangementFee>, bps: u16) -> Result<()> {
         instructions::set_arrangement_fee::handle_set_arrangement_fee(ctx, bps)
+    }
+
+    pub fn set_instrument_terms(ctx: Context<SetInstrumentTerms>, args: InstrumentTermsArgs) -> Result<()> {
+        instructions::set_instrument_terms::handle_set_instrument_terms(ctx, args)
+    }
+
+    pub fn elect_settlement(ctx: Context<ElectSettlement>, election: SettlementElection) -> Result<()> {
+        instructions::elect_settlement::handle_elect_settlement(ctx, election)
+    }
+
+    pub fn record_delivery(
+        ctx: Context<RecordDelivery>,
+        kind: AttestationKind,
+        verdict: Verdict,
+        evidence_hash: [u8; 32],
+        evidence_uri: String,
+    ) -> Result<()> {
+        instructions::record_delivery::handle_record_delivery(ctx, kind, verdict, evidence_hash, evidence_uri)
+    }
+
+    pub fn redeem_delivery(ctx: Context<RedeemDelivery>, amount: u64) -> Result<()> {
+        instructions::redeem_delivery::handle_redeem_delivery(ctx, amount)
     }
 }

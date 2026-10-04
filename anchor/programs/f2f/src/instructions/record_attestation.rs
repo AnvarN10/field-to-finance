@@ -37,6 +37,8 @@ pub fn handle_record_attestation(
     scene_date: i64,
 ) -> Result<()> {
     require!(evidence_uri.len() <= MAX_URI_LEN, F2fError::StringTooLong);
+    // Delivery kinds go through record_delivery, which also updates InstrumentTerms.
+    require!(!matches!(kind, AttestationKind::ElevatorReceipt | AttestationKind::LabQuality), F2fError::InvalidAttestationKind);
     require!((-NDVI_SCALE..=NDVI_SCALE).contains(&ndvi_mean_x10k), F2fError::InvalidNdvi);
     let field = &mut ctx.accounts.field;
     let project = &mut ctx.accounts.project;

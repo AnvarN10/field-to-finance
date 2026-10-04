@@ -10,6 +10,7 @@ use crate::{
     error::F2fError,
     events::NetworkFeeCharged,
     fees::{checked_treasury, load_fee_config, pay_fee},
+    instrument::load_instrument_terms,
     state::{InvestorRecord, Pool, PoolStatus},
 };
 
@@ -46,6 +47,9 @@ pub struct Subscribe<'info> {
     pub fee_config: UncheckedAccount<'info>,
     #[account(mut)]
     pub treasury_usdc: Option<InterfaceAccount<'info, TokenAccount>>,
+    /// CHECK: InstrumentTerms PDA. When initialized, subscriptions must be whole tokens.
+    #[account(seeds = [INSTRUMENT_SEED, pool.key().as_ref()], bump)]
+    pub instrument_terms: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
     pub usdc_token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -58,6 +62,9 @@ pub fn handle_subscribe(ctx: Context<Subscribe>, amount: u64) -> Result<()> {
     let pool = &ctx.accounts.pool;
     require!(pool.status == PoolStatus::Open, F2fError::PoolNotOpen);
     require!(Clock::get()?.unix_timestamp < pool.subscription_close_ts, F2fError::SubscriptionClosed);
+    if let Some(terms) = load_instrument_terms(&ctx.accounts.instrument_terms)? {
+        require!(amount % terms.unit_nominal == 0, F2fError::NotWholeTokens);
+    }
     let new_raised = pool.raised_amount.checked_add(amount).ok_or(F2fError::MathOverflow)?;
     require!(new_raised <= pool.target_amount, F2fError::ExceedsTarget);
 

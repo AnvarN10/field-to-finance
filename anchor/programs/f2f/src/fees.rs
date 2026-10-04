@@ -8,7 +8,7 @@ use crate::{error::F2fError, state::{FeeConfig, PoolTerms}};
 /// Reads an account at a PDA address the caller already verified with a `seeds` constraint.
 /// Returns `None` while the account does not exist, so deployments without it keep working,
 /// but a client cannot dodge a fee by omitting it: the address is fixed.
-fn load_optional<T: AccountDeserialize + Owner>(info: &AccountInfo) -> Result<Option<T>> {
+pub(crate) fn load_optional<T: AccountDeserialize + Owner>(info: &AccountInfo) -> Result<Option<T>> {
     if info.data_is_empty() || info.owner != &T::owner() {
         return Ok(None);
     }
