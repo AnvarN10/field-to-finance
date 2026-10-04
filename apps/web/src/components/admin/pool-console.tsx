@@ -15,6 +15,8 @@ import { ExplorerLink } from "../explorer-link";
 import { PoolStatusBadge } from "../status-badge";
 import { ActionButton } from "./action-button";
 import { SettlementForm } from "./settlement-form";
+import { TermSheetConsole } from "./term-sheet-console";
+import { settlementStatus } from "../../lib/instrument-terms";
 import { WalletActionForm } from "./wallet-action-form";
 
 export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unpooled: ProjectWithFields[]; now: number }) {
@@ -29,7 +31,9 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
   const seasonBlocker = seasonAttestationBlocker(s, projects.length);
   const closeBlocker = closeSubscriptionBlocker(s, closeReady);
   const disburseReason = disburseBlocker(s, allDisbursed);
-  const fundReason = fundRedemptionBlocker(s);
+  const terms = detail.terms ?? null;
+  const deliveryApplies = terms ? settlementStatus(pool, terms, now).election === "Delivery" : false;
+  const fundReason = deliveryApplies ? "Grain delivery applies: holders claim grain, not cash" : fundRedemptionBlocker(s);
 
   return (
     <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6">
@@ -41,7 +45,7 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
         </div>
       </header>
       <p className="tabular text-sm text-muted-foreground">
-        {`${formatUsd(pool.raisedAmount)} of ${formatUsd(pool.targetAmount)}. Closes ${formatDateUtc(pool.subscriptionCloseTs)} (${relativeTime(pool.subscriptionCloseTs, now * 1000)}). Matures ${formatDateUtc(pool.maturityTs)} (${relativeTime(pool.maturityTs, now * 1000)}). Arrangement fee ${formatYield(detail.arrangementFeeBps)}.`}
+        {`${terms ? `Term sheet: farmer issuer, ${BigInt(pool.targetAmount) / BigInt(terms.unitNominal)} tokens of ${formatUsd(terms.unitNominal)}, coupon ${formatYield(terms.couponBpsAnnual)} Act/360. ` : ""}${formatUsd(pool.raisedAmount)} of ${formatUsd(pool.targetAmount)}. Closes ${formatDateUtc(pool.subscriptionCloseTs)} (${relativeTime(pool.subscriptionCloseTs, now * 1000)}). Matures ${formatDateUtc(pool.maturityTs)} (${relativeTime(pool.maturityTs, now * 1000)}). Arrangement fee ${formatYield(detail.arrangementFeeBps)}.`}
       </p>
 
       {/* min-w-0 lets long select options and inputs shrink instead of widening the page at 390px. */}
@@ -99,6 +103,8 @@ export function PoolConsole({ detail, unpooled, now }: { detail: PoolDetail; unp
           <ActionButton label="Sweep vault remainder" role="Issuer" action={sweepAction.bind(null, id)} confirmText="Return the vault remainder to the Issuer?" disabled={s !== "Redeeming" || supply !== 0n} disabledReason={s !== "Redeeming" ? "Needs a Redeeming pool" : supply !== 0n ? "Investors still hold the Instrument" : undefined} />
           <WalletActionForm poolId={id} mode="revoke" />
         </div>
+
+        {terms ? <TermSheetConsole pool={pool} terms={terms} now={now} /> : null}
       </div>
     </section>
   );

@@ -42,6 +42,8 @@ export interface ChainReader {
   investor(wallet: string): Promise<InvestorState>;
   /** FeeConfig plus the treasury's USDC balance; null until fees are configured. */
   fees(): Promise<FeeStatus | null>;
+  /** The subset of `wallets` whose InvestorRecord is approved (platform KYC). */
+  approvedWallets(wallets: string[]): Promise<string[]>;
   invalidate(): void;
 }
 
@@ -215,6 +217,12 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
           treasuryUsdc: balance.toString(),
         };
       }),
+
+    approvedWallets: async (wallets) => {
+      if (wallets.length === 0) return [];
+      const records = await program.account.investorRecord.fetchMultiple(wallets.map((w) => investorPda(programId, new PublicKey(w))));
+      return wallets.filter((_, i) => records[i]?.approved === true);
+    },
 
     invalidate: () => cache.clear(),
   };

@@ -136,6 +136,15 @@ describe("ChainReader", () => {
     expect((await reader.listPools())[0]?.terms?.couponBpsAnnual).toBe(500);
   });
 
+  it("lists which wallets hold an approved KYC record", async () => {
+    const { reader, program } = await setup();
+    const a = Keypair.generate().publicKey;
+    const b = Keypair.generate().publicKey;
+    vi.spyOn(program.account.investorRecord, "fetchMultiple").mockResolvedValue([{ approved: true }, null] as never);
+    expect(await reader.approvedWallets([a.toBase58(), b.toBase58()])).toEqual([a.toBase58()]);
+    expect(await reader.approvedWallets([])).toEqual([]);
+  });
+
   it("returns null fees while FeeConfig does not exist", async () => {
     const { reader } = await setup();
     expect(await reader.fees()).toBeNull();

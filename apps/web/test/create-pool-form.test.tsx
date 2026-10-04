@@ -75,3 +75,41 @@ describe("CreatePoolForm", () => {
     expect(createPoolAction).toHaveBeenCalledWith(expect.objectContaining({ arrangementFeeBps: 0 }));
   });
 });
+
+describe("CreatePoolForm for a pilot term sheet (ADR 0014)", () => {
+  const farmer = "9syreF6kWfmMfoCkTSE8f7p3kRY1Bh7TSDjGAr9s6Jfm";
+  it("sends the instrument terms with the issuer of record picked from approved farmers", async () => {
+    createPoolAction.mockClear();
+    render(<CreatePoolForm defaultPoolId="9" maxArrangementBps={1_000} farmers={[{ wallet: farmer, label: "Pilot farmer" }]} />);
+    await userEvent.click(screen.getByRole("checkbox", { name: /Term sheet instrument/ }));
+    expect(screen.getByLabelText("Nominal per token (USD)")).toHaveValue("100000");
+    expect(screen.getByLabelText("Coupon (% a year, Act/360)")).toHaveValue("5.0");
+    expect(screen.getByLabelText("Elevator")).toHaveValue("Ust-Kamenogorsk");
+    expect(screen.getByLabelText("Laboratory")).toHaveValue("Baltic Control");
+    await userEvent.click(screen.getByRole("button", { name: /Create pool/ }));
+    expect(createPoolAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        poolId: "9",
+        instrument: expect.objectContaining({
+          issuerOfRecord: farmer,
+          unitNominalUsd: 100_000,
+          couponBps: 500,
+          settlementMode: "Hybrid",
+          volumeTonnes: 10_000,
+          tokenizedShareBps: 3_000,
+          elevator: "Ust-Kamenogorsk",
+          lab: "Baltic Control",
+        }),
+      }),
+    );
+  });
+
+  it("needs an issuer of record", async () => {
+    createPoolAction.mockClear();
+    render(<CreatePoolForm defaultPoolId="9" maxArrangementBps={1_000} farmers={[]} />);
+    await userEvent.click(screen.getByRole("checkbox", { name: /Term sheet instrument/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Create pool/ }));
+    await waitFor(() => expect(screen.getByLabelText("Issuer of record (farmer wallet)")).toHaveAttribute("aria-invalid", "true"));
+    expect(createPoolAction).not.toHaveBeenCalled();
+  });
+});

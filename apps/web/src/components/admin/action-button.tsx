@@ -17,7 +17,7 @@ export function ActionButton({
   disabledReason,
 }: {
   label: string;
-  role: "Issuer" | "Compliance" | "SCAS stub" | "Anyone";
+  role: "Issuer" | "Arranger" | "Compliance" | "SCAS stub" | "Deployer" | "Anyone";
   action: () => Promise<ActionResult>;
   confirmText?: string;
   disabled?: boolean;

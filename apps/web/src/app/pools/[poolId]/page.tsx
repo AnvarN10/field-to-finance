@@ -24,7 +24,7 @@ export default async function PoolPage({ params }: { params: Promise<{ poolId: s
     return <ErrorState level={1} title="Could not load this pool" body="Solana devnet did not answer." retryHref={`/pools/${poolId}`} />;
   }
   if (!detail) notFound();
-  const { spec, requirements } = detail.terms ? await termSheetData(getStore(), detail).catch(() => ({ spec: null, requirements: null })) : { spec: null, requirements: null };
+  const { spec, requirements } = detail.terms ? await Promise.resolve().then(() => termSheetData(getStore(), detail)).catch(() => ({ spec: null, requirements: null })) : { spec: null, requirements: null };
   const symbol = detail.pool.instrument?.symbol ?? `POOL-${poolId}`;
   return (
     <div className="flex flex-col gap-6">

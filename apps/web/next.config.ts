@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
   // Anchor is CommonJS and server-only; load it with Node's require at runtime.
   serverExternalPackages: ["@anchor-lang/core"],
   poweredByHeader: false,
+  experimental: {
+    // Farmer documents and delivery papers (up to 10 MB) are uploaded through admin server actions; the
+    // basic-auth proxy buffers bodies, so its limit is raised to match.
+    serverActions: { bodySizeLimit: "11mb" },
+    proxyClientMaxBodySize: "11mb",
+  },
 };
 
 export default nextConfig;

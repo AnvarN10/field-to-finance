@@ -5,13 +5,16 @@ import { ActionButton } from "@/components/admin/action-button";
 import { ExplorerLink } from "@/components/explorer-link";
 import { CreatePoolForm } from "@/components/admin/create-pool-form";
 import { FeesPanel } from "@/components/admin/fees-panel";
+import { FieldImport } from "@/components/admin/field-import";
+import { MintUsdcForm } from "@/components/admin/mint-usdc-form";
+import { OnboardingPanel } from "@/components/admin/onboarding-panel";
 import { PoolConsole } from "@/components/admin/pool-console";
 import { ScasStubBadge } from "@/components/scas-stub-badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/state";
 import { ADMIN_COOKIE, isAdminToken } from "@/lib/admin-auth";
 import { nextPoolId, roleMismatches } from "@/lib/chain/admin-ops";
-import { formatHa } from "@/lib/format";
+import { formatHa, shortKey } from "@/lib/format";
 import { roleKeyProblem } from "@/lib/keys";
 import { getConnection, getReader, roleKeypair, sponsorPublicKey } from "@/lib/server/context";
 import { serverEnv } from "@/lib/server/env";
@@ -47,7 +50,10 @@ export default async function AdminPage() {
     const [config, pools, unpooled, fees] = await Promise.all([reader.config(), reader.listPools(), reader.unpooledProjects(), reader.fees()]);
     const details = (await Promise.all(pools.map((p) => reader.getPool(p.poolId)))).filter((d) => d !== null);
     const sponsor = sponsorKey ? { address: sponsorKey.toBase58(), lamports: await getConnection().getBalance(sponsorKey, "confirmed") } : null;
-    data = { config, pools, unpooled, details, fees, sponsor };
+    // ADR 0014: KYC-approved producers can be the issuer of record of a term-sheet pool.
+    const producers = [...new Set(unpooled.map((p) => p.producer))];
+    const farmers = (await reader.approvedWallets(producers)).map((wallet) => ({ wallet, label: `Farmer ${shortKey(wallet)}` }));
+    data = { config, pools, unpooled, details, fees, sponsor, farmers };
   } catch {
     return <ErrorState level={1} title="Could not load devnet state" body="Solana devnet did not answer." retryHref="/admin" />;
   }
@@ -100,7 +106,25 @@ export default async function AdminPage() {
 
       <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
         <h2 className="text-xl font-semibold">Create a pool</h2>
-        <CreatePoolForm defaultPoolId={nextPoolId(data.pools.map((p) => p.poolId))} maxArrangementBps={data.fees?.maxArrangementBps ?? null} />
+        <CreatePoolForm defaultPoolId={nextPoolId(data.pools.map((p) => p.poolId))} maxArrangementBps={data.fees?.maxArrangementBps ?? null} farmers={data.farmers} />
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
+        <h2 className="text-xl font-semibold">Farmer onboarding</h2>
+        <p className="text-sm text-muted-foreground">The term sheet&apos;s farmer requirements. The issuer of record also needs platform KYC: approve the wallet below a pool, then it can be picked when creating a term-sheet pool.</p>
+        <OnboardingPanel />
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
+        <h2 className="text-xl font-semibold">Field import</h2>
+        <p className="text-sm text-muted-foreground">Upload the farm&apos;s boundary export. MultiPolygons become one field each; check each polygon against the area in the land-use act.</p>
+        <FieldImport />
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
+        <h2 className="text-xl font-semibold">Test USDC for demo investors</h2>
+        <p className="text-sm text-muted-foreground">Tokens are $100,000 each, beyond the public faucet. Mints devnet test USDC only.</p>
+        <MintUsdcForm />
       </section>
 
       {data.details.length === 0 ? (
