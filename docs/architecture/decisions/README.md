@@ -17,4 +17,5 @@ Only `Accepted` ADRs are current guidance. Decisions are human-owned; agents dra
 | [0011](0011-platform-level-kyc.md) | Accepted | Platform-level KYC; Instrument account thawed on first subscription |
 | [0012](0012-scas-external-provider-stub.md) | Accepted | SCAS is an external provider; the MVP uses a stub |
 | [0013](0013-platform-fees-and-gas-sponsorship.md) | Accepted | Platform fees (arrangement, network, mint) and gas sponsorship |
+| [0014](0014-farmer-issuer-of-record-and-hybrid-instrument-terms.md) | Accepted | Farmer as issuer of record; InstrumentTerms with whole tokens, Act/360 coupon and hybrid buyback/delivery settlement |
 | [0015](0015-basic-auth-on-the-pilot-platform.md) | Accepted | HTTP Basic Auth on the whole pilot platform, only `/api/health` public |

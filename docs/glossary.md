@@ -1,12 +1,24 @@
 # Glossary
 
+## Act/360
+
+Interest day count of the pilot term sheet: interest = principal × annual coupon × actual days / 360. Days are whole days from the interest start to maturity. The program floors the result to a USDC base unit.
+
 ## Arrangement Fee
 
 Share of a Farm Project's requested amount, in basis points per Pool, that the Producer pays for arranging the financing. Withheld on-chain at disbursement and sent to the Treasury. Set by the Issuer while the Pool is Draft, capped by FeeConfig and by the Program at 10%.
 
+## Arranger
+
+Field-to-Finance as the platform operator of a farmer-issued Instrument: it structures the issue and signs pool operations with the `Config.issuer` key. See [ADR 0014](architecture/decisions/0014-farmer-issuer-of-record-and-hybrid-instrument-terms.md).
+
 ## Attestation
 
-A statement about a Field signed by the SCAS key: the field exists with given boundaries, sowing happened, the vegetation index is in a given range, or the harvest was delivered. The full evidence lives off-chain; its hash, the signer and the verdict are recorded on Solana.
+A statement about a Field signed by the SCAS key: the field exists with given boundaries, sowing happened, the vegetation index is in a given range, or the harvest was delivered. For delivery-settled pools the elevator receipt and the laboratory certificate are attestations too, signed by SCAS or the Arranger. The full evidence lives off-chain; its hash, the signer and the verdict are recorded on Solana.
+
+## Buyback
+
+The issuer's right under a Hybrid Instrument to settle in cash: the issuer elects buyback no later than maturity and funds principal plus coupon, and holders redeem their tokens for USDC.
 
 ## Clearing
 
@@ -28,13 +40,29 @@ A plot of land with a polygon boundary that a Producer owns or has the legal rig
 
 The platform key that pays Solana transaction fees and the rent of accounts created for users, so investors and Producers need no SOL. It co-signs a user transaction only after the server checks it holds exactly the expected instructions.
 
+## Grain Claim
+
+The on-chain record (`GrainClaim` event) that a holder burned Instrument for a pro-rata share of the delivered grain held at the elevator under a recorded receipt. The grain is released off-chain against the receipt; later the claim maps to a grain-receipt token on CommodityChain.
+
+## Hybrid
+
+Settlement mode of the pilot Instrument: grain delivery at the elevator, with the issuer's right to buy the token back for cash. Without a buyback election by maturity, delivery applies.
+
 ## Instrument
 
 The investment token issued for a Pool, for example `WHEAT-2027`. An investor buys the Instrument, not specific tonnes of grain from a specific farmer.
 
+## Instrument Terms
+
+The term-sheet terms of a Pool's Instrument, stored on-chain in the InstrumentTerms account: nominal per token, annual coupon, day count, interest start, settlement mode, volume, tokenized share, quality spec hash, elevator and laboratory.
+
 ## Issuer
 
-The legal entity that issues the Instrument and carries the obligations under it.
+The legal entity that issues the Instrument and carries the obligations under it. In the pilot the farmer is the issuer; see Issuer of Record.
+
+## Issuer of Record
+
+The party that issues a Pool's Instrument, stored as `Pool.issuer`. For pilot pools it is the farmer's wallet, which must have passed platform KYC; for older pools it is the platform key.
 
 ## KYC Thaw
 
@@ -88,9 +116,13 @@ Trading of an already issued Instrument between investors. Out of MVP scope.
 
 The harvest delivered against a Farm Project is below the tokenized volume or below the contracted quality class. See [ADR 0006](architecture/decisions/0006-pooled-instrument-and-shortfall-rules.md).
 
+## Token Nominal
+
+The USD amount one whole token represents (pilot: USD 100,000). Subscriptions to a pool with Instrument Terms are whole multiples of it.
+
 ## Tokenized Share
 
-The part of a Farm Project's expected harvest that backs the Instrument. Fixed at 30% of expected harvest.
+The part of a Farm Project's expected harvest that backs the Instrument. Fixed at 30% of expected harvest for MVP pools; Instrument Terms set it per pool, at most 30%.
 
 ## Treasury
 

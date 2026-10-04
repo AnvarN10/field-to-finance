@@ -7,7 +7,7 @@ Status: working draft, 2026-10-04. Not legal advice. Sources: AIFC rulebooks (GE
 | Party | Role |
 | --- | --- |
 | CC Tech | 100% UBO of F2F Proto; owns the platform IP; white-label technical provider |
-| F2F Proto | AIFC company; operates the platform and is the issuer of the pool tokens (team decision) |
+| F2F Proto | AIFC company; operates the platform and is the issuer of the pool tokens (team decision). The first pilot term sheet (2026-10-05) makes the farmer the issuer instead, with F2F Proto as arranger and platform operator; the program supports both ([ADR 0014](../architecture/decisions/0014-farmer-issuer-of-record-and-hybrid-instrument-terms.md)) |
 | Exchange / custodian | CCX (team says: Operating an Exchange + Operating a Clearing House), alternatives Binance Kazakhstan, Bybit Kazakhstan |
 | Investors | Professional Clients, institutions, up to 50 Retail Clients per 12 months |
 | Farmers | RK-resident legal entities outside AIFC |
@@ -110,3 +110,4 @@ RK law: the Law "On digital assets" (in force 01.05.2026) defines digital financ
 7. Tax and currency control for the KZT loan and repayment.
 8. Can F2F Proto issue on the CCX facility as a Direct Access Member (AMI 2-1.2) without its own licence, and which F2F functions qualify as outsourcing under AMI 1.1.2?
 9. Is USDC acceptable as the settlement asset on an Investment Token facility without Money Services?
+10. Pilot term sheet: with an RK farmer as issuer of the token and F2F Proto arranging, which licences and offer rules apply to the farmer, and is the hybrid delivery-or-buyback token a security, a commodity derivative or a grain-receipt claim?

@@ -73,6 +73,10 @@ First pilot farmer, East Kazakhstan (delivery elevator Ust-Kamenogorsk), around 
 | Dates | start and maturity TBD |
 | Force majeure | per CommodityChain exchange terms |
 
+How the platform implements it ([ADR 0014](../architecture/decisions/0014-farmer-issuer-of-record-and-hybrid-instrument-terms.md)): the farmer's KYC-approved wallet is the issuer of record of the pool; Field-to-Finance is the arranger. InstrumentTerms on-chain hold the nominal (USD 100,000), coupon (5%, Act/360), interest start, hybrid settlement, 10,000 t at 30% tokenized, the hash of the 12-parameter quality spec, the elevator and the laboratory. Investors buy whole tokens. Before maturity the farmer elects buyback (cash: principal plus coupon, e.g. USD 1,041,666.66 on USD 1,000,000 for 300 days) or delivery; without an election delivery applies. Delivery needs the elevator receipt and a passing lab certificate on-chain; holders then burn tokens for a Grain Claim on the elevator. The farmer requirements are a checklist in the admin console with documents stored off-chain by hash. The platform is behind basic auth ([ADR 0015](../architecture/decisions/0015-basic-auth-on-the-pilot-platform.md)) so the real pilot farm can be shown.
+
+Still missing from the pilot farmer (as of 2026-10-05): field boundaries as an export (GeoJSON or KML; only screenshots so far), cadastral numbers and areas per field from the land-use acts, the documents of the requirement list, start and maturity dates, and the farmer's wallet for the issuer of record. Until then the devnet pilot pool uses labelled sample fields and a stand-in issuer key.
+
 ## Legal structure
 
 Roles, AFSA licence names, placement options, custody and money flows: [legal-structure.md](legal-structure.md). Full research digest in Russian with a glossary of terms, AIFC rule footnotes and a crypto primer: [research-aifc-f2f-ru.md](research-aifc-f2f-ru.md) ([PDF](research-aifc-f2f-ru.pdf)). Placement scenarios with flows, responsibilities, licences and program roles: [scenarios-aifc-f2f-ru.md](scenarios-aifc-f2f-ru.md) ([PDF](scenarios-aifc-f2f-ru.pdf)).
@@ -81,4 +85,5 @@ Roles, AFSA licence names, placement options, custody and money flows: [legal-st
 
 - Legal form of the Issuer and the jurisdiction of the Instrument.
 - How SCAS is operated: in-house or a third party, and who holds its key.
-- Term of the Instrument relative to harvest and grain sale dates.
+- Term of the Instrument relative to harvest and grain sale dates (term sheet: start and maturity TBD).
+- Contractual interest start for the pilot: subscription close (platform default) or disbursement.
