@@ -76,3 +76,52 @@ describe("ProjectsTable scroll container", () => {
     expect(region).toHaveAttribute("tabindex", "0");
   });
 });
+
+describe("InstrumentCard as a term sheet (ADR 0014)", () => {
+  const NOMINAL = "100000000000";
+  const pilot: PoolDetail = {
+    ...detail,
+    pool: { ...detail.pool, targetAmount: "1000000000000", raisedAmount: "300000000000", maturityTs: 1_800_000_000 + 300 * 86_400, yieldBps: 500 },
+    terms: {
+      unitNominal: NOMINAL, couponBpsAnnual: 500, dayCount: "Act360", startTs: 1_800_000_000, settlementMode: "Hybrid",
+      volumeKg: "10000000", tokenizedShareBps: 3_000, qualitySpecHash: "ab".repeat(32), specUri: "https://x/api/evidence/ab",
+      elevator: "Ust-Kamenogorsk", lab: "Baltic Control", election: null, electedAt: 0, receiptHash: null, labCertHash: null, labPassed: false, deliveredKg: "0",
+    },
+    issuerKycApproved: true,
+  };
+  const spec = { version: 1 as const, crop: "wheat", class: "HiPro (class 3)", parameters: [{ key: "protein", label: "Protein", requirement: "≥ 15%" }] };
+  const requirements = [
+    { key: "insurance" as const, label: "Crop insurance", status: "provided" as const, sha256: "cd".repeat(32) },
+    { key: "field_imagery" as const, label: "Field imagery", status: "missing" as const },
+    { key: "kyc" as const, label: "Full KYC of the issuer", status: "provided" as const },
+  ];
+
+  it("shows the farmer as issuer with KYC, and the instrument terms of the term sheet", () => {
+    render(<InstrumentCard detail={pilot} spec={spec} requirements={requirements} />);
+    for (const heading of ["Issuer", "Instrument", "Settlement", "Commodity", "Volume and delivery", "Farmer requirements", "Fees", "Risks"]) {
+      expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
+    }
+    expect(screen.getByText("KYC passed")).toBeInTheDocument();
+    expect(screen.getByText("Hybrid: grain delivery with the issuer's right to buy the token back")).toBeInTheDocument();
+    expect(screen.getByText("$100,000.00")).toBeInTheDocument();
+    expect(screen.getByText("10")).toBeInTheDocument();
+    expect(screen.getByText("$1,000,000.00")).toBeInTheDocument();
+    expect(screen.getByText("5.0% a year, Act/360")).toBeInTheDocument();
+    expect(screen.getByText("$104,166.66 per token")).toBeInTheDocument();
+    expect(screen.getByText("Ust-Kamenogorsk")).toBeInTheDocument();
+    expect(screen.getByText("Baltic Control")).toBeInTheDocument();
+    expect(screen.getByText("10,000 t")).toBeInTheDocument();
+    expect(screen.getByText("30.0% (3,000 t)")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Fixed yield" })).toBeNull();
+  });
+
+  it("lists the commodity spec and the farmer requirements with document status", () => {
+    render(<InstrumentCard detail={pilot} spec={spec} requirements={requirements} />);
+    const table = screen.getByRole("table", { name: "Commodity specification" });
+    expect(within(table).getByText("Protein")).toBeInTheDocument();
+    expect(within(table).getByText("≥ 15%")).toBeInTheDocument();
+    const list = screen.getByRole("list", { name: "Farmer requirements" });
+    expect(within(list).getByText("Crop insurance").closest("li")).toHaveTextContent("Provided");
+    expect(within(list).getByText("Field imagery").closest("li")).toHaveTextContent("Pending");
+  });
+});

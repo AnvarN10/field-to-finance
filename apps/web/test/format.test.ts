@@ -75,3 +75,12 @@ describe("explorer links", () => {
     expect(shortKey("short")).toBe("short");
   });
 });
+
+describe("formatUsdDown", () => {
+  it("rounds payouts down to the cent, so the page never promises more than the program pays", async () => {
+    const { formatUsdDown } = await import("../src/lib/format");
+    expect(formatUsdDown(1_041_666_666_666n)).toBe("$1,041,666.66");
+    expect(formatUsdDown(104_166_666_666n)).toBe("$104,166.66");
+    expect(formatUsdDown(1_000_000n)).toBe("$1.00");
+  });
+});

@@ -1,7 +1,8 @@
 import type { InvestorState, PoolView, PositionView } from "./chain/views";
 import { formatUsd, formatYield, parseUsd } from "./format";
+import { deliveryOpen } from "./instrument-terms";
 
-export type PanelMode = "draft" | "subscribe" | "closed-funded" | "refund" | "redeem" | "closed";
+export type PanelMode = "draft" | "subscribe" | "closed-funded" | "deliver" | "refund" | "redeem" | "closed";
 
 export function panelMode(pool: PoolView, nowSec: number): PanelMode {
   switch (pool.status) {
@@ -10,7 +11,7 @@ export function panelMode(pool: PoolView, nowSec: number): PanelMode {
     case "Open":
       return nowSec < pool.subscriptionCloseTs && BigInt(pool.raisedAmount) < BigInt(pool.targetAmount) ? "subscribe" : "closed";
     case "Funded":
-      return "closed-funded";
+      return pool.terms && deliveryOpen(pool, pool.terms, nowSec) ? "deliver" : "closed-funded";
     case "Refunding":
       return "refund";
     case "Redeeming":

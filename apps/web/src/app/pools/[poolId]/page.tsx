@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { InstrumentCard } from "@/components/pool/instrument-card";
 import { InvestPanel } from "@/components/pool/invest-panel";
 import { ErrorState } from "@/components/state";
-import { getReader } from "@/lib/server/context";
+import { getReader, getStore } from "@/lib/server/context";
+import { termSheetData } from "@/lib/server/term-sheet-data";
 import { serverEnv } from "@/lib/server/env";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ export default async function PoolPage({ params }: { params: Promise<{ poolId: s
     return <ErrorState level={1} title="Could not load this pool" body="Solana devnet did not answer." retryHref={`/pools/${poolId}`} />;
   }
   if (!detail) notFound();
+  const { spec, requirements } = detail.terms ? await termSheetData(getStore(), detail).catch(() => ({ spec: null, requirements: null })) : { spec: null, requirements: null };
   const symbol = detail.pool.instrument?.symbol ?? `POOL-${poolId}`;
   return (
     <div className="flex flex-col gap-6">
@@ -37,7 +39,7 @@ export default async function PoolPage({ params }: { params: Promise<{ poolId: s
           <InvestPanel pool={detail.pool} networkFee={fees?.networkFee ?? null} />
         </aside>
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <InstrumentCard detail={detail} cluster={serverEnv().SOLANA_CLUSTER} networkFee={fees?.networkFee ?? null} />
+          <InstrumentCard detail={detail} cluster={serverEnv().SOLANA_CLUSTER} networkFee={fees?.networkFee ?? null} spec={spec} requirements={requirements} />
         </div>
       </div>
     </div>

@@ -98,3 +98,37 @@ describe("InvestPanel", () => {
     expect(vi.mocked(fetch).mock.calls.some(([u]) => u === "/api/tx/subscribe")).toBe(false);
   });
 });
+
+describe("InvestPanel for an instrument sold in whole tokens", () => {
+  const NOMINAL = 100_000_000_000n;
+  const TOKENS_POOL: PoolView = {
+    ...POOL,
+    targetAmount: (10n * NOMINAL).toString(),
+    terms: {
+      unitNominal: NOMINAL.toString(), couponBpsAnnual: 500, dayCount: "Act360", startTs: POOL.maturityTs - 300 * 86_400, settlementMode: "Hybrid",
+      volumeKg: "10000000", tokenizedShareBps: 3_000, qualitySpecHash: "ab".repeat(32), specUri: "", elevator: "Ust-Kamenogorsk", lab: "Baltic Control",
+      election: null, electedAt: 0, receiptHash: null, labCertHash: null, labPassed: false, deliveredKg: "0",
+    },
+  };
+
+  it("asks for tokens of $100,000 and totals them with the network fee", async () => {
+    render(<InvestPanel pool={TOKENS_POOL} networkFee="500000" />);
+    const input = await screen.findByLabelText("Tokens");
+    await userEvent.clear(input);
+    await userEvent.type(input, "2");
+    const summary = screen.getByRole("group", { name: "Payment summary" });
+    expect(within(summary).getByText("$200,000.00")).toBeInTheDocument();
+    expect(within(summary).getByText("$200,000.50")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Subscribe · $200,000.50" })).toBeInTheDocument();
+    expect(screen.getByText(/1 token = \$100,000\.00/)).toBeInTheDocument();
+  });
+
+  it("refuses a fraction of a token before anything is sent", async () => {
+    render(<InvestPanel pool={TOKENS_POOL} networkFee="500000" />);
+    const input = await screen.findByLabelText("Tokens");
+    await userEvent.clear(input);
+    await userEvent.type(input, "1.5");
+    await userEvent.click(screen.getByRole("button", { name: /Subscribe/ }));
+    expect(await screen.findByText("Enter a whole number of tokens")).toBeInTheDocument();
+  });
+});

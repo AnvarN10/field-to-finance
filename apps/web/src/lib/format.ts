@@ -70,3 +70,9 @@ export const explorerAddress = (addr: string, cluster = "devnet") =>
   `https://explorer.solana.com/address/${addr}?${clusterQuery(cluster)}`;
 
 export const shortKey = (key: string) => (key.length <= 12 ? key : `${key.slice(0, 4)}…${key.slice(-4)}`);
+
+/** Like formatUsd but floors to the cent: for payouts the program floors in base units. */
+export function formatUsdDown(baseUnits: bigint | string): string {
+  const v = BigInt(baseUnits);
+  return formatUsd(v - (v % 10_000n));
+}

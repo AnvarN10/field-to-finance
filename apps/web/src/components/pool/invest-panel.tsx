@@ -5,7 +5,8 @@ import { CircleAlert, CircleCheck, Fuel } from "lucide-react";
 import { useRef, useState } from "react";
 import type { ErrorAction } from "../../lib/chain/explain";
 import type { InvestorState, PoolView } from "../../lib/chain/views";
-import { formatDateUtc, formatUsd, formatYield, parseUsd, withYield } from "../../lib/format";
+import { formatDateUtc, formatTonnes, formatUsd, formatUsdDown, formatYield, parseUsd, withYield } from "../../lib/format";
+import { claimableKg, couponLabel, payoutForAmount, payoutForTokens, tokenCount, validateTokenSubscription } from "../../lib/instrument-terms";
 import { disconnectedCopy, panelMode, positionFor, subscriptionTotal, validateSubscription } from "../../lib/invest";
 import { remaining } from "../../lib/pool-math";
 import { TxStatus } from "../tx/tx-status";
@@ -40,6 +41,9 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
   const subscribe = useTransaction("subscribe", signer, { onSuccess: investor.reload });
   const refund = useTransaction("refund", signer, { onSuccess: investor.reload });
   const redeem = useTransaction("redeem", signer, { onSuccess: investor.reload });
+  const deliver = useTransaction("redeem-delivery", signer, { onSuccess: investor.reload });
+  const terms = pool.terms ?? null;
+  const nominal = terms ? BigInt(terms.unitNominal) : 0n;
 
   const mode = panelMode(pool, Math.floor(Date.now() / 1000));
   const position = positionFor(investor.data, pool.poolId);
@@ -48,7 +52,8 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
   const symbol = pool.instrument?.symbol ?? `POOL-${pool.poolId}`;
   const usdc = BigInt(investor.data?.usdcBalance ?? "0");
   const fee = BigInt(networkFee ?? "0");
-  const typed = typedAmount(amount);
+  const typedTokens = /^\d{1,6}$/.test(amount.trim()) ? BigInt(amount.trim()) : 0n;
+  const typed = terms ? typedTokens * nominal : typedAmount(amount);
   const total = subscriptionTotal(typed, fee);
 
   // Each transaction gets its own handler so "Try again" re-sends that transaction.
@@ -91,7 +96,7 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">You hold</dt>
-          <dd>{`${formatUsd(balance)} of ${symbol}`}</dd>
+          <dd>{terms ? `${tokenCount(balance, terms)} token${tokenCount(balance, terms) === 1n ? "" : "s"} of ${symbol}` : `${formatUsd(balance)} of ${symbol}`}</dd>
         </div>
       </dl>
       {investor.error ? (
@@ -115,7 +120,8 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
           className="flex flex-col gap-2 border-t border-border pt-4"
           onSubmit={(e) => {
             e.preventDefault();
-            const v = validateSubscription(amount, remaining(pool), { networkFee: fee, usdcBalance: investor.data ? usdc : null });
+            const wallet = { networkFee: fee, usdcBalance: investor.data ? usdc : null };
+            const v = terms ? validateTokenSubscription(amount, nominal, remaining(pool), wallet) : validateSubscription(amount, remaining(pool), wallet);
             if (!v.ok) {
               setAmountError(v.message);
               if (v.reason === "balance") setShowFaucet(true);
@@ -127,16 +133,16 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
           }}
         >
           <label htmlFor="amount" className="text-sm font-medium">
-            Amount (USD)
+            {terms ? "Tokens" : "Amount (USD)"}
           </label>
           <input
             ref={amountRef}
             id="amount"
-            inputMode="decimal"
+            inputMode={terms ? "numeric" : "decimal"}
             autoComplete="off"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder={`Up to ${formatUsd(remaining(pool))}`}
+            placeholder={terms ? `Up to ${remaining(pool) / nominal}` : `Up to ${formatUsd(remaining(pool))}`}
             aria-invalid={amountError ? true : undefined}
             aria-describedby={amountError ? "amount-error" : "amount-hint"}
             className="tabular h-10 rounded-md border border-input bg-card px-3 text-base aria-[invalid=true]:border-destructive"
@@ -147,12 +153,14 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
             </p>
           ) : (
             <p id="amount-hint" className="text-xs text-muted-foreground">
-              {`Fixed yield ${formatYield(pool.yieldBps)}. Paid at maturity, ${formatDateUtc(pool.maturityTs)}.`}
+              {terms
+                ? `1 token = ${formatUsd(nominal)}. Coupon ${couponLabel(terms)}: ${formatUsdDown(payoutForTokens(pool, terms, 1n))} per token at maturity, ${formatDateUtc(pool.maturityTs)}.`
+                : `Fixed yield ${formatYield(pool.yieldBps)}. Paid at maturity, ${formatDateUtc(pool.maturityTs)}.`}
             </p>
           )}
           <div role="group" aria-label="Payment summary" className="tabular mt-2 flex flex-col gap-1.5 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Amount</span>
+              <span className="text-muted-foreground">{terms ? `${typedTokens} × ${formatUsd(nominal)}` : "Amount"}</span>
               <span>{formatUsd(typed)}</span>
             </div>
             {networkFee !== null ? (
@@ -180,7 +188,22 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
       {mode === "draft" ? <p className="text-sm text-muted-foreground">This pool is not open yet.</p> : null}
       {mode === "closed" ? <p className="text-sm text-muted-foreground">Subscription has ended. The Issuer closes the pool next.</p> : null}
       {mode === "closed-funded" ? (
-        <p className="text-sm text-muted-foreground">{`Funded. Redemption opens after maturity on ${formatDateUtc(pool.maturityTs)} once the Issuer deposits principal plus yield.`}</p>
+        <p className="text-sm text-muted-foreground">
+          {terms
+            ? `Funded. At maturity on ${formatDateUtc(pool.maturityTs)} holders are paid principal plus coupon if the issuer buys the token back, or claim grain at the elevator if delivery applies.`
+            : `Funded. Redemption opens after maturity on ${formatDateUtc(pool.maturityTs)} once the Issuer deposits principal plus yield.`}
+        </p>
+      ) : null}
+
+      {mode === "deliver" && terms ? (
+        <HolderAction
+          disabled={balance === 0n || deliver.busy}
+          label={`Claim ${formatTonnes(claimableKg(pool, terms, balance))} of grain`}
+          note={`Grain delivery applies. Burning your tokens records a Grain Claim on ${terms.elevator}, pro rata to the tokenized volume.`}
+          onClick={() => void deliver.run({ poolId: pool.poolId, amount: balance.toString() })}
+        >
+          <TxStatus state={deliver.state} onAction={handlerFor(deliver)} successLabel="Grain Claim recorded" />
+        </HolderAction>
       ) : null}
 
       {mode === "refund" ? (
@@ -197,8 +220,8 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
       {mode === "redeem" ? (
         <HolderAction
           disabled={balance === 0n || redeem.busy}
-          label={`Redeem for ${formatUsd(withYield(balance, pool.yieldBps))}`}
-          note="Burns your Instrument and pays principal plus the fixed yield."
+          label={`Redeem for ${terms ? formatUsdDown(payoutForAmount(pool, terms, balance)) : formatUsd(withYield(balance, pool.yieldBps))}`}
+          note={terms ? "Burns your tokens and pays principal plus the Act/360 coupon." : "Burns your Instrument and pays principal plus the fixed yield."}
           onClick={() => void redeem.run({ poolId: pool.poolId, amount: balance.toString() })}
         >
           <TxStatus state={redeem.state} onAction={handlerFor(redeem)} successLabel="Redeemed" />
