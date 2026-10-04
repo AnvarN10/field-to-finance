@@ -4,6 +4,7 @@ import {
   configPda,
   feesPda,
   fieldPda,
+  instrumentPda,
   investorPda,
   mintPda,
   poolPda,
@@ -12,6 +13,8 @@ import {
   toAnchorEnum,
   type AttestationKindName,
   type F2f,
+  type SettlementElectionName,
+  type SettlementModeName,
   type VerdictName,
 } from "@f2f/sdk";
 import {
@@ -193,7 +196,10 @@ export const setArrangementFeeIx = (p: P, a: { issuer: PublicKey; pool: PublicKe
     .instruction();
 
 export const openPoolIx = (p: P, a: { issuer: PublicKey; pool: PublicKey }) =>
-  p.methods.openPool().accountsStrict({ issuer: a.issuer, config: configPda(p.programId), pool: a.pool }).instruction();
+  p.methods
+    .openPool()
+    .accountsStrict({ issuer: a.issuer, config: configPda(p.programId), pool: a.pool, instrumentTerms: instrumentPda(p.programId, a.pool) })
+    .instruction();
 
 export const closeSubscriptionIx = (p: P, a: { caller: PublicKey; pool: PublicKey }) =>
   p.methods.closeSubscription().accountsStrict({ caller: a.caller, pool: a.pool }).instruction();
@@ -251,6 +257,7 @@ export const subscribeIx = (p: P, a: HolderArgs & { payer: PublicKey; treasury: 
       vault: a.vault,
       feeConfig: feesPda(p.programId),
       treasuryUsdc: a.treasury ? usdcAta(a.usdcMint, a.treasury, true) : null,
+      instrumentTerms: instrumentPda(p.programId, a.pool),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       usdcTokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -271,7 +278,12 @@ const holderAccounts = (a: HolderArgs) => ({
 });
 
 export const refundIx = (p: P, a: HolderArgs) => p.methods.refund(bn(a.amount)).accountsStrict(holderAccounts(a)).instruction();
-export const redeemIx = (p: P, a: HolderArgs) => p.methods.redeem(bn(a.amount)).accountsStrict(holderAccounts(a)).instruction();
+/** Pays principal plus the Act/360 coupon when the pool has InstrumentTerms, else the flat yield (ADR 0014). */
+export const redeemIx = (p: P, a: HolderArgs) =>
+  p.methods
+    .redeem(bn(a.amount))
+    .accountsStrict({ ...holderAccounts(a), instrumentTerms: instrumentPda(p.programId, a.pool) })
+    .instruction();
 
 /** ADR 0013: withholds the pool's arrangement fee (PoolTerms) for the treasury; `treasury` is FeeConfig.treasury or null. */
 export const disburseIx = (
@@ -304,6 +316,7 @@ export const recordSettlementIx = (p: P, a: { issuer: PublicKey; pool: PublicKey
     .accountsStrict({ issuer: a.issuer, config: configPda(p.programId), pool: a.pool, project: a.project })
     .instruction();
 
+/** `issuer` is the arranger (Config.issuer) or the pool's issuer of record; it pays from its own USDC ATA. */
 export const fundRedemptionIx = (p: P, a: { issuer: PublicKey; pool: PublicKey; usdcMint: PublicKey; vault: PublicKey; amount: bigint }) =>
   p.methods
     .fundRedemption(bn(a.amount))
@@ -314,6 +327,7 @@ export const fundRedemptionIx = (p: P, a: { issuer: PublicKey; pool: PublicKey; 
       usdcMint: a.usdcMint,
       issuerUsdc: usdcAta(a.usdcMint, a.issuer),
       vault: a.vault,
+      instrumentTerms: instrumentPda(p.programId, a.pool),
       usdcTokenProgram: TOKEN_PROGRAM_ID,
     })
     .instruction();
@@ -330,5 +344,96 @@ export const sweepIx = (p: P, a: { issuer: PublicKey; pool: PublicKey; mint: Pub
       vault: a.vault,
       issuerUsdc: usdcAta(a.usdcMint, a.issuer),
       usdcTokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .instruction();
+
+/** Term-sheet terms in UI units: amounts in USDC base units, hashes as hex (ADR 0014). Day count is Act/360. */
+export interface InstrumentTermsInput {
+  unitNominal: bigint;
+  couponBpsAnnual: number;
+  startTs: number;
+  settlementMode: SettlementModeName;
+  volumeKg: bigint;
+  tokenizedShareBps: number;
+  qualitySpecHash: string;
+  specUri: string;
+  elevator: string;
+  lab: string;
+}
+
+/** Arranger-only, Draft-only: InstrumentTerms and the issuer of record (who must be KYC-approved). */
+export const setInstrumentTermsIx = (p: P, a: { arranger: PublicKey; pool: PublicKey; issuerOfRecord: PublicKey; terms: InstrumentTermsInput }) =>
+  p.methods
+    .setInstrumentTerms({
+      unitNominal: bn(a.terms.unitNominal),
+      couponBpsAnnual: a.terms.couponBpsAnnual,
+      dayCount: anchorEnum("Act360"),
+      startTs: bn(a.terms.startTs),
+      settlementMode: anchorEnum(a.terms.settlementMode),
+      volumeKg: bn(a.terms.volumeKg),
+      tokenizedShareBps: a.terms.tokenizedShareBps,
+      qualitySpecHash: Array.from(hexToBytes(a.terms.qualitySpecHash)),
+      specUri: a.terms.specUri,
+      elevator: a.terms.elevator,
+      lab: a.terms.lab,
+    })
+    .accountsStrict({
+      arranger: a.arranger,
+      config: configPda(p.programId),
+      pool: a.pool,
+      issuerOfRecord: a.issuerOfRecord,
+      issuerRecord: investorPda(p.programId, a.issuerOfRecord),
+      instrumentTerms: instrumentPda(p.programId, a.pool),
+      systemProgram: system,
+    })
+    .instruction();
+
+/** Hybrid only: the issuer of record or the arranger, once, no later than maturity. */
+export const electSettlementIx = (p: P, a: { signer: PublicKey; pool: PublicKey; election: SettlementElectionName }) =>
+  p.methods
+    .electSettlement(anchorEnum(a.election))
+    .accountsStrict({ signer: a.signer, config: configPda(p.programId), pool: a.pool, instrumentTerms: instrumentPda(p.programId, a.pool) })
+    .instruction();
+
+/** Elevator receipt or lab certificate (SCAS or arranger), written as an Attestation on one of the pool's fields. */
+export const recordDeliveryIx = (
+  p: P,
+  a: {
+    signer: PublicKey;
+    pool: PublicKey;
+    project: PublicKey;
+    field: PublicKey;
+    sequence: number;
+    kind: "ElevatorReceipt" | "LabQuality";
+    verdict: VerdictName;
+    evidenceHash: Uint8Array;
+    evidenceUri: string;
+  },
+) =>
+  p.methods
+    .recordDelivery(anchorEnum(a.kind), anchorEnum(a.verdict), Array.from(a.evidenceHash), a.evidenceUri)
+    .accountsStrict({
+      signer: a.signer,
+      config: configPda(p.programId),
+      pool: a.pool,
+      instrumentTerms: instrumentPda(p.programId, a.pool),
+      project: a.project,
+      field: a.field,
+      attestation: attestationPda(p.programId, a.field, a.sequence),
+      systemProgram: system,
+    })
+    .instruction();
+
+/** Burns Instrument for a pro-rata Grain Claim (emits GrainClaim). */
+export const redeemDeliveryIx = (p: P, a: { investor: PublicKey; pool: PublicKey; mint: PublicKey; amount: bigint }) =>
+  p.methods
+    .redeemDelivery(bn(a.amount))
+    .accountsStrict({
+      investor: a.investor,
+      pool: a.pool,
+      instrumentTerms: instrumentPda(p.programId, a.pool),
+      mint: a.mint,
+      investorInstrument: instrumentAta(a.mint, a.investor),
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
     })
     .instruction();

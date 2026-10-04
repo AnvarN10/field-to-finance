@@ -1,5 +1,5 @@
 import type { Program } from "@anchor-lang/core";
-import { configPda, feesPda, fieldPda, investorPda, projectPda, type F2f } from "@f2f/sdk";
+import { configPda, feesPda, fieldPda, instrumentPda, investorPda, projectPda, type F2f } from "@f2f/sdk";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { ComputeBudgetProgram, PublicKey, SystemProgram, VersionedTransaction, type Connection, type Keypair } from "@solana/web3.js";
 import { RequestError } from "../errors";
@@ -50,6 +50,7 @@ const ACTION_IXS: Record<TxAction, { first: string; rest?: string }> = {
   subscribe: { first: "subscribe" },
   refund: { first: "refund" },
   redeem: { first: "redeem" },
+  "redeem-delivery": { first: "redeemdelivery" },
 };
 
 interface DecodedIx {
@@ -130,8 +131,26 @@ function checkHolder(ix: DecodedIx, p: SponsorPolicy, signer: PublicKey): void {
   expectAccount(ix, "usdcTokenProgram", TOKEN_PROGRAM_ID);
 }
 
+/** ADR 0014: InstrumentTerms must be the PDA of the instruction's own pool (the program checks it too). */
+function checkInstrumentTerms(ix: DecodedIx, p: SponsorPolicy): void {
+  const pool = ix.accounts.get("pool");
+  if (!pool) throw new SponsorRejected(`${ix.name}: missing pool`);
+  expectAccount(ix, "instrumentTerms", instrumentPda(p.program.programId, pool));
+}
+
+/** redeem_delivery only burns the signer's own Instrument: no USDC accounts, no rent. */
+function checkRedeemDelivery(ix: DecodedIx, p: SponsorPolicy, signer: PublicKey): void {
+  const mint = ix.accounts.get("mint");
+  if (!mint) throw new SponsorRejected(`${ix.name}: missing mint`);
+  expectAccount(ix, "investor", signer);
+  expectAccount(ix, "investorInstrument", instrumentAta(mint, signer));
+  expectAccount(ix, "tokenProgram", TOKEN_2022_PROGRAM_ID);
+  checkInstrumentTerms(ix, p);
+}
+
 function checkSubscribe(ix: DecodedIx, p: SponsorPolicy, signer: PublicKey): void {
   checkHolder(ix, p, signer);
+  checkInstrumentTerms(ix, p);
   const pid = p.program.programId;
   expectAccount(ix, "investorRecord", investorPda(pid, signer));
   expectAccount(ix, "feeConfig", feesPda(pid));
@@ -224,8 +243,13 @@ export function validateSponsoredTx(p: SponsorPolicy, action: TxAction, tx: Vers
     checkSubscribe(first, p, signer);
     return { signer, rentAccounts: [account(first, "investorInstrument")], polygonHashes: [] };
   }
+  if (action === "redeem-delivery") {
+    checkRedeemDelivery(first, p, signer);
+    return { signer, rentAccounts: [], polygonHashes: [] };
+  }
   if (action === "refund" || action === "redeem") {
     checkHolder(first, p, signer);
+    if (action === "redeem") checkInstrumentTerms(first, p);
     return { signer, rentAccounts: ataCreates > 0 ? [usdcAta(p.usdcMint, signer)] : [], polygonHashes: [] };
   }
   // Project and Field PDAs can never be closed: every sponsored registration is pure rent spend, so it

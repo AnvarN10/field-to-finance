@@ -1,4 +1,4 @@
-import { attestationPda, feesPda, fieldPda, investorPda, mintPda, poolPda, projectPda, termsPda } from "@f2f/sdk";
+import { attestationPda, feesPda, fieldPda, instrumentPda, investorPda, mintPda, poolPda, projectPda, termsPda } from "@f2f/sdk";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Keypair, type TransactionInstruction } from "@solana/web3.js";
 import { describe, expect, it } from "vitest";
@@ -7,7 +7,14 @@ import {
   createInstrumentAtaIx,
   createPoolIx,
   disburseIx,
+  electSettlementIx,
+  fundRedemptionIx,
   hexToBytes,
+  openPoolIx,
+  recordDeliveryIx,
+  redeemDeliveryIx,
+  redeemIx,
+  setInstrumentTermsIx,
   recordAttestationIx,
   recordSettlementIx,
   registerFieldIx,
@@ -186,5 +193,74 @@ describe("instruction builders", () => {
     expect(ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID)).toBe(true);
     expect(ix.keys.some((m) => m.pubkey.equals(TOKEN_2022_PROGRAM_ID))).toBe(true);
     expect(ix.data[0]).toBe(1); // CreateIdempotent
+  });
+
+  it("passes the pool's InstrumentTerms PDA to every instruction that reads it", async () => {
+    const pool = k();
+    const want = instrumentPda(pid, pool);
+    const has = (ix: TransactionInstruction) => ix.keys.some((m) => m.pubkey.equals(want));
+    const holder = { investor: k(), pool, mint: k(), vault: k(), usdcMint: k(), amount: 1n };
+    expect(has(await subscribeIx(program, { ...holder, payer: k(), treasury: null }))).toBe(true);
+    expect(has(await redeemIx(program, holder))).toBe(true);
+    expect(has(await openPoolIx(program, { issuer: k(), pool }))).toBe(true);
+    expect(has(await fundRedemptionIx(program, { issuer: k(), pool, usdcMint: k(), vault: k(), amount: 0n }))).toBe(true);
+  });
+
+  it("funds redemption from the signer's own USDC account, so the farmer issuer can fund the buyback", async () => {
+    const issuer = k();
+    const usdcMint = k();
+    const ix = await fundRedemptionIx(program, { issuer, pool: k(), usdcMint, vault: k(), amount: 5n });
+    expect(ix.keys.some((m) => m.pubkey.equals(getAssociatedTokenAddressSync(usdcMint, issuer, false, TOKEN_PROGRAM_ID)))).toBe(true);
+  });
+
+  it("sets instrument terms with the issuer of record's KYC record", async () => {
+    const pool = k();
+    const farmer = k();
+    const ix = await setInstrumentTermsIx(program, {
+      arranger: k(),
+      pool,
+      issuerOfRecord: farmer,
+      terms: {
+        unitNominal: 100_000_000_000n,
+        couponBpsAnnual: 500,
+        startTs: 1_800_000_000,
+        settlementMode: "Hybrid",
+        volumeKg: 10_000_000n,
+        tokenizedShareBps: 3_000,
+        qualitySpecHash: "ab".repeat(32),
+        specUri: "https://x/api/evidence/" + "ab".repeat(32),
+        elevator: "Ust-Kamenogorsk",
+        lab: "Baltic Control",
+      },
+    });
+    const keys = ix.keys.map((m) => m.pubkey.toBase58());
+    expect(keys).toContain(investorPda(pid, farmer).toBase58());
+    expect(keys).toContain(instrumentPda(pid, pool).toBase58());
+    const d = decode(ix);
+    expect(d.name).toBe("setinstrumentterms");
+    const args = d.data.args as Record<string, unknown>;
+    expect(String(args.unitNominal ?? args.unit_nominal)).toBe("100000000000");
+    expect(Object.keys((args.settlementMode ?? args.settlement_mode) as object)[0]).toBe("hybrid");
+    expect(Object.keys((args.dayCount ?? args.day_count) as object)[0]).toBe("act360");
+  });
+
+  it("elects settlement and records delivery attestations", async () => {
+    const pool = k();
+    const elect = await electSettlementIx(program, { signer: k(), pool, election: "Delivery" });
+    expect(Object.keys(decode(elect).data.election as object)[0]).toBe("delivery");
+    const field = k();
+    const rec = await recordDeliveryIx(program, { signer: k(), pool, project: k(), field, sequence: 3, kind: "LabQuality", verdict: "Pass", evidenceHash: new Uint8Array(32).fill(1), evidenceUri: "https://x/e" });
+    expect(rec.keys.some((m) => m.pubkey.equals(attestationPda(pid, field, 3)))).toBe(true);
+    expect(Object.keys(decode(rec).data.kind as object)[0]).toBe("labQuality");
+  });
+
+  it("redeems for grain with the terms account and no USDC accounts", async () => {
+    const pool = k();
+    const mint = k();
+    const investor = k();
+    const ix = await redeemDeliveryIx(program, { investor, pool, mint, amount: 100_000_000_000n });
+    expect(ix.keys).toHaveLength(6);
+    expect(ix.keys.some((m) => m.pubkey.equals(instrumentPda(pid, pool)))).toBe(true);
+    expect(ix.keys.some((m) => m.pubkey.equals(getAssociatedTokenAddressSync(mint, investor, false, TOKEN_2022_PROGRAM_ID)))).toBe(true);
   });
 });

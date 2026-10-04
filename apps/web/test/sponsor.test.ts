@@ -1,4 +1,4 @@
-import { investorPda } from "@f2f/sdk";
+import { instrumentPda, investorPda } from "@f2f/sdk";
 import { ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, TransactionInstruction, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import { describe, expect, it, vi } from "vitest";
 import { disburseIx, instrumentAta, registerFieldIx, usdcAta } from "../src/lib/chain/ix";
@@ -72,6 +72,7 @@ const BODY: Record<TxAction, (signer: PublicKey) => Record<string, unknown>> = {
   subscribe: (s) => ({ signer: s.toBase58(), poolId: "7", amount: "250000000" }),
   refund: (s) => ({ signer: s.toBase58(), poolId: "7", amount: "1" }),
   redeem: (s) => ({ signer: s.toBase58(), poolId: "7", amount: "1" }),
+  "redeem-delivery": (s) => ({ signer: s.toBase58(), poolId: "7", amount: "100000000000" }),
 };
 
 async function built(action: TxAction, signer = Keypair.generate().publicKey) {
@@ -80,7 +81,7 @@ async function built(action: TxAction, signer = Keypair.generate().publicKey) {
 }
 
 describe("validateSponsoredTx accepts what /api/tx builds", () => {
-  it.each(["register-project", "subscribe", "refund", "redeem"] as const)("%s", async (action) => {
+  it.each(["register-project", "subscribe", "refund", "redeem", "redeem-delivery"] as const)("%s", async (action) => {
     const b = await built(action);
     expect(b.payer.equals(sponsor)).toBe(true);
     expect(validateSponsoredTx(policy, action, compile(sponsor, b.instructions)).signer.equals(b.signer)).toBe(true);
@@ -94,6 +95,12 @@ describe("validateSponsoredTx accepts what /api/tx builds", () => {
 });
 
 describe("validateSponsoredTx reports what the sponsor would pay rent for", () => {
+  it("redeem-delivery: nothing, it only burns", async () => {
+    const b = await built("redeem-delivery");
+    expect(b.instructions).toHaveLength(1);
+    expect(validateSponsoredTx(policy, "redeem-delivery", compile(sponsor, b.instructions)).rentAccounts).toEqual([]);
+  });
+
   it("subscribe: the investor's Instrument account", async () => {
     const b = await built("subscribe");
     const r = validateSponsoredTx(policy, "subscribe", compile(sponsor, b.instructions));
@@ -171,6 +178,25 @@ describe("validateSponsoredTx rejects", () => {
     const fake = usdcAta(usdcMint, b.signer);
     const keys = ix.keys.map((m) => (m.pubkey.equals(real) ? { ...m, pubkey: fake } : m));
     expect(() => validateSponsoredTx(policy, "subscribe", compile(sponsor, [new TransactionInstruction({ ...ix, keys })]))).toThrow(/treasury/i);
+  });
+
+  it.each(["subscribe", "redeem", "redeem-delivery"] as const)("%s with another pool's InstrumentTerms", async (action) => {
+    const b = await built(action);
+    const ix = b.instructions.at(-1)!;
+    const real = instrumentPda(program.programId, new PublicKey(POOL.address));
+    const other = instrumentPda(program.programId, Keypair.generate().publicKey);
+    const keys = ix.keys.map((m) => (m.pubkey.equals(real) ? { ...m, pubkey: other } : m));
+    const ixs = [...b.instructions.slice(0, -1), new TransactionInstruction({ ...ix, keys })];
+    expect(() => validateSponsoredTx(policy, action, compile(sponsor, ixs))).toThrow(/instrumentTerms/);
+  });
+
+  it("redeem-delivery for someone else's tokens", async () => {
+    const b = await built("redeem-delivery");
+    const ix = b.instructions[0]!;
+    const victim = Keypair.generate().publicKey;
+    const real = instrumentAta(new PublicKey(POOL.mint), b.signer);
+    const keys = ix.keys.map((m) => (m.pubkey.equals(real) ? { ...m, pubkey: instrumentAta(new PublicKey(POOL.mint), victim) } : m));
+    expect(() => validateSponsoredTx(policy, "redeem-delivery", compile(sponsor, [new TransactionInstruction({ ...ix, keys })]))).toThrow(/investorInstrument/);
   });
 
   it("an investor record that is not the signer's", async () => {

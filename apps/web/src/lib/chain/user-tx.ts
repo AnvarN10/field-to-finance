@@ -4,10 +4,10 @@ import { PublicKey, type TransactionInstruction } from "@solana/web3.js";
 import { z } from "zod";
 import { RequestError } from "../errors";
 import { HEX64, polygonKey, type BlobStore } from "../store";
-import { createUsdcAtaIx, redeemIx, refundIx, registerFieldIx, registerProjectIx, subscribeIx } from "./ix";
+import { createUsdcAtaIx, redeemDeliveryIx, redeemIx, refundIx, registerFieldIx, registerProjectIx, subscribeIx } from "./ix";
 import type { FeeView, PoolView } from "./views";
 
-export const TX_ACTIONS = ["register-project", "subscribe", "refund", "redeem"] as const;
+export const TX_ACTIONS = ["register-project", "subscribe", "refund", "redeem", "redeem-delivery"] as const;
 export type TxAction = (typeof TX_ACTIONS)[number];
 
 const pubkey = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, "must be a base58 public key");
@@ -107,6 +107,10 @@ export async function buildUserTx(deps: UserTxDeps, action: TxAction, body: unkn
     // ADR 0011: subscribe creates and thaws the Instrument account itself. A wallet without an approved
     // InvestorRecord fails with AccountNotInitialized or InvestorNotApproved: the demo beat.
     return { payer: sponsor, instructions: [await subscribeIx(program, { ...args, payer: sponsor, treasury })], meta: { poolId: b.poolId } };
+  }
+  if (action === "redeem-delivery") {
+    // ADR 0014: burns for a Grain Claim; creates no account, so no USDC ATA either.
+    return { payer: sponsor, instructions: [await redeemDeliveryIx(program, args)], meta: { poolId: b.poolId } };
   }
   const ix = action === "refund" ? await refundIx(program, args) : await redeemIx(program, args);
   return { payer: sponsor, instructions: [createUsdcAtaIx(sponsor, investor, deps.usdcMint), ix], meta: { poolId: b.poolId } };
