@@ -4,7 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
 import { useState } from "react";
 import type { InvestorState } from "../../lib/chain/views";
-import { formatUsd, withYield } from "../../lib/format";
+import { formatUsd, formatUsdDown, withYield } from "../../lib/format";
 import { KycDialog } from "../pool/kyc-dialog";
 import { EmptyState, ErrorState } from "../state";
 import { Button } from "../ui/button";
@@ -92,7 +92,7 @@ export function PortfolioView() {
                     <PoolStatusBadge status={p.status} />
                   </td>
                   <td className="px-3 py-3 text-right">{formatUsd(p.balance)}</td>
-                  <td className="px-3 py-3 text-right">{formatUsd(withYield(BigInt(p.balance), p.yieldBps))}</td>
+                  <td className="px-3 py-3 text-right">{p.atMaturity !== undefined ? formatUsdDown(p.atMaturity) : formatUsd(withYield(BigInt(p.balance), p.yieldBps))}</td>
                   <td className="px-3 py-3 text-right">
                     {/* aria-label keeps the visible words first and adds the symbol, so repeated links are distinct. */}
                     <Link href={`/pools/${p.poolId}`} className={link} aria-label={`${positionAction(p.status)} ${p.symbol}`}>

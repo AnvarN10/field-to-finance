@@ -134,6 +134,8 @@ export interface PositionView {
   exists: boolean;
   frozen: boolean;
   balance: string;
+  /** Cash due at maturity for this balance: Act/360 coupon for term-sheet pools, else the flat yield. */
+  atMaturity?: string;
 }
 export interface InvestorState {
   wallet: string;

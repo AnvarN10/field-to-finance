@@ -1,6 +1,7 @@
 import { investorPda, poolPda } from "@f2f/sdk";
 import { ACCOUNT_SIZE, AccountLayout, AccountState, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Keypair, PublicKey, type AccountInfo } from "@solana/web3.js";
+import BN from "bn.js";
 import { describe, expect, it, vi } from "vitest";
 import { createChainReader } from "../src/lib/chain/reader";
 import type { PoolAccount } from "../src/lib/chain/views";
@@ -89,7 +90,7 @@ describe("ChainReader", () => {
     expect(state.approved).toBe(false);
     expect(state.usdcBalance).toBe("1000000000");
     expect(state.solLamports).toBe(5_000_000);
-    expect(state.positions[0]).toMatchObject({ poolId: "7", exists: true, frozen: true, balance: "0" });
+    expect(state.positions[0]).toMatchObject({ poolId: "7", exists: true, frozen: true, balance: "0", atMaturity: "0" });
   });
 
   it("reports a zero arrangement fee for pools without terms", async () => {
@@ -134,6 +135,19 @@ describe("ChainReader", () => {
     });
     expect(detail?.issuerKycApproved).toBe(true);
     expect((await reader.listPools())[0]?.terms?.couponBpsAnnual).toBe(500);
+  });
+
+  it("values a term-sheet position at maturity with the Act/360 coupon", async () => {
+    const { reader, program, connection, pool, usdcMint, poolAddr } = await setup();
+    const maturity = pool.account.maturityTs.toNumber();
+    const terms = await roundTrip(program, "instrumentTerms", termsValue({ pool: poolAddr, startTs: new BN(maturity - 300 * 86_400) }));
+    vi.mocked(program.account.instrumentTerms.all).mockResolvedValue([{ publicKey: Keypair.generate().publicKey, account: terms.account }] as never);
+    const wallet = Keypair.generate().publicKey;
+    vi.mocked(connection.getMultipleAccountsInfo).mockImplementation(async (keys) =>
+      keys.length === 1 ? [null] : [tokenAccount(pool.account.mint, wallet, 100_000_000_000n, false, TOKEN_2022_PROGRAM_ID), tokenAccount(usdcMint, wallet, 0n, false, TOKEN_PROGRAM_ID)],
+    );
+    const state = await reader.investor(wallet.toBase58());
+    expect(state.positions[0]?.atMaturity).toBe("104166666666");
   });
 
   it("lists which wallets hold an approved KYC record", async () => {

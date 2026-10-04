@@ -1,5 +1,5 @@
 import type { Program } from "@anchor-lang/core";
-import { feesPda, instrumentPda, investorPda, poolPda, termsPda, type F2f } from "@f2f/sdk";
+import { feesPda, instrumentPda, investorPda, poolPda, redemptionDue, termsPda, type F2f } from "@f2f/sdk";
 import {
   ExtensionType,
   TOKEN_2022_PROGRAM_ID,
@@ -187,6 +187,7 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
             exists: acc !== null,
             frozen: acc?.isFrozen ?? true,
             balance: (acc?.amount ?? 0n).toString(),
+            atMaturity: redemptionDue(acc?.amount ?? 0n, { yieldBps: p.yieldBps, maturityTs: p.maturityTs }, p.terms ?? null).toString(),
           };
         });
         const usdcInfo = infos[atas.length];
