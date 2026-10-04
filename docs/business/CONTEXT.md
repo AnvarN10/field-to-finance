@@ -5,6 +5,7 @@ Summary of the source materials in [raw/](raw/). Update it whenever a new source
 Sources:
 
 - [field-to-finance-explainer-ru-2026-08.pdf](raw/field-to-finance-explainer-ru-2026-08.pdf) — plain-language explainer for farmers, investors and regulators, August 2026, in Russian.
+- [pilot-digital-asset-contract-2026-10.csv](raw/pilot-digital-asset-contract-2026-10.csv) — Digital Asset Contract (DAC) term sheet for the first pilot farmer, October 2026, in Russian. Pilot data: keep private.
 
 ## Domain
 
@@ -52,6 +53,25 @@ Settled decisions are recorded as ADRs in [../architecture/decisions/](../archit
 ## Pilot
 
 Real farmers and a contracted Swiss payment on-ramp are lined up for a pilot. Letters of intent from both are expected before the submission deadline. The demo uses real field contours from the pilot farmers, plus test investors and test USDC on devnet.
+
+## Pilot term sheet (Digital Asset Contract)
+
+First pilot farmer, East Kazakhstan (delivery elevator Ust-Kamenogorsk), around 11 thousand ha of farmland with field-level satellite monitoring (NDVI, soil temperature, soil moisture, precipitation history since 2019). Identifiers of the farmer stay out of public material until the team decides otherwise.
+
+| Item | Term |
+| --- | --- |
+| Instrument | WHEAT-2027, planned as an AFSA Investment Token |
+| Issuer | the farmer (the offer contract is between CommodityChain and the issuer; full KYC of the issuer; the issuer pays the issuance fee) |
+| Farmer requirements | insurance; land-use right (state act, cadastral number); 4 financial statements, payables incl. loans, encumbrance certificate; historical field yields; field imagery |
+| Commodity | wheat, HiPro class 3: gluten ≥30, protein ≥15, moisture 14% (12%), falling number ≥200, test weight ≥750, impurities ≤2%, no odour, gluten deformation index ≤75, vitreousness ≥50, no pests |
+| Volume | 10,000 t, tokenized share ≤30% of the harvest |
+| Delivery | elevator in Ust-Kamenogorsk; laboratory Baltic Control |
+| Token type | hybrid: grain delivery with the issuer's right to buy the token back |
+| Currency | USD |
+| Nominal | USD 100,000 per token, 10 tokens, USD 1,000,000 issue |
+| Interest | 5% per year, actual/360 |
+| Dates | start and maturity TBD |
+| Force majeure | per CommodityChain exchange terms |
 
 ## Legal structure
 
