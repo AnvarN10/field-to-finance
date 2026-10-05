@@ -36,7 +36,7 @@ export function PipelineBoard({ rows, filter }: { rows: PipelineCard[]; filter: 
                   href={`/arranger/applications/${c.id}`}
                   className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 transition-colors duration-150 [@media(hover:hover)]:hover:border-input"
                 >
-                  <span className="truncate text-sm font-medium">{`${c.legalName ?? c.farmerEmail} · ${c.crop} ${c.season}`}</span>
+                  <span className="line-clamp-2 text-sm font-medium break-words">{`${c.legalName ?? c.farmerEmail} · ${c.crop} ${c.season}`}</span>
                   <span className="tabular text-xs text-muted-foreground">{formatUsd(BigInt(c.requestedUsd) * 1_000_000n)}</span>
                   <ApplicationStatusBadge status={c.status} />
                   <span className="text-xs text-muted-foreground">{STATUS_INFO[c.status].next}</span>

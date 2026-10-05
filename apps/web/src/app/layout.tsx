@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SkipLink />
         <WalletProviders>
           <SiteHeader walletSlot={<HeaderWalletButton />} />
-          <main id={MAIN_ID} tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 focus:outline-none">{children}</main>
+          <main id={MAIN_ID} tabIndex={-1} className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-10 focus:outline-none">{children}</main>
           <SiteFooter />
         </WalletProviders>
       </body>

@@ -33,8 +33,8 @@ export function ConnectButton() {
 /** Pages whose body already shows a Connect wallet call to action while no wallet is connected. */
 export const pageHasConnect = (pathname: string) => /^\/pools\/[^/]+$/.test(pathname) || pathname === "/investor/onboarding";
 
-/** Farmers and arrangers sign in by email and never need the investor wallet button. */
-const EMAIL_ONLY = /^\/(farmer|arranger|sign-in)(\/|$)/;
+/** The cabinets sign in by email; the investor cabinet offers Phantom where it is used (wallet link, invest panel). */
+const EMAIL_ONLY = /^\/(farmer|arranger|investor|sign-in)(\/|$)/;
 
 /**
  * Header slot: farmers sign in by email on /farmer, so the investor wallet button stays out of their way there.

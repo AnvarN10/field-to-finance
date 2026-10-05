@@ -40,7 +40,7 @@ export function Decision({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" size="sm" disabled={pending} onClick={() => go(approve)}>
+        <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => go(approve)}>
           {pending && !rejecting ? `${approveLabel}…` : approveLabel}
         </Button>
         {!rejecting ? (

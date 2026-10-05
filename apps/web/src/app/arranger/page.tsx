@@ -38,7 +38,7 @@ export default async function ArrangerHome({ searchParams }: { searchParams: Pro
         <p className="text-sm">
           {farmerKyc.length ? `${farmerKyc.length} issuer KYC waiting in applications. ` : ""}
           {investorKyc.length ? (
-            <Link href="/arranger/investors" className="font-medium text-primary underline decoration-muted-foreground underline-offset-4">
+            <Link href="/arranger/investors" className="font-medium text-foreground underline decoration-muted-foreground underline-offset-4">
               {`${investorKyc.length} investor KYC waiting`}
             </Link>
           ) : null}

@@ -33,7 +33,7 @@ export function Positions({ rows }: { rows: PositionRow[] }) {
     );
   }
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label="Positions" tabIndex={0}>
+    <div className="relative overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label="Positions" tabIndex={0}>
       <table className="tabular w-full text-sm whitespace-nowrap">
         <thead className="border-b border-border text-left text-xs text-muted-foreground">
           <tr>

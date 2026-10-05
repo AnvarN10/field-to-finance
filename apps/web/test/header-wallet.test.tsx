@@ -15,7 +15,7 @@ describe("HeaderWalletButton", () => {
     expect(container).not.toBeEmptyDOMElement();
   });
 
-  it.each(["/farmer", "/farmer/applications/1", "/arranger", "/sign-in"])("hides it on %s, where sign-in is by email", (p) => {
+  it.each(["/farmer", "/farmer/applications/1", "/arranger", "/investor", "/investor/onboarding", "/sign-in"])("hides it on %s, where sign-in is by email", (p) => {
     pathname = p;
     const { container } = render(<HeaderWalletButton />);
     expect(container).toBeEmptyDOMElement();
@@ -37,7 +37,7 @@ describe("one Connect wallet button at phone width", () => {
     expect(a.container.firstElementChild).not.toHaveClass("max-sm:hidden");
     a.unmount();
     connected = true;
-    pathname = "/investor/onboarding";
+    pathname = "/pools/7";
     const b = render(<HeaderWalletButton />);
     expect(b.container.firstElementChild).not.toHaveClass("max-sm:hidden");
     connected = false;

@@ -77,7 +77,7 @@ export function RegisterFields({
       {fields.length ? (
         <div className="flex flex-col gap-3">
           <FieldMapLoader polygons={fields.map((f) => f.polygon)} height={260} />
-          <div className="overflow-x-auto" role="region" aria-label="Fields to register" tabIndex={0}>
+          <div className="relative overflow-x-auto" role="region" aria-label="Fields to register" tabIndex={0}>
             <table className="tabular w-full text-sm">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr>

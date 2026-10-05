@@ -2,17 +2,18 @@ import { ExplorerLink } from "../explorer-link";
 
 export type AuditView = { id: string; at: Date; actor: string; action: string; target: string; detail: string; signature: string | null; error: string | null };
 
-export function AuditTable({ rows, cluster }: { rows: AuditView[]; cluster: string }) {
+/** `compact`: on one application's page the target column repeats itself, so it is dropped and the detail joins the action. */
+export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView[]; cluster: string; compact?: boolean }) {
   if (!rows.length) return <p className="text-sm text-muted-foreground">No entries yet.</p>;
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label="Audit log" tabIndex={0}>
+    <div className="relative overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label="Audit log" tabIndex={0}>
       <table className="tabular w-full text-sm">
         <thead className="border-b border-border text-left text-xs text-muted-foreground">
           <tr>
             <th className="px-3 py-2 font-medium whitespace-nowrap">Time (UTC)</th>
             <th className="px-3 py-2 font-medium">Who</th>
             <th className="px-3 py-2 font-medium">Action</th>
-            <th className="px-3 py-2 font-medium">Target</th>
+            {compact ? null : <th className="px-3 py-2 font-medium">Target</th>}
             <th className="px-3 py-2 font-medium">Result</th>
           </tr>
         </thead>
@@ -23,13 +24,20 @@ export function AuditTable({ rows, cluster }: { rows: AuditView[]; cluster: stri
               <td className="max-w-48 truncate px-3 py-3" title={r.actor}>
                 {r.actor}
               </td>
-              <td className="px-3 py-3 font-mono text-xs whitespace-nowrap">{r.action}</td>
               <td className="px-3 py-3">
                 <div className="flex flex-col gap-0.5">
-                  <span>{r.target}</span>
-                  {r.detail ? <span className="text-xs text-muted-foreground">{r.detail}</span> : null}
+                  <span className="font-mono text-xs whitespace-nowrap">{r.action}</span>
+                  {compact && r.detail ? <span className="text-xs text-muted-foreground">{r.detail}</span> : null}
                 </div>
               </td>
+              {compact ? null : (
+                <td className="px-3 py-3">
+                  <div className="flex flex-col gap-0.5">
+                    <span>{r.target}</span>
+                    {r.detail ? <span className="text-xs text-muted-foreground">{r.detail}</span> : null}
+                  </div>
+                </td>
+              )}
               <td className="px-3 py-3">
                 {r.error ? (
                   <span className="text-destructive">{`Failed: ${r.error}`}</span>

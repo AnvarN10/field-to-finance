@@ -7,7 +7,7 @@ import { EmptyState } from "../state";
 export type ApplicationSummary = { id: string; crop: string; season: number; requestedUsd: number; status: ApplicationStatus; statusNote: string | null };
 
 const OWNER = { farmer: "You", arranger: "Arranger", investors: "Investors", chain: "On-chain checks" } as const;
-const link = "rounded-sm font-medium text-primary underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current";
+const link = "rounded-sm font-medium text-foreground underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current";
 
 const usd = (whole: number) => formatUsd(BigInt(whole) * 1_000_000n);
 

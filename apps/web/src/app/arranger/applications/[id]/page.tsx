@@ -169,7 +169,7 @@ export default async function ArrangerApplication({ params }: { params: Promise<
           </Section>
 
           <Section title="Activity">
-            <AuditTable rows={audit} cluster={cluster} />
+            <AuditTable rows={audit} cluster={cluster} compact />
           </Section>
         </div>
 

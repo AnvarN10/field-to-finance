@@ -60,7 +60,7 @@ export default async function KfdPage({ params }: { params: Promise<{ poolId: st
             ))}
           </ul>
         </section>
-        <p className="font-mono text-xs text-muted-foreground">{`Document SHA-256 ${hash}`}</p>
+        <p className="font-mono text-xs break-all text-muted-foreground">{`Document SHA-256 ${hash}`}</p>
         <div className="border-t border-border pt-4">
           {current ? (
             <div className="flex flex-wrap items-center gap-3 text-sm">

@@ -6,7 +6,7 @@ export type HistoryRow = { id: string; at: Date; label: string; amount: string |
 export function HistoryTable({ rows, empty, cluster }: { rows: HistoryRow[]; empty: string; cluster: string }) {
   if (!rows.length) return <p className="text-sm text-muted-foreground">{empty}</p>;
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label="Transaction history" tabIndex={0}>
+    <div className="relative overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label="Transaction history" tabIndex={0}>
       <table className="tabular w-full text-sm whitespace-nowrap">
         <thead className="border-b border-border text-left text-xs text-muted-foreground">
           <tr>
