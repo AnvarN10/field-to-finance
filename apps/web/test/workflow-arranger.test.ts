@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applications, auditLog, farmerProfiles, notifications, wallets } from "../src/lib/db/schema";
+import { applications, auditLog, farmerProfiles, investorProfiles, notifications, wallets } from "../src/lib/db/schema";
 import {
   advanceApplication,
   applicationDetail,
@@ -70,6 +70,28 @@ describe("arranger pipeline", () => {
     const kyc = (await db.select().from(auditLog)).find((a) => a.action === "farmer_kyc.approve");
     expect(kyc?.txSignature).toBe(`sig-kyc-${FARMER_WALLET.slice(0, 4)}`);
     expect((await db.select().from(notifications)).length).toBeGreaterThan(0);
+    const farmerTitles = (await db.select().from(notifications)).filter((n) => n.userId === farmer.id).map((n) => n.title);
+    expect(farmerTitles).toContain("Document accepted");
+    expect(kyc?.actingRole).toBe("compliance");
+    expect((await db.select().from(auditLog)).find((a) => a.action === "fields.verify")?.actingRole).toBe("scas");
+  });
+
+  it("publishing a pool tells every approved investor", async () => {
+    const { db, ops, farmer, app } = await submitted();
+    const investor = await makeUser(db, "inv@example.com", ["investor"]);
+    await db.insert(investorProfiles).values({ userId: investor.id, kycStatus: "approved" });
+    const chain = fakeChain();
+    await advanceApplication(db, ops, app.id, "documents_review", chain);
+    for (const d of (await applicationDetail(db, app.id)).checklist) await reviewDocument(db, ops, d.documentId as string, "accepted", null);
+    await advanceApplication(db, ops, app.id, "kyc", chain);
+    await decideFarmerKyc(db, ops, farmer.id, "approved", null, chain);
+    await advanceApplication(db, ops, app.id, "field_verification", chain);
+    await verifyApplicationFields(db, ops, app.id, chain);
+    await advanceApplication(db, ops, app.id, "structuring", chain);
+    await structureApplication(db, ops, app.id, TERMS, chain);
+    await publishApplication(db, ops, app.id, chain);
+    const mine = (await db.select().from(notifications)).filter((n) => n.userId === investor.id);
+    expect(mine).toEqual([expect.objectContaining({ kind: "pool", title: "New pool open: wheat 2027", link: "/investor/pools/9" })]);
   });
 
   it("requires a note to reject a document and notifies the farmer", async () => {

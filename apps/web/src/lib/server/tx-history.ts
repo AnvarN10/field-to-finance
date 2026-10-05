@@ -1,19 +1,12 @@
 import "server-only";
-import { eq } from "drizzle-orm";
-import { wallets } from "../db/schema";
-import { audit } from "../workflow/audit";
+import { recordUserTransaction, type UserTx } from "../workflow/tx-history";
+import { getReader } from "./context";
 import { getDb } from "./db";
 
 /** A user transaction the sponsor co-signed, in the audit log as `tx.<action>` (the investor and farmer history read it). */
-export async function recordUserTx(t: { action: string; wallet: string; signature: string; pool: string | null; project: string | null; amount: string | null }): Promise<void> {
+export async function recordUserTx(t: UserTx): Promise<void> {
   const db = await getDb();
-  const owner = await db.query.wallets.findFirst({ where: eq(wallets.address, t.wallet) });
-  await audit(db, {
-    actorUserId: owner?.userId ?? null,
-    action: `tx.${t.action}`,
-    targetType: "wallet",
-    targetId: t.wallet,
-    payload: { ...(t.pool ? { pool: t.pool } : {}), ...(t.project ? { project: t.project } : {}), ...(t.amount ? { amount: t.amount } : {}) },
-    signatures: [t.signature],
-  });
+  const pools = t.pool ? await getReader().listPools().catch(() => []) : [];
+  const p = pools.find((x) => x.address === t.pool);
+  await recordUserTransaction(db, t, p ? { poolId: p.poolId, symbol: p.instrument?.symbol ?? `POOL-${p.poolId}` } : null);
 }

@@ -20,9 +20,9 @@ import {
 } from "../db/schema";
 import { RequestError } from "../errors";
 import { audit, audited, listAudit } from "./audit";
-import { checklist, type ChecklistRow } from "./documents";
-import { assertRole, assertUuid, parseOr400 } from "./guards";
-import { notify } from "./notifications";
+import { checklist, DOCUMENT_LABELS, type ChecklistRow } from "./documents";
+import { assertRole, assertServiceRole, assertUuid, parseOr400 } from "./guards";
+import { notify, notifyApprovedInvestors } from "./notifications";
 import { issuerWalletOf } from "./farmer";
 import type { ArrangerChain } from "./ports";
 
@@ -112,6 +112,7 @@ export async function reviewDocument(db: Db, actor: SessionUser, documentId: str
     payload: { documentId, kind: doc.kind, ...(reason ? { note: reason } : {}) },
   });
   if (decision === "rejected") await notify(db, doc.ownerUserId, "document", "A document needs a new upload", reason);
+  else await notify(db, doc.ownerUserId, "document", "Document accepted", `${DOCUMENT_LABELS[doc.kind]} was accepted.`);
 }
 
 /** Pre-open moves with their gates. `open` happens only through publishApplication; reject through rejectApplication. */
@@ -151,7 +152,7 @@ export async function rejectApplication(db: Db, actor: SessionUser, id: string, 
 
 /** Issuer KYC decision. Approval writes the platform KYC record on-chain for the farmer's wallet first. */
 export async function decideFarmerKyc(db: Db, actor: SessionUser, farmerUserId: string, decision: "approved" | "rejected", note: string | null, chain: ArrangerChain): Promise<void> {
-  assertRole(actor, "arranger");
+  const actingRole = assertServiceRole(actor, "compliance").role;
   assertUuid(farmerUserId, "Farmer");
   const profile = await db.query.farmerProfiles.findFirst({ where: eq(farmerProfiles.userId, farmerUserId) });
   if (!profile) throw new RequestError("Farmer not found", 404);
@@ -160,21 +161,21 @@ export async function decideFarmerKyc(db: Db, actor: SessionUser, farmerUserId: 
     const reason = note?.trim() ?? "";
     if (reason.length < 3) throw new RequestError("Say why KYC is rejected.", 400);
     await db.update(farmerProfiles).set({ kycStatus: "rejected", kycNote: reason, kycDecidedBy: actor.id, kycDecidedAt: new Date(), updatedAt: new Date() }).where(eq(farmerProfiles.userId, farmerUserId));
-    await audit(db, { actorUserId: actor.id, action: "farmer_kyc.reject", targetType: "user", targetId: farmerUserId, payload: { note: reason } });
+    await audit(db, { actorUserId: actor.id, actingRole, action: "farmer_kyc.reject", targetType: "user", targetId: farmerUserId, payload: { note: reason } });
     await notify(db, farmerUserId, "kyc", "Issuer KYC rejected", reason);
     return;
   }
   // Exactly the issuer wallet: the one that registers the project and becomes the issuer of record.
   const wallet = await issuerWalletOf(db, farmerUserId);
   if (!wallet) throw new RequestError("The farmer has no platform wallet yet. Ask them to sign in once so Privy creates it.", 409);
-  await audited(db, { actorUserId: actor.id, action: "farmer_kyc.approve", targetType: "user", targetId: farmerUserId, payload: { wallet } }, () => chain.approveKyc(wallet), (s) => [s]);
+  await audited(db, { actorUserId: actor.id, actingRole, action: "farmer_kyc.approve", targetType: "user", targetId: farmerUserId, payload: { wallet } }, () => chain.approveKyc(wallet), (s) => [s]);
   await db.update(farmerProfiles).set({ kycStatus: "approved", kycNote: null, kycWallet: wallet, kycDecidedBy: actor.id, kycDecidedAt: new Date(), updatedAt: new Date() }).where(eq(farmerProfiles.userId, farmerUserId));
   await notify(db, farmerUserId, "kyc", "Issuer KYC approved", "Your company can be the issuer of record of its pool.");
 }
 
 /** Investor KYC decision. Approval writes the platform KYC record for every linked wallet; later links are approved when linked. */
 export async function decideInvestorKyc(db: Db, actor: SessionUser, investorUserId: string, decision: "approved" | "rejected", note: string | null, chain: ArrangerChain): Promise<void> {
-  assertRole(actor, "arranger");
+  const actingRole = assertServiceRole(actor, "compliance").role;
   assertUuid(investorUserId, "Investor");
   const profile = await db.query.investorProfiles.findFirst({ where: eq(investorProfiles.userId, investorUserId) });
   if (!profile) throw new RequestError("Investor not found", 404);
@@ -183,26 +184,26 @@ export async function decideInvestorKyc(db: Db, actor: SessionUser, investorUser
     const reason = note?.trim() ?? "";
     if (reason.length < 3) throw new RequestError("Say why KYC is rejected.", 400);
     await db.update(investorProfiles).set({ kycStatus: "rejected", kycNote: reason, decidedBy: actor.id, decidedAt: new Date(), updatedAt: new Date() }).where(eq(investorProfiles.userId, investorUserId));
-    await audit(db, { actorUserId: actor.id, action: "investor_kyc.reject", targetType: "user", targetId: investorUserId, payload: { note: reason } });
+    await audit(db, { actorUserId: actor.id, actingRole, action: "investor_kyc.reject", targetType: "user", targetId: investorUserId, payload: { note: reason } });
     await notify(db, investorUserId, "kyc", "KYC rejected", reason);
     return;
   }
   const ws = await db.select().from(wallets).where(eq(wallets.userId, investorUserId));
   for (const w of ws) {
-    await audited(db, { actorUserId: actor.id, action: "investor_kyc.approve", targetType: "user", targetId: investorUserId, payload: { wallet: w.address, category: profile.category } }, () => chain.approveKyc(w.address), (s) => [s]);
+    await audited(db, { actorUserId: actor.id, actingRole, action: "investor_kyc.approve", targetType: "user", targetId: investorUserId, payload: { wallet: w.address, category: profile.category } }, () => chain.approveKyc(w.address), (s) => [s]);
   }
-  if (!ws.length) await audit(db, { actorUserId: actor.id, action: "investor_kyc.approve", targetType: "user", targetId: investorUserId, payload: { category: profile.category, wallet: null } });
+  if (!ws.length) await audit(db, { actorUserId: actor.id, actingRole, action: "investor_kyc.approve", targetType: "user", targetId: investorUserId, payload: { category: profile.category, wallet: null } });
   await db.update(investorProfiles).set({ kycStatus: "approved", kycNote: null, decidedBy: actor.id, decidedAt: new Date(), updatedAt: new Date() }).where(eq(investorProfiles.userId, investorUserId));
   await notify(db, investorUserId, "kyc", "KYC approved", "Accept a pool's key features document to subscribe.");
 }
 
 export async function verifyApplicationFields(db: Db, actor: SessionUser, id: string, chain: ArrangerChain): Promise<string[]> {
-  assertRole(actor, "arranger");
+  const actingRole = assertServiceRole(actor, "scas").role;
   const app = await loadApplication(db, id);
   if (app.status !== "field_verification") throw new RequestError("Fields are verified during the field verification step.", 409);
   const project = app.projectAddress ? await chain.project(app.projectAddress) : null;
   if (!project) throw new RequestError("The farm project was not found on-chain.", 404);
-  return audited(db, { actorUserId: actor.id, action: "fields.verify", targetType: "application", targetId: id, payload: { project: project.address } }, () => chain.verifyFields(project), (s) => s);
+  return audited(db, { actorUserId: actor.id, actingRole, action: "fields.verify", targetType: "application", targetId: id, payload: { project: project.address } }, () => chain.verifyFields(project), (s) => s);
 }
 
 export const termsInput = z.object({
@@ -278,7 +279,9 @@ export async function publishApplication(db: Db, actor: SessionUser, id: string,
   if (app.status !== "ready" || !app.poolId) throw new RequestError("Only a ready application with a pool can be published.", 409);
   const poolId = app.poolId;
   await audited(db, { actorUserId: actor.id, action: "pool.open", targetType: "application", targetId: id, payload: { poolId } }, () => chain.openPool(poolId), (s) => [s]);
-  return setStatus(db, app, "open");
+  const row = await setStatus(db, app, "open");
+  await notifyApprovedInvestors(db, "pool", `New pool open: ${app.crop} ${app.season}`, "Read its key features and subscribe from your cabinet.", `/investor/pools/${poolId}`);
+  return row;
 }
 
 const TERMINAL: ApplicationStatus[] = ["rejected", "withdrawn", "closed"];

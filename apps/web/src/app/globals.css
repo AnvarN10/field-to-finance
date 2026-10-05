@@ -118,6 +118,10 @@ html:not([data-seen]) .intro-fade { animation: fade-in 500ms var(--ease-out) 900
 .check-draw-tick { stroke-dasharray: 1; animation: check-draw 200ms var(--ease-out) 180ms both; }
 .tx-link-in { animation: fade-in 150ms var(--ease-out) 400ms both; }
 
+/* Popovers (notification bell) grow from their trigger's trailing top corner, 160ms. */
+@keyframes popover-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+.popover-in { transform-origin: top right; animation: popover-in 160ms var(--ease-out) both; }
+
 /* Reduced motion: no movement; opacity fades stay short. Components also branch on the media query. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
@@ -126,6 +130,7 @@ html:not([data-seen]) .intro-fade { animation: fade-in 500ms var(--ease-out) 900
   html:not([data-seen]) .hero-field-line, html:not([data-seen]) .hero-field-casing, html:not([data-seen]) .hero-field-fill { animation: none; }
   html:not([data-seen]) .hero-card, html:not([data-seen]) .intro-fade { animation: fade-in 150ms ease both; }
   .tx-link-in { animation: fade-in 150ms ease both; }
+  .popover-in { animation: fade-in 150ms ease both; }
 }
 
 /* Wallet adapter modal restyled to the style-lock (its default dark purple theme is an anti-reference). */

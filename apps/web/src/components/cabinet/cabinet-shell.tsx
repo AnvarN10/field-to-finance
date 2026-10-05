@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CabinetNav, type CabinetTab } from "./cabinet-nav";
+import { NotificationBell } from "./notification-bell";
 import { SignOutButton } from "./sign-out-button";
 
 /** Cabinet frame: role label, title, signed-in email, sign out, and the cabinet's tabs. Content sits below on the page ground. */
@@ -16,6 +17,7 @@ export function CabinetShell({ role, title, email, tabs, children }: { role: str
             <span className="min-w-0 break-all">
               {email}
             </span>
+            <NotificationBell />
             <SignOutButton />
           </div>
         </div>
