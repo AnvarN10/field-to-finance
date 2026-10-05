@@ -280,6 +280,8 @@ export interface CosignDeps {
    * Returns 0 to allow, else the seconds until the wallet may try again. Stops close-and-recreate loops.
    */
   allowRent(wallet: string): number;
+  /** Last check before the sponsor signs (e.g. the KFD gate for subscribe). Throw a RequestError to refuse. */
+  beforeSign?(info: SponsoredTxInfo): Promise<void>;
   /** Called after the transaction was accepted by the RPC node (history; must not throw). */
   onSent?(info: SponsoredTxInfo, signature: string): void;
 }
@@ -309,6 +311,7 @@ export async function cosignAndSend(deps: CosignDeps, action: TxAction, txBase64
       if (wait > 0) throw new RequestError(`This wallet has used its sponsored account budget. Try again in ${Math.ceil(wait / 60)} min.`, 429);
     }
   }
+  await deps.beforeSign?.(info);
   tx.sign([deps.sponsorKey]);
   const signature = await deps.connection.sendRawTransaction(tx.serialize(), { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 3 });
   deps.onSent?.(info, signature);

@@ -16,6 +16,11 @@ export function scrubEvent<T extends SentryLikeEvent>(event: T): T {
     };
   }
   delete event.user;
+  // Driver errors (postgres-js) carry `query` and `parameters` (BIN, legal names, KYC answers); the
+  // extra-error-data integration copies such properties into `extra` and mechanism data. Drop both.
+  delete event.extra;
+  const exc = event.exception as { values?: { mechanism?: { data?: unknown } }[] } | undefined;
+  for (const v of exc?.values ?? []) if (v.mechanism) delete v.mechanism.data;
   return event;
 }
 

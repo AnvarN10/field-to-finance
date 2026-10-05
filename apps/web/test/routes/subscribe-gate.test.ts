@@ -21,7 +21,7 @@ vi.mock("@/lib/server/context", () => ({
   getStore: () => ({}),
   getUsdcMint: () => ({}),
   sponsorPublicKey: () => ({}),
-  getReader: () => ({ getPool: async (id: string) => (id === "7" ? { pool: { address: POOL, poolId: "7" } } : null), fees: async () => null }),
+  getReader: () => ({ getPool: async (id: string) => (id === "rpc-down" ? Promise.reject(new Error("429 Too Many Requests")) : id === "7" ? { pool: { address: POOL, poolId: "7" } } : null), fees: async () => null }),
 }));
 const route = await import("../../src/app/api/tx/[action]/route");
 
@@ -58,5 +58,12 @@ describe("subscribe gate (KFD before the first subscription)", () => {
     } finally {
       dbDown = false;
     }
+  });
+
+  it("fails closed when the pool read fails, instead of building an ungated subscribe", async () => {
+    buildUserTx.mockClear();
+    const res = await call("subscribe", { signer: Keypair.generate().publicKey.toBase58(), poolId: "rpc-down", amount: "1000000" });
+    expect(res.status).toBe(503);
+    expect(buildUserTx).not.toHaveBeenCalled();
   });
 });

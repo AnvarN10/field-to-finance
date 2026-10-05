@@ -1,3 +1,4 @@
+import { RequestError } from "../src/lib/errors";
 import { instrumentPda, investorPda } from "@f2f/sdk";
 import { ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, TransactionInstruction, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import { describe, expect, it, vi } from "vitest";
@@ -282,6 +283,18 @@ describe("cosignAndSend", () => {
     const tx = compile(sponsorKey.publicKey, b.instructions);
     const connection = conn(async () => "x");
     await expect(cosignAndSend({ policy: p, sponsorKey, connection, ...extra }, "subscribe", Buffer.from(tx.serialize()).toString("base64"))).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/wallet signature/i) });
+    expect(connection.sendRawTransaction).not.toHaveBeenCalled();
+  });
+
+  it("asks beforeSign last and never signs or sends when it refuses (KFD gate)", async () => {
+    const { tx, user } = await userSigned("subscribe");
+    const connection = conn(async () => "x", true);
+    const beforeSign = vi.fn(async (_info: { summary: { pool: string | null } }) => {
+      throw new RequestError("Accept this pool's key features document", 403);
+    });
+    await expect(cosignAndSend({ policy: p, sponsorKey, connection, ...extra, beforeSign }, "subscribe", Buffer.from(tx.serialize()).toString("base64"))).rejects.toMatchObject({ status: 403 });
+    expect(beforeSign).toHaveBeenCalledWith(expect.objectContaining({ signer: user.publicKey }));
+    expect(beforeSign.mock.calls[0]?.[0].summary.pool).toEqual(expect.any(String));
     expect(connection.sendRawTransaction).not.toHaveBeenCalled();
   });
 

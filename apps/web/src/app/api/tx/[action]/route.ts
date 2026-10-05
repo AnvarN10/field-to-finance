@@ -19,7 +19,13 @@ const GATE: Record<Exclude<KfdGate, null>, [code: string, title: string, detail:
 async function subscribeGate(body: unknown): Promise<Response | null> {
   const b = body as { signer?: unknown; poolId?: unknown } | null;
   if (typeof b?.signer !== "string" || typeof b.poolId !== "string") return null; // buildUserTx reports the malformed body
-  const detail = await getReader().getPool(b.poolId).catch(() => null);
+  let detail;
+  try {
+    detail = await getReader().getPool(b.poolId);
+  } catch {
+    // An RPC failure must not skip the gate (fail closed); a pool that does not exist is reported by buildUserTx.
+    return fail(503, "PoolUnavailable", "Subscriptions are paused", "The pool could not be read right now. Try again in a minute.");
+  }
   if (!detail) return null;
   let gate: KfdGate;
   try {

@@ -5,6 +5,8 @@ import { cosignAndSend } from "@/lib/chain/sponsor";
 import { TX_ACTIONS } from "@/lib/chain/user-tx";
 import { RequestError } from "@/lib/errors";
 import { clientIp, createRateLimit, takeAll } from "@/lib/rate-limit";
+import { getDb } from "@/lib/server/db";
+import { kfdGate } from "@/lib/workflow/investor";
 import { getConnection, getStore, roleKeypair, sponsorPolicy, sponsorPublicKey } from "@/lib/server/context";
 import { recordUserTx } from "@/lib/server/tx-history";
 import { polygonKey } from "@/lib/store";
@@ -24,6 +26,20 @@ const Body = z.object({ action: z.enum(TX_ACTIONS), tx: z.string().min(1).max(4_
 const fail = (status: number, code: string, title: string, detail: string, logs: string[] = []) =>
   Response.json({ ok: false, error: { code, title, detail, action: "none" }, logs }, { status });
 
+/** Same gate as /api/tx/subscribe, fail closed: no Postgres, no sponsored subscription. */
+async function subscribeAllowed(wallet: string, pool: string | null): Promise<void> {
+  if (!pool) throw new RequestError("subscribe: pool account is missing", 400);
+  let gate;
+  try {
+    gate = await kfdGate(await getDb(), wallet, pool);
+  } catch {
+    throw new RequestError("Subscriptions are paused: investor accounts are unavailable right now. Try again in a minute.", 503);
+  }
+  if (gate === "unlinked") throw new RequestError("Link this wallet in your investor cabinet before subscribing.", 403);
+  if (gate === "onboarding") throw new RequestError("Finish investor onboarding (KYC and the risk acknowledgement) before subscribing.", 403);
+  if (gate === "kfd") throw new RequestError("Accept this pool's key features document in your investor cabinet before subscribing.", 403);
+}
+
 /** Receives a wallet-signed transaction built by /api/tx/[action], co-signs it as fee payer after validation, submits it. */
 export async function POST(req: Request) {
   const b = Body.safeParse(await req.json().catch(() => null));
@@ -39,6 +55,8 @@ export async function POST(req: Request) {
         connection: getConnection(),
         polygonExists: async (hash) => (await getStore().get(polygonKey(hash))) !== null,
         allowRent: (wallet) => takeAll([[rentPerWallet, wallet], [rentGlobal, "all"]]),
+        // The KFD gate also lives here: a wallet could build subscribe itself and skip /api/tx/subscribe.
+        beforeSign: b.data.action === "subscribe" ? (info) => subscribeAllowed(info.signer.toBase58(), info.summary.pool) : undefined,
         // Best effort: the history must never fail a sent transaction.
         onSent: (info, signature) =>
           void recordUserTx({ action: b.data.action, wallet: info.signer.toBase58(), signature, ...info.summary }).catch((e) => Sentry.captureException(e)),

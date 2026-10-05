@@ -16,6 +16,10 @@ vi.mock("@/lib/chain/sponsor", async (orig) => ({
 }));
 const recordTx = vi.fn(async () => {});
 vi.mock("@/lib/server/tx-history", () => ({ recordUserTx: (...a: unknown[]) => recordTx(...(a as [])) }));
+const gate = vi.fn(async (): Promise<string | null> => null);
+let dbDown = false;
+vi.mock("@/lib/server/db", () => ({ getDb: async () => { if (dbDown) throw new Error("down"); return {}; } }));
+vi.mock("@/lib/workflow/investor", () => ({ kfdGate: (...a: unknown[]) => gate(...(a as [])) }));
 const { POST } = await import("../../src/app/api/tx/send/route");
 
 const req = (body: unknown, ip = "4.4.4.4") =>
@@ -65,5 +69,40 @@ describe("POST /api/tx/send", () => {
     const statuses: number[] = [];
     for (let i = 0; i < 22; i++) statuses.push((await POST(req({ action: "subscribe", tx: "AAAA" }, "6.6.6.6"))).status);
     expect(statuses.at(-1)).toBe(429);
+  });
+
+  describe("KFD gate before the sponsor signs a subscribe", () => {
+    type Deps = { beforeSign?: (i: unknown) => Promise<void> };
+    const info = { signer: { toBase58: () => "W9" }, summary: { pool: "P9", project: null, amount: "1" } };
+    const runGate = () =>
+      cosignAndSend.mockImplementation(async (deps: Deps) => {
+        await deps.beforeSign?.(info);
+        return "5sig";
+      });
+
+    it("refuses a wallet without the KFD acceptance with 403", async () => {
+      gate.mockResolvedValueOnce("kfd");
+      runGate();
+      const r = await POST(req({ action: "subscribe", tx: "AAAA" }, "7.7.7.1"));
+      expect(r.status).toBe(403);
+      expect(gate).toHaveBeenCalledWith({}, "W9", "P9");
+    });
+
+    it("fails closed with 503 when Postgres is down", async () => {
+      dbDown = true;
+      runGate();
+      try {
+        expect((await POST(req({ action: "subscribe", tx: "AAAA" }, "7.7.7.2"))).status).toBe(503);
+      } finally {
+        dbDown = false;
+      }
+    });
+
+    it("does not gate refunds", async () => {
+      runGate();
+      gate.mockClear();
+      expect((await POST(req({ action: "refund", tx: "AAAA" }, "7.7.7.3"))).status).toBe(200);
+      expect(gate).not.toHaveBeenCalled();
+    });
   });
 });

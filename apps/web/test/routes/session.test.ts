@@ -23,7 +23,8 @@ vi.mock("@/lib/server/privy", () => ({ getPrivy: () => privy }));
 vi.mock("@/lib/server/env", () => ({ serverEnv: () => ({ ARRANGER_EMAILS: "ops@example.com" }) }));
 const route = await import("../../src/app/api/session/route");
 
-const post = (body: unknown) => route.POST(new Request("http://x/api/session", { method: "POST", body: JSON.stringify(body) }));
+const post = (body: unknown, headers: Record<string, string> = {}) =>
+  route.POST(new Request("http://x/api/session", { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) }));
 
 describe("/api/session", () => {
   it("sets an httpOnly SameSite=Lax cookie that ends with the token and returns the roles", async () => {
@@ -59,7 +60,33 @@ describe("/api/session", () => {
   });
 
   it("DELETE clears the cookie", async () => {
-    const res = await route.DELETE();
+    const res = await route.DELETE(new Request("http://x/api/session", { method: "DELETE" }));
     expect(res.headers.get("set-cookie") ?? "").toMatch(/f2f_session=;.*(Max-Age=0|Expires=Thu, 01 Jan 1970)/i);
+  });
+
+  describe("login CSRF", () => {
+    it("refuses a cross-site POST, so a third-party page cannot plant its own session", async () => {
+      const res = await post({ token: "good" }, { "sec-fetch-site": "cross-site" });
+      expect(res.status).toBe(403);
+      expect(res.headers.get("set-cookie")).toBeNull();
+    });
+
+    it("refuses a foreign Origin when Sec-Fetch-Site is absent", async () => {
+      const res = await post({ token: "good" }, { origin: "https://evil.example" });
+      expect(res.status).toBe(403);
+    });
+
+    it("refuses a text/plain body (a no-cors fetch needs no preflight)", async () => {
+      const res = await route.POST(new Request("http://x/api/session", { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify({ token: "good" }) }));
+      expect(res.status).toBe(415);
+      expect(res.headers.get("set-cookie")).toBeNull();
+    });
+
+    it("accepts a same-origin POST and refuses a cross-site sign-out", async () => {
+      expect((await post({ token: "good" }, { "sec-fetch-site": "same-origin", origin: "http://x" })).status).toBe(200);
+      const out = await route.DELETE(new Request("http://x/api/session", { method: "DELETE", headers: { "sec-fetch-site": "cross-site" } }));
+      expect(out.status).toBe(403);
+      expect(out.headers.get("set-cookie")).toBeNull();
+    });
   });
 });

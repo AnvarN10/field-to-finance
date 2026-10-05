@@ -20,6 +20,18 @@ describe("scrubEvent", () => {
   });
 });
 
+describe("scrubEvent and driver errors", () => {
+  it("drops extra data and mechanism data, where postgres-js query parameters (BIN, names) would land", () => {
+    const e = scrubEvent({
+      extra: { query: "insert into farmer_profiles ...", parameters: ["Demo Farm LLP", "123456789012"] },
+      exception: { values: [{ type: "PostgresError", mechanism: { type: "generic", data: { parameters: ["123456789012"] } } }] },
+    });
+    expect(e.extra).toBeUndefined();
+    expect(JSON.stringify(e)).not.toContain("123456789012");
+    expect((e.exception as { values: { type: string }[] }).values[0]!.type).toBe("PostgresError");
+  });
+});
+
 describe("posthogOptions", () => {
   it("targets the EU host, disables recordings and registers app_env", () => {
     const o = posthogOptions("prod", "https://eu.i.posthog.com");
