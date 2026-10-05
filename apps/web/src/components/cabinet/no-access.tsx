@@ -3,7 +3,16 @@ import Link from "next/link";
 import type { Role } from "../../lib/db/schema";
 import { SignOutButton } from "./sign-out-button";
 
-const PLURAL: Record<Role, string> = { farmer: "farmers", investor: "investors", arranger: "arrangers" };
+const PLURAL: Record<Role, string> = {
+  farmer: "farmers",
+  investor: "investors",
+  arranger: "arrangers",
+  compliance: "compliance officers",
+  scas: "SCAS partners",
+  elevator: "elevators and laboratories",
+  lab: "elevators and laboratories",
+  regulator: "regulators",
+};
 
 /** 403 state: signed in, but without the role this cabinet needs. */
 export function NoAccess({ role, email, otherCabinet }: { role: Role; email: string; otherCabinet: string | null }) {

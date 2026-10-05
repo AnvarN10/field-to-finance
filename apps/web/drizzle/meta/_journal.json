@@ -15,6 +15,13 @@
       "when": 1791206924809,
       "tag": "0001_issuer_wallet_and_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791222143208,
+      "tag": "0002_service_roles",
+      "breakpoints": true
     }
   ]
 }

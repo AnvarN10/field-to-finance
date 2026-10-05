@@ -1,9 +1,19 @@
 import type { SessionUser } from "../auth/session";
-import type { Role } from "../db/schema";
+import type { Role, ServiceRole } from "../db/schema";
 import { RequestError } from "../errors";
 
 export function assertRole(user: SessionUser, role: Role): void {
   if (!user.roles.includes(role)) throw new RequestError(`Your account does not have the ${role} role.`, 403);
+}
+
+/** Who acts in a service cabinet, and as which role (recorded in `audit_log.acting_role`). */
+export type ServiceActor = { user: SessionUser; role: ServiceRole; viaArranger: boolean };
+
+/** A service action: the user holds `role`, or is an arranger acting for it (pilot fallback, ADR 0017). */
+export function assertServiceRole(user: SessionUser, role: ServiceRole): ServiceActor {
+  if (user.roles.includes(role)) return { user, role, viaArranger: false };
+  if (user.roles.includes("arranger")) return { user, role, viaArranger: true };
+  throw new RequestError(`Your account does not have the ${role} role.`, 403);
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

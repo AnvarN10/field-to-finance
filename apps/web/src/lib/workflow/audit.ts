@@ -4,6 +4,8 @@ import { auditLog, type AuditRow } from "../db/schema";
 
 export interface AuditEntry {
   actorUserId: string | null;
+  /** The service role acted as (ADR 0017). */
+  actingRole?: string | null;
   action: string;
   targetType: string;
   targetId: string;
@@ -18,6 +20,7 @@ export async function audit(db: Db, e: AuditEntry): Promise<void> {
   const signatures = (e.signatures ?? []).filter(Boolean);
   await db.insert(auditLog).values({
     actorUserId: e.actorUserId,
+    actingRole: e.actingRole ?? null,
     action: e.action,
     targetType: e.targetType,
     targetId: e.targetId,

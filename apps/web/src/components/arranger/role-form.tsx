@@ -4,6 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "../../app/arranger/actions";
 import { grantRoleAction } from "../../app/arranger/workflow-actions";
+import type { Role } from "../../lib/db/schema";
+import { ROLE_LABELS } from "../../lib/roles";
+
+// Keys of the label map, not the schema: the schema module pulls Drizzle into the client bundle.
+const ROLES = Object.keys(ROLE_LABELS) as Role[];
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { ActionResultView } from "./action-result";
@@ -38,9 +43,11 @@ export function RoleForm() {
         <label className="flex flex-col gap-1.5 text-sm font-medium">
           Role
           <select value={role} onChange={(e) => setRole(e.target.value)} className="h-9 rounded-md border border-input bg-card px-2.5 text-base md:text-sm">
-            <option value="investor">Investor</option>
-            <option value="farmer">Farmer</option>
-            <option value="arranger">Arranger</option>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABELS[r]}
+              </option>
+            ))}
           </select>
         </label>
         <Button type="submit" disabled={pending}>

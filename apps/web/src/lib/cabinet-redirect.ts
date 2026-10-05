@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "./auth/session";
 
-const CABINET = /^\/(farmer|investor|arranger)(\/|$)/;
+const CABINET = /^\/(farmer|investor|arranger|compliance|scas|elevator|regulator)(\/|$)/;
 
 /**
  * Cheap first gate for the cabinets: no session cookie, straight to sign-in with a real 307. A present cookie is only a

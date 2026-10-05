@@ -2,7 +2,8 @@ import "server-only";
 import { inArray } from "drizzle-orm";
 import type { AuditView } from "../../components/arranger/audit-table";
 import type { Db } from "../db/client";
-import { users, type AuditRow } from "../db/schema";
+import { users, type AuditRow, type Role } from "../db/schema";
+import { ROLE_LABELS } from "../roles";
 import { actionLabel, auditDetail } from "../audit-labels";
 import { shortKey } from "../format";
 
@@ -14,7 +15,7 @@ export async function auditViews(db: Db, rows: AuditRow[]): Promise<AuditView[]>
   return rows.map((r) => ({
     id: r.id,
     at: r.createdAt,
-    actor: r.actorUserId ? (email.get(r.actorUserId) ?? "deleted user") : "system",
+    actor: `${r.actorUserId ? (email.get(r.actorUserId) ?? "deleted user") : "system"}${r.actingRole ? ` as ${ROLE_LABELS[r.actingRole as Role] ?? r.actingRole}` : ""}`,
     action: actionLabel(r.action),
     target: `${r.targetType} ${/^[0-9a-f-]{36}$/.test(r.targetId) ? r.targetId.slice(0, 8) : shortKey(r.targetId)}`,
     detail: auditDetail(r.payload),

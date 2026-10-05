@@ -24,7 +24,7 @@ export default async function RolesPage() {
   }
   return (
     <CabinetShell role="Arranger" title="Roles" email={g.user.email} tabs={ARRANGER_TABS}>
-      <Section title="Grant a role" description="Arrangers also act as compliance and SCAS-stub operators in this pilot. Grant the role only to the F2F team.">
+      <Section title="Grant a role" description="Service roles (compliance, SCAS partner, elevator, laboratory, regulator) open their own cabinets. Arrangers can act for any of them; every such action is audited with the role acted as.">
         <Panel className="max-w-3xl">
           <RoleForm />
         </Panel>

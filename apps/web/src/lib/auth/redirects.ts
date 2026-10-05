@@ -1,4 +1,5 @@
 import type { Role } from "../db/schema";
+import { ROLE_CABINET, ROLE_PRIORITY } from "../roles";
 
 /** A same-origin path to return to after sign-in, or null. Rejects protocol-relative and backslash tricks. */
 export function safeNext(next: string | null | undefined): string | null {
@@ -8,8 +9,6 @@ export function safeNext(next: string | null | undefined): string | null {
 
 /** Each role's cabinet; an arranger lands in the arranger cabinet first. */
 export function cabinetFor(roles: readonly Role[]): string | null {
-  if (roles.includes("arranger")) return "/arranger";
-  if (roles.includes("farmer")) return "/farmer";
-  if (roles.includes("investor")) return "/investor";
-  return null;
+  const first = ROLE_PRIORITY.find((r) => roles.includes(r));
+  return first ? ROLE_CABINET[first] : null;
 }

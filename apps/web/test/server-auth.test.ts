@@ -67,3 +67,26 @@ describe("requireRole", () => {
     expect(await auth.requireRole("arranger", "/arranger")).toMatchObject({ forbidden: false, user: { email: "ops@example.com" } });
   });
 });
+
+describe("requireServiceAction", () => {
+  it("lets an arranger act for a service role and marks it", async () => {
+    cookie = "ops";
+    expect(await auth.requireServiceAction("compliance")).toMatchObject({ role: "compliance", viaArranger: true, user: { email: "ops@example.com" } });
+  });
+
+  it("refuses a user without the service role and asks a signed-out caller to sign in", async () => {
+    cookie = "inv";
+    await expect(auth.requireServiceAction("scas")).rejects.toMatchObject({ status: 403, message: "Your account does not have the scas role." });
+    cookie = undefined;
+    await expect(auth.requireServiceAction("scas")).rejects.toMatchObject({ status: 401 });
+  });
+});
+
+describe("requireAnyRole", () => {
+  it("returns the service roles the user may act as on a page; an arranger gets all of them", async () => {
+    cookie = "ops";
+    expect(await auth.requireAnyRole(["elevator", "lab"], "/elevator")).toMatchObject({ forbidden: false, roles: ["elevator", "lab"] });
+    cookie = "inv";
+    expect(await auth.requireAnyRole(["elevator", "lab"], "/elevator")).toMatchObject({ forbidden: true, roles: [] });
+  });
+});

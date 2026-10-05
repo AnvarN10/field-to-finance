@@ -2,7 +2,10 @@ import { sql } from "drizzle-orm";
 import { bigint, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { APPLICATION_STATUSES, type ApplicationStatus } from "../application-status";
 
-export const ROLES = ["farmer", "investor", "arranger"] as const;
+/** Service roles (ADR 0017): granted only by an arranger; an arranger may act for any of them. */
+export const SERVICE_ROLES = ["compliance", "scas", "elevator", "lab", "regulator"] as const;
+export type ServiceRole = (typeof SERVICE_ROLES)[number];
+export const ROLES = ["farmer", "investor", "arranger", ...SERVICE_ROLES] as const;
 export type Role = (typeof ROLES)[number];
 export const KYC_STATUSES = ["not_started", "pending", "approved", "rejected"] as const;
 export type KycStatus = (typeof KYC_STATUSES)[number];
@@ -176,6 +179,8 @@ export const auditLog = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    /** The service role the actor acted as (an arranger acting for compliance, a SCAS partner in its own role). */
+    actingRole: text("acting_role"),
     action: text("action").notNull(),
     targetType: text("target_type").notNull(),
     targetId: text("target_id").notNull(),
@@ -196,10 +201,14 @@ export const notifications = pgTable(
     kind: text("kind").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
+    /** In-app path the notification opens, e.g. `/investor/pools/9`. */
+    link: text("link"),
+    /** Set for notifications that must exist at most once (maturity reminders); unique when present. */
+    dedupeKey: text("dedupe_key"),
     readAt: ts("read_at"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [index("notifications_user").on(t.userId)],
+  (t) => [index("notifications_user").on(t.userId), uniqueIndex("notifications_dedupe").on(t.dedupeKey).where(sql`"dedupe_key" is not null`)],
 );
 
 export type UserRow = typeof users.$inferSelect;
