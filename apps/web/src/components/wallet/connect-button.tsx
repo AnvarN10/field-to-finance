@@ -37,7 +37,7 @@ export function ConnectButton({ variant = "default" }: { variant?: keyof typeof 
 export const pageHasConnect = (pathname: string) => /^\/pools\/[^/]+$/.test(pathname) || pathname === "/investor/onboarding";
 
 /** The cabinets sign in by email; the investor cabinet offers Phantom where it is used (wallet link, invest panel). */
-const EMAIL_ONLY = /^\/(farmer|arranger|investor|sign-in)(\/|$)/;
+const EMAIL_ONLY = /^\/(farmer|arranger|investor|compliance|scas|elevator|regulator|sign-in)(\/|$)/;
 
 /**
  * Header slot: farmers sign in by email on /farmer, so the investor wallet button stays out of their way there.

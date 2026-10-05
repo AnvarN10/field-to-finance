@@ -59,7 +59,9 @@ export async function scasPools(db: Db): Promise<ScasPoolRow[]> {
     .select({ app: applications })
     .from(applications)
     .where(and(isNotNull(applications.poolId), inArray(applications.status, ["funded", "disbursed", "in_season", "harvest", "settlement"])));
-  return rows.map((r) => ({ poolId: r.app.poolId as string, poolAddress: r.app.poolAddress as string, crop: r.app.crop, season: r.app.season, status: r.app.status }));
+  return rows
+    .map((r) => ({ poolId: r.app.poolId as string, poolAddress: r.app.poolAddress as string, crop: r.app.crop, season: r.app.season, status: r.app.status }))
+    .sort((a, b) => Number(BigInt(b.poolId) - BigInt(a.poolId)));
 }
 
 /** Applications waiting for field verification, for the SCAS partner's queue. */

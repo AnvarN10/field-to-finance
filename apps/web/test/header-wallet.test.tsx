@@ -15,7 +15,7 @@ describe("HeaderWalletButton", () => {
     expect(container).not.toBeEmptyDOMElement();
   });
 
-  it.each(["/farmer", "/farmer/applications/1", "/arranger", "/investor", "/investor/onboarding", "/sign-in"])("hides it on %s, where sign-in is by email", (p) => {
+  it.each(["/farmer", "/farmer/applications/1", "/arranger", "/investor", "/investor/onboarding", "/sign-in", "/compliance", "/scas/pools/9", "/elevator", "/regulator/events"])("hides it on %s, where sign-in is by email", (p) => {
     pathname = p;
     const { container } = render(<HeaderWalletButton />);
     expect(container).toBeEmptyDOMElement();
