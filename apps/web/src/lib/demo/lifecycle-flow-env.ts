@@ -14,6 +14,14 @@ import { runLifecycleFlow } from "./lifecycle-flow";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/** Fresh farmer and investor keypairs, kept in DEMO_KEYS_FILE (outside the repo) so a stopped walk can be finished by hand. */
+async function walkKeys(file: string | undefined): Promise<{ farmer: Keypair; investor: Keypair }> {
+  const farmer = Keypair.generate();
+  const investor = Keypair.generate();
+  if (file) await writeFile(file, JSON.stringify({ farmer: Array.from(farmer.secretKey), investor: Array.from(investor.secretKey) }), { mode: 0o600 });
+  return { farmer, investor };
+}
+
 /**
  * The complete lifecycle on devnet: fresh farmer and investor keypairs, the real role keys and sponsor. Workflow data
  * goes to DEMO_DATABASE_URL (a local, non-production Postgres) or an in-process database; never to production.
@@ -25,8 +33,7 @@ export async function runLifecycleFlowFromEnv(source: Record<string, string | un
   if (await isProductionDb(db)) throw new Error("DEMO_DATABASE_URL points at the production database; the walk never writes demo accounts there.");
   log(url ? "Workflow data: DEMO_DATABASE_URL" : "Workflow data: in-process database (discarded at exit)");
   const ctx = await createDemoContext(source);
-  const farmer = Keypair.generate();
-  const investor = Keypair.generate();
+  const { farmer, investor } = await walkKeys(source.DEMO_KEYS_FILE);
   const chain = makeArrangerChain({ program: ctx.program, ops: () => ctx.ops, stub: () => ctx.stub, store: () => ctx.store, publicBaseUrl: ctx.env.PUBLIC_BASE_URL, getPool: (id) => ctx.reader.getPool(id) });
   const pool = async (id: string) => {
     const d = await ctx.reader.getPool(id);
@@ -78,7 +85,18 @@ export async function runLifecycleFlowFromEnv(source: Record<string, string | un
         return ctx.sponsored("redeem-delivery", investor, [await redeemDeliveryIx(ctx.program, { investor: h.investor, pool: h.pool, mint: h.mint, amount })]);
       },
       sweep: (id) => sweep(ctx.ops, BigInt(id)),
-      holders: (m) => ctx.reader.holders(m),
+      // A read-only snapshot for the regulator: retried through public RPC rate limits, never fatal to the walk.
+      holders: async (m) => {
+        for (let i = 0; i < 5; i++) {
+          try {
+            return await ctx.reader.holders(m);
+          } catch {
+            await sleep(10_000);
+          }
+        }
+        log(`         holders of ${m} could not be read (RPC rate limit); the snapshot skips them`);
+        return [];
+      },
       // The program reads the cluster clock; give it a margin past the wall clock.
       waitUntil: async (ts) => {
         while (Date.now() / 1000 < ts + 20) await sleep(5_000);
