@@ -9,6 +9,7 @@ vi.mock("@/lib/server/context", () => ({
   sponsorPolicy: async () => ({}),
   sponsorPublicKey: () => sponsor,
   getStore: () => ({ get: async () => null }),
+  getReader: () => ({ listPools: async () => [{ address: "P1", issuer: "Farmer1" }] }),
 }));
 vi.mock("@/lib/chain/sponsor", async (orig) => ({
   ...(await orig<typeof import("../../src/lib/chain/sponsor")>()),
@@ -39,6 +40,27 @@ describe("POST /api/tx/send", () => {
     await POST(req({ action: "subscribe", tx: "AAAA" }, "6.6.6.6"));
     await new Promise((r) => setTimeout(r, 0));
     expect(recordTx).toHaveBeenCalledWith({ action: "subscribe", wallet: "W1", signature: "5sig", pool: "P1", project: null, amount: "5" });
+  });
+
+  it("signs farmer settlement only for the pool's issuer of record", async () => {
+    const run = async (signer: string) => {
+      let refused: unknown = null;
+      cosignAndSend.mockImplementation(async (deps: { beforeSign?: (i: unknown) => Promise<void> }) => {
+        try {
+          await deps.beforeSign?.({ signer: { toBase58: () => signer }, summary: { pool: "P1", project: null, amount: null } });
+        } catch (e) {
+          refused = e;
+          throw e;
+        }
+        return "5sig";
+      });
+      const r = await POST(req({ action: "elect-settlement", tx: "AAAA" }, `7.7.7.${signer.length}`));
+      return { status: r.status, refused };
+    };
+    expect((await run("Farmer1")).status).toBe(200);
+    const other = await run("Stranger");
+    expect(other.status).toBe(403);
+    expect(other.refused).toBeTruthy();
   });
 
   it("returns the signature of a co-signed transaction", async () => {

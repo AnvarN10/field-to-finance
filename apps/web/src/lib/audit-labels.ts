@@ -42,6 +42,14 @@ const ACTIONS: Record<string, string> = {
   "tx.redeem": "Redeemed",
   "tx.redeem-delivery": "Claimed grain delivery",
   "tx.register-project": "Registered the farm project",
+  "tx.elect-settlement": "Elected the settlement",
+  "tx.fund-redemption": "Funded the buyback",
+  "pool.attest_stage": "Recorded a season attestation",
+  "pool.record_delivery": "Recorded a delivery document",
+  "pool.elect_settlement": "Elected the settlement",
+  "pool.fund_redemption": "Funded the redemption",
+  "pool.record_settlement": "Recorded the settlement",
+  "pool.sweep": "Returned the vault remainder",
 };
 
 /** A code without a label still reads as words: `pool.set_rule` becomes "Pool set rule". */

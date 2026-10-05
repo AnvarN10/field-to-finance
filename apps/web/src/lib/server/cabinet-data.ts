@@ -1,4 +1,5 @@
 import "server-only";
+import { BUYBACK_GRACE_SECS } from "@f2f/sdk";
 import { PublicKey } from "@solana/web3.js";
 import { and, desc, eq, inArray, like, or } from "drizzle-orm";
 import { obligation } from "../accrual";
@@ -25,7 +26,15 @@ export async function poolObligation(poolId: string, nowSec: number): Promise<{ 
   return {
     detail,
     item: {
+      poolId,
       symbol: detail.pool.instrument?.symbol ?? `POOL-${poolId}`,
+      issuer: detail.pool.issuer,
+      status: detail.pool.status,
+      settlementMode: detail.terms?.settlementMode ?? null,
+      election: detail.terms?.election ?? null,
+      effectiveElection: o.election,
+      lapseTs: detail.pool.maturityTs + BUYBACK_GRACE_SECS,
+      allDisbursed: detail.pool.disbursedCount === detail.pool.projectCount,
       principal: o.principal.toString(),
       dueAtMaturity: o.dueAtMaturity.toString(),
       accrued: o.accrued === null ? null : o.accrued.toString(),

@@ -4,10 +4,10 @@ import { PublicKey, type TransactionInstruction } from "@solana/web3.js";
 import { z } from "zod";
 import { RequestError } from "../errors";
 import { HEX64, polygonKey, type BlobStore } from "../store";
-import { createUsdcAtaIx, redeemDeliveryIx, redeemIx, refundIx, registerFieldIx, registerProjectIx, subscribeIx } from "./ix";
+import { createUsdcAtaIx, electSettlementIx, fundRedemptionIx, redeemDeliveryIx, redeemIx, refundIx, registerFieldIx, registerProjectIx, subscribeIx } from "./ix";
 import type { FeeView, PoolView } from "./views";
 
-export const TX_ACTIONS = ["register-project", "subscribe", "refund", "redeem", "redeem-delivery"] as const;
+export const TX_ACTIONS = ["register-project", "subscribe", "refund", "redeem", "redeem-delivery", "elect-settlement", "fund-redemption"] as const;
 export type TxAction = (typeof TX_ACTIONS)[number];
 
 const pubkey = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, "must be a base58 public key");
@@ -30,6 +30,7 @@ const registerProject = z.object({
     .max(4),
 });
 const holder = z.object({ signer: pubkey, poolId, amount: positive });
+const election = z.object({ signer: pubkey, poolId, election: z.enum(["Buyback", "Delivery"], { error: "choose Buyback or Delivery" }) });
 
 export interface UserTxDeps {
   program: Program<F2f>;
@@ -89,6 +90,22 @@ export async function buildUserTx(deps: UserTxDeps, action: TxAction, body: unkn
       )),
     ];
     return { payer: sponsor, instructions, meta: { projectId: projectId.toString(), project: project.toBase58() } };
+  }
+
+  if (action === "elect-settlement" || action === "fund-redemption") {
+    // ADR 0014: the issuer of record (the farmer's wallet) elects and funds the buyback itself; the program also checks it.
+    const e = action === "elect-settlement" ? parse(election, body) : null;
+    const f = action === "fund-redemption" ? parse(holder, body) : null;
+    const req = (e ?? f) as { signer: string; poolId: string };
+    const pool = await deps.getPool(req.poolId);
+    if (!pool) throw new RequestError(`Pool ${req.poolId} does not exist`, 404);
+    if (pool.issuer !== req.signer) throw new RequestError("Only the issuer of record of this pool can elect its settlement or fund its buyback.", 403);
+    const signer = new PublicKey(req.signer);
+    const poolKey = new PublicKey(pool.address);
+    const ix = e
+      ? await electSettlementIx(program, { signer, pool: poolKey, election: e.election })
+      : await fundRedemptionIx(program, { issuer: signer, pool: poolKey, usdcMint: deps.usdcMint, vault: new PublicKey(pool.vault), amount: (f as { amount: bigint }).amount });
+    return { payer: sponsor, instructions: [ix], meta: { poolId: req.poolId } };
   }
 
   const b = parse(holder, body);

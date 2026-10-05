@@ -67,7 +67,7 @@ describe("DocumentChecklist", () => {
 });
 
 describe("Obligations", () => {
-  const base = { symbol: "DWHT27", principal: "200000000000", dueAtMaturity: "212000000000", accrued: "2000000000", maturityTs: 1_800_000_000, settlementLabel: "The issuer has not elected yet.", vaultBalance: "0", buybackShortfall: "212000000000" };
+  const base = { poolId: "9", issuer: "W", status: "Funded" as const, settlementMode: null, election: null, effectiveElection: null, lapseTs: 1_800_604_800, allDisbursed: true, symbol: "DWHT27", principal: "200000000000", dueAtMaturity: "212000000000", accrued: "2000000000", maturityTs: 1_800_000_000, settlementLabel: "The issuer has not elected yet.", vaultBalance: "0", buybackShortfall: "212000000000" };
   it("shows the amount due, accrual to date, maturity and the buyback shortfall", () => {
     render(<Obligations items={[base]} />);
     expect(screen.getByText("$212,000.00")).toBeInTheDocument();
@@ -78,6 +78,10 @@ describe("Obligations", () => {
   it("says funded once the vault covers the buyback", () => {
     render(<Obligations items={[{ ...base, vaultBalance: "212000000000", buybackShortfall: "0" }]} />);
     expect(screen.getByText("Funded")).toBeInTheDocument();
+  });
+  it("names the funding deadline and, on a hybrid pool, the lapse into delivery", () => {
+    render(<Obligations items={[{ ...base, settlementMode: null }]} />);
+    expect(screen.getByText("Funding deadline")).toBeInTheDocument();
   });
   it("renders nothing without pools", () => {
     const { container } = render(<Obligations items={[]} />);

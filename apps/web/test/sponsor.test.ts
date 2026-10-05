@@ -74,15 +74,19 @@ const BODY: Record<TxAction, (signer: PublicKey) => Record<string, unknown>> = {
   refund: (s) => ({ signer: s.toBase58(), poolId: "7", amount: "1" }),
   redeem: (s) => ({ signer: s.toBase58(), poolId: "7", amount: "1" }),
   "redeem-delivery": (s) => ({ signer: s.toBase58(), poolId: "7", amount: "100000000000" }),
+  "elect-settlement": (s) => ({ signer: s.toBase58(), poolId: "7", election: "Buyback" }),
+  "fund-redemption": (s) => ({ signer: s.toBase58(), poolId: "7", amount: "1050000000" }),
 };
 
-async function built(action: TxAction, signer = Keypair.generate().publicKey) {
+const FARMER_ACTIONS = new Set<TxAction>(["elect-settlement", "fund-redemption"]);
+
+async function built(action: TxAction, signer = FARMER_ACTIONS.has(action) ? new PublicKey(POOL.issuer) : Keypair.generate().publicKey) {
   const b = await buildUserTx(await deps(), action, BODY[action](signer));
   return { signer, instructions: b.instructions, payer: b.payer };
 }
 
 describe("validateSponsoredTx accepts what /api/tx builds", () => {
-  it.each(["register-project", "subscribe", "refund", "redeem", "redeem-delivery"] as const)("%s", async (action) => {
+  it.each(["register-project", "subscribe", "refund", "redeem", "redeem-delivery", "elect-settlement", "fund-redemption"] as const)("%s", async (action) => {
     const b = await built(action);
     expect(b.payer.equals(sponsor)).toBe(true);
     expect(validateSponsoredTx(policy, action, compile(sponsor, b.instructions)).signer.equals(b.signer)).toBe(true);
@@ -100,6 +104,15 @@ describe("validateSponsoredTx reports what the sponsor would pay rent for", () =
     const b = await built("redeem-delivery");
     expect(b.instructions).toHaveLength(1);
     expect(validateSponsoredTx(policy, "redeem-delivery", compile(sponsor, b.instructions)).rentAccounts).toEqual([]);
+  });
+
+  it("farmer settlement: nothing; the summary names the pool and the deposit", async () => {
+    const elect = await built("elect-settlement");
+    expect(validateSponsoredTx(policy, "elect-settlement", compile(sponsor, elect.instructions)).rentAccounts).toEqual([]);
+    const fund = await built("fund-redemption");
+    const r = validateSponsoredTx(policy, "fund-redemption", compile(sponsor, fund.instructions));
+    expect(r.rentAccounts).toEqual([]);
+    expect(r.summary).toEqual({ pool: POOL.address, project: null, amount: "1050000000" });
   });
 
   it("subscribe: the investor's Instrument account", async () => {
@@ -204,6 +217,28 @@ describe("validateSponsoredTx rejects", () => {
     const real = instrumentAta(new PublicKey(POOL.mint), b.signer);
     const keys = ix.keys.map((m) => (m.pubkey.equals(real) ? { ...m, pubkey: instrumentAta(new PublicKey(POOL.mint), victim) } : m));
     expect(() => validateSponsoredTx(policy, "redeem-delivery", compile(sponsor, [new TransactionInstruction({ ...ix, keys })]))).toThrow(/investorInstrument/);
+  });
+
+  it("a buyback deposit drawn from another wallet's USDC", async () => {
+    const b = await built("fund-redemption");
+    const ix = b.instructions[0]!;
+    const real = usdcAta(usdcMint, b.signer);
+    const keys = ix.keys.map((m) => (m.pubkey.equals(real) ? { ...m, pubkey: usdcAta(usdcMint, Keypair.generate().publicKey) } : m));
+    expect(() => validateSponsoredTx(policy, "fund-redemption", compile(sponsor, [new TransactionInstruction({ ...ix, keys })]))).toThrow(/issuerUsdc/);
+  });
+
+  it("an election against another pool's terms", async () => {
+    const b = await built("elect-settlement");
+    const ix = b.instructions[0]!;
+    const real = instrumentPda(program.programId, new PublicKey(POOL.address));
+    const keys = ix.keys.map((m) => (m.pubkey.equals(real) ? { ...m, pubkey: instrumentPda(program.programId, Keypair.generate().publicKey) } : m));
+    expect(() => validateSponsoredTx(policy, "elect-settlement", compile(sponsor, [new TransactionInstruction({ ...ix, keys })]))).toThrow(/instrumentTerms/);
+  });
+
+  it("a settlement instruction inside another action, or a second one", async () => {
+    const fund = await built("fund-redemption");
+    expect(() => validateSponsoredTx(policy, "redeem", compile(sponsor, fund.instructions))).toThrow();
+    expect(() => validateSponsoredTx(policy, "fund-redemption", compile(sponsor, [...fund.instructions, ...fund.instructions]))).toThrow();
   });
 
   it("an investor record that is not the signer's", async () => {

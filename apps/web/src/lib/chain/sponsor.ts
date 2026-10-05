@@ -53,6 +53,8 @@ const ACTION_IXS: Record<TxAction, { first: string; rest?: string }> = {
   refund: { first: "refund" },
   redeem: { first: "redeem" },
   "redeem-delivery": { first: "redeemdelivery" },
+  "elect-settlement": { first: "electsettlement" },
+  "fund-redemption": { first: "fundredemption" },
 };
 
 interface DecodedIx {
@@ -147,6 +149,23 @@ function checkRedeemDelivery(ix: DecodedIx, p: SponsorPolicy, signer: PublicKey)
   expectAccount(ix, "investor", signer);
   expectAccount(ix, "investorInstrument", instrumentAta(mint, signer));
   expectAccount(ix, "tokenProgram", TOKEN_2022_PROGRAM_ID);
+  checkInstrumentTerms(ix, p);
+}
+
+/** elect_settlement: the wallet signs for its own pool's terms; no accounts are created, no money moves. */
+function checkElect(ix: DecodedIx, p: SponsorPolicy, signer: PublicKey): void {
+  expectAccount(ix, "signer", signer);
+  expectAccount(ix, "config", configPda(p.program.programId));
+  checkInstrumentTerms(ix, p);
+}
+
+/** fund_redemption: USDC moves only from the signer's own USDC account; the program checks the vault is the pool's. */
+function checkFundRedemption(ix: DecodedIx, p: SponsorPolicy, signer: PublicKey): void {
+  expectAccount(ix, "issuer", signer);
+  expectAccount(ix, "config", configPda(p.program.programId));
+  expectAccount(ix, "usdcMint", p.usdcMint);
+  expectAccount(ix, "issuerUsdc", usdcAta(p.usdcMint, signer));
+  expectAccount(ix, "usdcTokenProgram", TOKEN_PROGRAM_ID);
   checkInstrumentTerms(ix, p);
 }
 
@@ -248,6 +267,14 @@ export function validateSponsoredTx(p: SponsorPolicy, action: TxAction, tx: Vers
   }
   if (action === "redeem-delivery") {
     checkRedeemDelivery(first, p, signer);
+    return { signer, rentAccounts: [], polygonHashes: [], summary: holderSummary() };
+  }
+  if (action === "elect-settlement") {
+    checkElect(first, p, signer);
+    return { signer, rentAccounts: [], polygonHashes: [], summary: holderSummary() };
+  }
+  if (action === "fund-redemption") {
+    checkFundRedemption(first, p, signer);
     return { signer, rentAccounts: [], polygonHashes: [], summary: holderSummary() };
   }
   if (action === "refund" || action === "redeem") {

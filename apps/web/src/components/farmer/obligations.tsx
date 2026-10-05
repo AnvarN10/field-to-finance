@@ -1,8 +1,21 @@
+import type { SettlementElectionName, SettlementModeName } from "@f2f/sdk";
+import type { PoolStatusName } from "../../lib/chain/enums";
 import { formatDateUtc, formatUsd, formatUsdDown } from "../../lib/format";
+import { ObligationActions } from "./obligation-actions";
 
 /** One pool the farmer issued, with amounts as base-unit strings (bigint does not cross to client components). */
 export type ObligationItem = {
+  poolId: string;
   symbol: string;
+  /** The issuer of record's wallet (signs the election and the buyback deposit). */
+  issuer: string;
+  status: PoolStatusName;
+  settlementMode: SettlementModeName | null;
+  election: SettlementElectionName | null;
+  effectiveElection: SettlementElectionName | null;
+  /** An elected buyback still unfunded at this time lapses into delivery (maturity + 7 days). */
+  lapseTs: number;
+  allDisbursed: boolean;
   principal: string;
   dueAtMaturity: string;
   accrued: string | null;
@@ -34,8 +47,9 @@ export function Obligations({ items }: { items: ObligationItem[] }) {
               </div>
             ) : null}
             <div className="flex flex-col gap-1">
-              <dt className="text-muted-foreground">Maturity</dt>
+              <dt className="text-muted-foreground">Funding deadline</dt>
               <dd className="font-medium">{formatDateUtc(o.maturityTs)}</dd>
+              <dd className="text-xs text-muted-foreground">{o.settlementMode === "Hybrid" ? `Maturity. An unfunded buyback lapses into delivery after ${formatDateUtc(o.lapseTs)}` : "Maturity"}</dd>
             </div>
             <div className="flex flex-col gap-1">
               <dt className="text-muted-foreground">Buyback funding</dt>
@@ -44,6 +58,7 @@ export function Obligations({ items }: { items: ObligationItem[] }) {
             </div>
           </dl>
           {o.settlementLabel ? <p className="text-sm text-muted-foreground">{o.settlementLabel}</p> : null}
+          {o.settlementMode ? <ObligationActions item={o} /> : null}
         </section>
       ))}
     </div>

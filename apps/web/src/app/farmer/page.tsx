@@ -23,6 +23,8 @@ export const dynamic = "force-dynamic";
 
 const TX_LABEL: Record<string, string> = {
   "tx.register-project": "Fields registered on-chain",
+  "tx.elect-settlement": "You elected the settlement",
+  "tx.fund-redemption": "You funded the buyback",
   "pool.open": "Pool opened to investors",
   "pool.close_subscription": "Subscription closed",
   "pool.fund_redemption": "Redemption funded",

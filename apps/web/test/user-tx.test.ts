@@ -135,4 +135,23 @@ describe("buildUserTx", () => {
       expect(nameOf(built.instructions[1]!.data)).toBe(action);
     }
   });
+
+  it("builds the issuer's election and buyback deposit, signed by the issuer of record, paid by the sponsor", async () => {
+    const issuer = POOL.issuer;
+    const elect = await buildUserTx(deps(), "elect-settlement", { signer: issuer, poolId: "7", election: "Delivery" });
+    expect(elect.instructions.map((i) => nameOf(i.data))).toEqual(["electsettlement"]);
+    expect(elect.payer.equals(sponsor)).toBe(true);
+    const fund = await buildUserTx(deps(), "fund-redemption", { signer: issuer, poolId: "7", amount: "1050000000" });
+    expect(fund.instructions.map((i) => nameOf(i.data))).toEqual(["fundredemption"]);
+    expect(fund.instructions[0]?.keys[0]?.pubkey.toBase58()).toBe(issuer);
+    expect(fund.instructions[0]?.keys.some((k) => k.pubkey.equals(sponsor))).toBe(false);
+  });
+
+  it("refuses a settlement transaction from a wallet that is not the pool's issuer of record", async () => {
+    const other = Keypair.generate().publicKey.toBase58();
+    await expect(buildUserTx(deps(), "elect-settlement", { signer: other, poolId: "7", election: "Buyback" })).rejects.toMatchObject({ status: 403 });
+    await expect(buildUserTx(deps(), "fund-redemption", { signer: other, poolId: "7", amount: "1" })).rejects.toMatchObject({ status: 403 });
+    await expect(buildUserTx(deps(), "elect-settlement", { signer: POOL.issuer, poolId: "7", election: "Later" })).rejects.toMatchObject({ status: 400 });
+    await expect(buildUserTx(deps(), "fund-redemption", { signer: POOL.issuer, poolId: "7", amount: "0" })).rejects.toMatchObject({ status: 400 });
+  });
 });
