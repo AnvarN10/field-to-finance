@@ -116,6 +116,12 @@ export interface DeliveryEvidence {
   /** SHA-256 of the receipt or certificate file in `documents/` (served to the admin console only). */
   documentSha256: string;
   kg?: string;
+  /** Elevator receipt: SHA-256 of the receipt number (the number itself is never stored) and the receiving date (YYYY-MM-DD). */
+  receiptNumberSha256?: string;
+  receivedOn?: string;
+  /** Lab protocol: measured values by parameter key and the pass/fail computed against the quality spec. */
+  measurements?: Record<string, string>;
+  results?: { key: string; label: string; requirement: string; measured: string | null; pass: boolean | null }[];
 }
 
 /** Evidence JSON for a delivery attestation; readable past basic auth, the document itself is not. */

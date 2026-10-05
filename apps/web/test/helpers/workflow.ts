@@ -56,6 +56,10 @@ export function fakeChain(over: Partial<ArrangerChain> = {}) {
       calls.push(`project:${address}`);
       return project(verified ? { verifiedFieldCount: 2 } : {});
     },
+    async recordDelivery(poolId, e) {
+      calls.push(`recordDelivery:${poolId}:${e.kind}:${e.verdict}`);
+      return { signature: `sig-${e.kind}`, evidenceHash: "ee".repeat(32) };
+    },
     async attest(input) {
       calls.push(`attest:${input.poolId}:${input.kind}`);
       return [`sig-attest-${input.kind}`];

@@ -1,12 +1,12 @@
 import { PILOT_QUALITY_SPEC, poolPda, type F2f } from "@f2f/sdk";
 import type { Program } from "@anchor-lang/core";
 import { PublicKey } from "@solana/web3.js";
-import { storeQualitySpec } from "../pilot-docs";
+import { storeDeliveryEvidence, storeQualitySpec } from "../pilot-docs";
 import { attestStage, verifyAllFields, type StubDeps } from "../scas-stub";
 import type { BlobStore } from "../store";
 import type { ArrangerChain } from "../workflow/ports";
 import { RequestError } from "../errors";
-import { addProject, approveInvestor, createPool, nextPoolId, openPool, revokeInvestor, type OpsContext } from "./admin-ops";
+import { addProject, approveInvestor, createPool, nextPoolId, openPool, recordDelivery, revokeInvestor, type OpsContext } from "./admin-ops";
 import { instrumentAta } from "./ix";
 import { fieldsOfProject } from "./filters";
 import { toFieldView, toProjectView, type PoolDetail } from "./views";
@@ -61,6 +61,13 @@ export function makeArrangerChain(d: ArrangerChainDeps): ArrangerChain {
       const fields = await d.program.account.field.all([fieldsOfProject(key)]);
       return { ...toProjectView(key, account), fields: fields.map((f) => toFieldView(f.publicKey, f.account)).sort((a, b) => a.index - b.index) };
     },
+    recordDelivery: (poolId, evidence) =>
+      tx(async () => {
+        // Evidence first: the attestation must never point at a missing document.
+        const stored = await storeDeliveryEvidence(d.store(), evidence, d.publicBaseUrl, Math.floor(Date.now() / 1000));
+        const signature = await recordDelivery(d.ops(), BigInt(poolId), { kind: evidence.kind, verdict: evidence.verdict, evidenceHash: stored.hash, evidenceUri: stored.uri });
+        return { signature, evidenceHash: stored.hash };
+      }),
     attest: (input) =>
       tx(async () => {
         const detail = await d.getPool(input.poolId);

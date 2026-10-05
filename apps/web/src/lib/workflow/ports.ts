@@ -1,4 +1,5 @@
 import type { CreatePoolInput } from "../chain/admin-ops";
+import type { DeliveryEvidence } from "../pilot-docs";
 import type { PoolDetail, ProjectWithFields } from "../chain/views";
 
 /** A document already stored in the bucket under its SHA-256 (`documents/<sha256>`). */
@@ -29,6 +30,8 @@ export interface ArrangerChain {
   /** revoke_investor (compliance key) in every pool where the wallet holds an Instrument account, or one pool if none. */
   revokeKyc(wallet: string): Promise<string[]>;
   project(address: string): Promise<ProjectWithFields | null>;
+  /** Stores the delivery evidence JSON, then record_delivery (ElevatorReceipt or LabQuality) on the pool. */
+  recordDelivery(poolId: string, evidence: DeliveryEvidence): Promise<{ signature: string; evidenceHash: string }>;
   /** One SCAS attestation of `kind` for every field of the pool's projects, evidence stored first. */
   attest(input: SeasonAttestInput): Promise<string[]>;
   /** SCAS-stub FieldVerified attestations for the project's unverified fields. */
