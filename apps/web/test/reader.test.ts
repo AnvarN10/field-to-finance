@@ -198,4 +198,16 @@ describe("ChainReader", () => {
     expect(programId.equals(TOKEN_2022_PROGRAM_ID)).toBe(true);
     expect(opts.filters[0]?.memcmp.offset).toBe(0);
   });
+
+  it("falls back to the largest token accounts when the RPC refuses Token-2022 program scans (public devnet)", async () => {
+    const { reader, connection } = await setup();
+    const mint = Keypair.generate().publicKey;
+    const a = Keypair.generate().publicKey;
+    const accA = Keypair.generate().publicKey;
+    const accB = Keypair.generate().publicKey;
+    vi.spyOn(connection, "getProgramAccounts").mockRejectedValue(new Error("excluded from account secondary indexes"));
+    vi.spyOn(connection, "getTokenLargestAccounts").mockResolvedValue({ context: { slot: 1 }, value: [{ address: accA, amount: "500", decimals: 6, uiAmount: 0.0005, uiAmountString: "0.0005" }, { address: accB, amount: "0", decimals: 6, uiAmount: 0, uiAmountString: "0" }] } as never);
+    vi.mocked(connection.getMultipleAccountsInfo).mockResolvedValue([tokenAccount(mint, a, 500n, false, TOKEN_2022_PROGRAM_ID)]);
+    expect(await reader.holders(mint.toBase58())).toEqual([{ wallet: a.toBase58(), balance: "500" }]);
+  });
 });
