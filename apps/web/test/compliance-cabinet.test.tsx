@@ -28,6 +28,7 @@ describe("compliance cabinet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Revoke KYC" }));
     await userEvent.click(screen.getByRole("button", { name: "Yes, revoke and freeze holdings" }));
     expect(revoke).not.toHaveBeenCalled();
+    expect(screen.getByText("Enter a reason of at least 3 characters.")).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/Reason/), "Sanctions screening hit");
     await userEvent.click(screen.getByRole("button", { name: "Yes, revoke and freeze holdings" }));
     expect(revoke).toHaveBeenCalledWith("Sanctions screening hit");

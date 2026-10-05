@@ -53,10 +53,10 @@ export function LifecycleBoard({ poolId, phases, compact = false }: { poolId: st
         })}
       </ol>
       {current ? (
-        <div className="flex flex-col gap-3 rounded-md border border-border p-4">
+        <div className="flex flex-col gap-3 border-t border-border pt-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <p className="text-sm font-medium">{a ? "Your step" : current.next}</p>
-            {current.owner && !a ? <span className={`text-xs ${yours ? "font-medium text-foreground" : "text-muted-foreground"}`}>{yours ? "Your step" : OWNER[current.owner]}</span> : null}
+            {current.owner && !a ? <span className={`text-xs ${yours ? "font-medium text-foreground" : "text-muted-foreground"}`}>{yours ? "Your step on the pool page" : OWNER[current.owner]}</span> : null}
           </div>
           {a ? <ActionButton label={current.next} role={a.role} action={a.action} confirmText={"confirmText" in a ? a.confirmText : undefined} /> : null}
         </div>

@@ -3,13 +3,12 @@
 import { useId, useRef, useState } from "react";
 import { attestAction } from "../../app/scas/actions";
 import { ActionButton } from "../admin/action-button";
+import { fileInputClass } from "../elevator/receipt-form";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 
 const select =
   "h-10 min-w-0 rounded-md border border-input bg-card px-2.5 text-base font-normal md:text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
-const fileInput =
-  "max-w-full text-sm font-normal text-muted-foreground file:mr-3 file:h-9 file:cursor-pointer file:rounded-md file:border file:border-input file:bg-card file:px-3 file:text-sm file:font-medium file:text-foreground";
 
 /** Season attestation by the SCAS partner: stage, observation, optional evidence file, yield estimate before harvest. */
 export function AttestForm({ poolId, blocker }: { poolId: string; blocker: string | undefined }) {
@@ -42,7 +41,7 @@ export function AttestForm({ poolId, blocker }: { poolId: string; blocker: strin
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium sm:col-span-2">
           Evidence file (optional)
-          <input type="file" name="file" accept="application/pdf,image/png,image/jpeg,image/webp" className={fileInput} />
+          <input type="file" name="file" accept="application/pdf,image/png,image/jpeg,image/webp" className={fileInputClass} />
         </label>
       </div>
       <p className="text-xs text-muted-foreground">One attestation per field of the pool, signed by the SCAS key. The file stays private; its hash goes into the public evidence record.</p>

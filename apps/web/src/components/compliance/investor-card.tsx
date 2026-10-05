@@ -18,7 +18,7 @@ export function InvestorCard({ r, children }: { r: InvestorQueueRow; children?: 
         <KycStatusBadge status={r.profile.kycStatus} />
       </div>
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        {[
+        {([
           ["Category", r.profile.category ? CATEGORY[r.profile.category] : "Not answered"],
           ["Net assets", NET[q.answers?.netAssets ?? ""] ?? "Not answered"],
           ["Experience", EXPERIENCE[q.answers?.experience ?? ""] ?? q.answers?.experience ?? "Not answered"],
@@ -27,15 +27,15 @@ export function InvestorCard({ r, children }: { r: InvestorQueueRow; children?: 
           ["Country", q.kyc?.country ?? "Not given"],
           ["IIN", q.kyc?.iin ?? "Not given"],
           ["Risk acknowledgement", r.profile.riskAckAt ? "Given" : "Not yet"],
-          ["Wallets", r.wallets.length ? r.wallets.map(shortKey).join(", ") : "None linked yet: approval applies when one is linked"],
-        ].map(([k, v]) => (
+          ["Wallets", r.wallets.length ? <span className="font-mono text-xs">{r.wallets.map(shortKey).join(", ")}</span> : "None linked yet: approval applies when one is linked"],
+        ] as [string, ReactNode][]).map(([k, v]) => (
           <div key={k} className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">{k}</dt>
             <dd className={k === "IIN" && q.kyc?.iin ? "tabular break-words" : "break-words"}>{v}</dd>
           </div>
         ))}
       </dl>
-      {r.profile.category === "retail" ? <p className="rounded-md border border-border p-3 text-sm">{RETAIL_LIMITS}</p> : null}
+      {r.profile.category === "retail" ? <p className="border-t border-border pt-4 text-sm">{RETAIL_LIMITS}</p> : null}
       {r.profile.kycNote ? <p className="text-sm text-muted-foreground">{`Note: ${r.profile.kycNote}`}</p> : null}
       {children}
     </li>

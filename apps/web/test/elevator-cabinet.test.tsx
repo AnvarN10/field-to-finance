@@ -15,7 +15,8 @@ describe("elevator cabinet", () => {
   it("lab form shows the requirement per parameter and computes pass or fail as you type", async () => {
     render(<LabForm poolId="9" spec={PILOT_QUALITY_SPEC} />);
     const protein = screen.getByLabelText(/^Protein/);
-    expect(screen.getByText("≥ 15%")).toBeInTheDocument();
+    expect(screen.getAllByText("≥ 15%").length).toBeGreaterThan(0);
+    expect(protein).toHaveAccessibleDescription("≥ 15%");
     await userEvent.type(protein, "14");
     expect(within(screen.getByRole("row", { name: /Protein/ })).getByText("Fails")).toBeInTheDocument();
     await userEvent.clear(protein);

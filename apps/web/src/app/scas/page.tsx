@@ -44,11 +44,11 @@ export default async function ScasHome() {
       <Section title="Fields waiting for verification" description="Check each boundary against the imagery, then verify. Verification writes a FieldVerified attestation per field, signed by the SCAS key." action={<ScasStubBadge />}>
         {items.length ? (
           <ul className="flex flex-col gap-4">
-            {items.map(({ app, project, polygons }) => {
+            {items.map(({ app, project, polygons }, i) => {
               const verified = Boolean(project && project.fieldCount > 0 && project.verifiedFieldCount === project.fieldCount);
               return (
                 <li key={app.id} className="grid gap-6 rounded-lg border border-border bg-card p-6 lg:grid-cols-[1.2fr_1fr] [&>*]:min-w-0">
-                  {polygons.length ? <FieldMapLoader polygons={polygons} height={280} /> : <p className="text-sm text-muted-foreground">No stored boundary for these fields.</p>}
+                  {polygons.length ? <FieldMapLoader polygons={polygons} height={280} bare /> : <p className="text-sm text-muted-foreground">No stored boundary for these fields.</p>}
                   <div className="flex flex-col gap-4">
                     <h3 className="text-base font-semibold capitalize">{`${app.crop} ${app.season}`}</h3>
                     {project ? (
@@ -68,7 +68,7 @@ export default async function ScasHome() {
                     ) : (
                       <p className="text-sm text-destructive">The farm project was not found on-chain.</p>
                     )}
-                    <ActionButton label="Verify fields" role="SCAS" action={verifyFieldsAction.bind(null, app.id)} disabled={verified || !project} disabledReason={verified ? "Every field is verified" : !project ? "No on-chain project" : undefined} />
+                    <ActionButton label="Verify fields" role="SCAS" variant={i === 0 ? "default" : "outline"} action={verifyFieldsAction.bind(null, app.id)} disabled={verified || !project} disabledReason={verified ? "Every field is verified" : !project ? "No on-chain project" : undefined} />
                   </div>
                 </li>
               );

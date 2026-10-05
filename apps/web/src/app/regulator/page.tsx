@@ -6,6 +6,7 @@ import { primaryLink, Section, textLink } from "@/components/cabinet/section";
 import { RegistryTable } from "@/components/regulator/tables";
 import { REGULATOR_TABS } from "@/components/regulator/tabs";
 import { ErrorState } from "@/components/state";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getDb } from "@/lib/server/db";
 import { regulatorData } from "@/lib/server/regulator-data";
@@ -54,9 +55,9 @@ export default async function RegulatorHome({ searchParams }: { searchParams: Pr
           Investor IIN
           <Input name="iin" defaultValue={f.iin ?? ""} inputMode="numeric" maxLength={12} className="tabular h-10 w-40" />
         </label>
-        <button type="submit" className="inline-flex h-10 items-center rounded-md border border-input px-4 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [@media(hover:hover)]:hover:border-muted-foreground [@media(hover:hover)]:hover:bg-raised">
+        <Button type="submit" variant="outline" className="h-10">
           Filter
-        </button>
+        </Button>
         {query ? (
           <Link href="/regulator" className={`${textLink} self-center text-sm`}>
             Clear

@@ -37,7 +37,8 @@ export default async function ElevatorHome({ searchParams }: { searchParams: Pro
   const h = selected?.terms?.qualitySpecHash;
   const bytes = h ? await readHashed(getStore(), evidenceKey(h), h).catch(() => null) : null;
   if (bytes) spec = JSON.parse(new TextDecoder().decode(bytes)) as QualitySpec;
-  const state = (done: boolean, label: string) => <span className={done ? "text-success" : "text-muted-foreground"}>{`${label} ${done ? "recorded" : "missing"}`}</span>;
+  const quiet = "text-muted-foreground [@media(hover:hover)]:group-hover:text-foreground";
+  const state = (done: boolean, label: string) => <span className={done ? "text-success" : quiet}>{`${label} ${done ? "recorded" : "missing"}`}</span>;
   return (
     <CabinetShell role={title} title="Delivery documents" email={g.user.email} tabs={TABS}>
       <p className="max-w-prose text-sm text-muted-foreground">
@@ -55,12 +56,12 @@ export default async function ElevatorHome({ searchParams }: { searchParams: Pro
                 <Link
                   href={`/elevator?pool=${p.poolId}`}
                   aria-current={current ? "true" : undefined}
-                  className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 p-4 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [@media(hover:hover)]:hover:bg-hover ${current ? "bg-raised" : ""}`}
+                  className={`group flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-s-2 p-4 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [@media(hover:hover)]:hover:bg-hover ${current ? "border-foreground" : "border-transparent"}`}
                 >
                   <span className="font-medium">{`${p.instrument?.symbol ?? `POOL-${p.poolId}`} · pool ${p.poolId}`}</span>
                   <span className="flex flex-wrap gap-x-4 gap-y-1">
                     {state(Boolean(t.receiptHash), "Receipt")}
-                    <span className={t.labPassed ? "text-success" : t.labCertHash ? "text-destructive" : "text-muted-foreground"}>{t.labPassed ? "Protocol passed" : t.labCertHash ? "Protocol did not pass" : "Protocol missing"}</span>
+                    <span className={t.labPassed ? "text-success" : t.labCertHash ? "text-destructive" : quiet}>{t.labPassed ? "Protocol passed" : t.labCertHash ? "Protocol did not pass" : "Protocol missing"}</span>
                   </span>
                 </Link>
               </li>
@@ -78,7 +79,7 @@ export default async function ElevatorHome({ searchParams }: { searchParams: Pro
             ) : null}
             {isLab ? (
               <div className="rounded-lg border border-border bg-card p-6">
-                <LabForm poolId={selected.poolId} spec={spec} />
+                <LabForm poolId={selected.poolId} spec={spec} secondary={isElevator} />
               </div>
             ) : null}
           </div>

@@ -7,7 +7,7 @@ import { FIELD_CASING, FIELD_STROKE, MAPLIBRE_WORKER_URL, polygonBounds, satelli
 
 maplibregl.setWorkerUrl(MAPLIBRE_WORKER_URL);
 
-export function FieldMap({ polygons, height = 360 }: { polygons: { coordinates: number[][][] }[]; height?: number }) {
+export function FieldMap({ polygons, height = 360, bare = false }: { polygons: { coordinates: number[][][] }[]; height?: number; bare?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,5 +38,5 @@ export function FieldMap({ polygons, height = 360 }: { polygons: { coordinates: 
     return () => map.remove();
   }, [polygons]);
 
-  return <div ref={ref} role="region" aria-label="Field boundary over satellite imagery" style={{ height }} className="w-full overflow-hidden rounded-lg border border-border bg-card" />;
+  return <div ref={ref} role="region" aria-label="Field boundary over satellite imagery" style={{ height }} className={`w-full overflow-hidden ${bare ? "rounded-md" : "rounded-lg border border-border bg-card"}`} />;
 }

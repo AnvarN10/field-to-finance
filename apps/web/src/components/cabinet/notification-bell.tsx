@@ -77,7 +77,7 @@ export function NotificationBell() {
       >
         <Bell aria-hidden strokeWidth={1.5} className="size-5" />
         {unread ? (
-          <span aria-hidden className="tabular absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[11px] leading-none font-semibold text-primary-foreground">
+          <span aria-hidden className="tabular absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs leading-none font-semibold text-primary-foreground">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}
@@ -87,12 +87,12 @@ export function NotificationBell() {
           id={panelId}
           role="region"
           aria-label="Notifications"
-          className="popover-in absolute end-0 top-11 z-50 flex w-[min(22rem,calc(100vw-2rem))] flex-col rounded-lg border border-border bg-card shadow-(--shadow-pop)"
+          className="popover-in fixed inset-x-4 top-16 z-50 flex flex-col rounded-lg border border-border bg-card shadow-(--shadow-pop) sm:absolute sm:inset-x-auto sm:end-0 sm:top-11 sm:w-[22rem]"
         >
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
             <span className="text-sm font-semibold text-foreground">Notifications</span>
             {unread ? (
-              <button type="button" onClick={() => void markAllRead()} className="rounded-sm text-xs font-medium text-foreground underline decoration-muted-foreground underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [@media(hover:hover)]:hover:decoration-current">
+              <button type="button" onClick={() => void markAllRead()} className="inline-flex min-h-6 items-center rounded-sm px-1 text-xs font-medium text-foreground underline decoration-muted-foreground underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [@media(hover:hover)]:hover:decoration-current">
                 Mark all read
               </button>
             ) : null}

@@ -10,8 +10,11 @@ const CATEGORY: Record<string, string> = { professional: "Professional", retail:
 
 function Scroller({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="relative overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label={label} tabIndex={0}>
-      {children}
+    <div className="flex flex-col gap-2">
+      <p className="text-xs text-muted-foreground md:hidden">Scroll sideways for more columns.</p>
+      <div className="relative overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label={label} tabIndex={0}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -54,7 +57,12 @@ export function RegistryTable({ rows }: { rows: RegistryRow[] }) {
               </td>
               <td className={`${td} text-right`}>{r.couponBps !== null ? formatYield(r.couponBps) : "–"}</td>
               <td className={`${td} whitespace-nowrap`}>{formatDateUtc(r.maturityTs)}</td>
-              <td className={`${td} text-right`}>{r.holders ?? <span aria-label="Not available right now">–</span>}</td>
+              <td className={`${td} text-right`}>{r.holders ?? (
+                  <>
+                    <span aria-hidden>–</span>
+                    <span className="sr-only">Not available right now</span>
+                  </>
+                )}</td>
             </tr>
           ))}
         </tbody>

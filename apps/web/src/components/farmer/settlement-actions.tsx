@@ -45,7 +45,7 @@ export function SettlementActions({ item, signer, now }: { item: ObligationItem;
             ) : null}
           </div>
           {confirmDelivery ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted p-3 text-sm">
               <span className="mr-auto">Delivery is final: holders claim grain at the elevator instead of cash.</span>
               <Button type="button" size="sm" variant="destructive" onClick={() => { setConfirmDelivery(false); void elect.run({ poolId: item.poolId, election: "Delivery" }); }}>
                 Yes, elect delivery

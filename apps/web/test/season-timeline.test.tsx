@@ -27,6 +27,6 @@ describe("SeasonTimeline", () => {
     expect(within(sowing).getByText("1 of 2 fields")).toBeInTheDocument();
     expect(within(screen.getByRole("listitem", { name: /Field verification/ })).getByText("2 of 2 fields")).toBeInTheDocument();
     expect(within(screen.getByRole("listitem", { name: /Yield estimate and harvest/ })).getByText("Not yet attested")).toBeInTheDocument();
-    expect(within(sowing).getByRole("link", { name: "Evidence" })).toHaveAttribute("href", "http://x/api/evidence/Sowing");
+    expect(within(sowing).getByRole("link", { name: /^Evidence/ })).toHaveAttribute("href", "http://x/api/evidence/Sowing");
   });
 });

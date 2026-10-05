@@ -37,6 +37,7 @@ export function SeasonTimeline({ attestations, fieldCount, cluster }: { attestat
                   <ExplorerLink kind="address" value={latest.address} cluster={cluster} />
                   <a href={latest.evidenceUri} target="_blank" rel="noreferrer" className="rounded-sm text-foreground underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-foreground">
                     Evidence
+                    <span className="sr-only"> (opens in a new tab)</span>
                   </a>
                 </div>
               ) : (

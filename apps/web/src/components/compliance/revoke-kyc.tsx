@@ -50,7 +50,7 @@ export function RevokeKyc({ revoke }: { revoke: (reason: string) => Promise<Acti
             Cancel
           </Button>
           <p id={`${id}-hint`} className={`basis-full text-xs ${invalid ? "text-destructive" : "text-muted-foreground"}`}>
-            Every linked wallet is revoked on-chain and its Instrument accounts freeze. New subscriptions stop at once.
+            {invalid ? "Enter a reason of at least 3 characters." : "Every linked wallet is revoked on-chain and its Instrument accounts freeze. New subscriptions stop at once."}
           </p>
         </form>
       )}
