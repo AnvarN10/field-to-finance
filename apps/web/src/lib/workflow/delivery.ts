@@ -27,10 +27,10 @@ async function deliveryPool(chain: Chain, poolId: string): Promise<PoolDetail> {
   return d;
 }
 
-async function record(db: Db, actor: SessionUser, actingRole: string, d: PoolDetail, evidence: DeliveryEvidence, chain: Chain, label: string): Promise<string> {
+async function record(db: Db, actor: SessionUser, actingRole: string, d: PoolDetail, evidence: DeliveryEvidence, chain: Chain, label: string, privatePayload: Record<string, unknown> = {}): Promise<string> {
   const r = await audited(
     db,
-    { actorUserId: actor.id, actingRole, action: "pool.record_delivery", targetType: "pool", targetId: d.pool.poolId, payload: { kind: evidence.kind, verdict: evidence.verdict } },
+    { actorUserId: actor.id, actingRole, action: "pool.record_delivery", targetType: "pool", targetId: d.pool.poolId, payload: { kind: evidence.kind, verdict: evidence.verdict, ...privatePayload } },
     () => chain.recordDelivery(d.pool.poolId, evidence),
     (x) => [x.signature],
   );
@@ -60,6 +60,8 @@ export async function recordElevatorReceipt(db: Db, actor: SessionUser, input: R
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.receivedOn) || Number.isNaN(Date.parse(input.receivedOn))) throw new RequestError("Enter the receiving date", 400);
   if (!/^[0-9a-f]{64}$/.test(input.documentSha256)) throw new RequestError("Attach the receipt file", 400);
   const d = await deliveryPool(chain, input.poolId);
+  // Public evidence carries a salted commitment: a bare hash of a short receipt number could be reversed by guessing.
+  const salt = toHex(crypto.getRandomValues(new Uint8Array(16)));
   return record(
     db,
     actor,
@@ -71,11 +73,12 @@ export async function recordElevatorReceipt(db: Db, actor: SessionUser, input: R
       poolId: input.poolId,
       documentSha256: input.documentSha256,
       kg: (BigInt(input.tonnes) * 1000n).toString(),
-      receiptNumberSha256: toHex(sha256(new TextEncoder().encode(number))),
+      receiptNumberCommitment: toHex(sha256(new TextEncoder().encode(`${salt}:${number}`))),
       receivedOn: input.receivedOn,
     },
     chain,
     "Elevator receipt recorded",
+    { receiptSalt: salt },
   );
 }
 

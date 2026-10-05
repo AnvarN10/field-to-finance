@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const { HarvestBlock } = await import("../src/components/pool/harvest-block");
 const { GrainClaims } = await import("../src/components/investor/grain-claims");
 
-const receipt = { kind: "ElevatorReceipt" as const, verdict: "Pass" as const, poolId: "9", documentSha256: "aa".repeat(32), kg: "950000", receivedOn: "2027-08-20", receiptNumberSha256: "cc".repeat(32) };
+const receipt = { kind: "ElevatorReceipt" as const, verdict: "Pass" as const, poolId: "9", documentSha256: "aa".repeat(32), kg: "950000", receivedOn: "2027-08-20", receiptNumberCommitment: "cc".repeat(32) };
 const lab = {
   kind: "LabQuality" as const,
   verdict: "Pass" as const,

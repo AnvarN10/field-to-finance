@@ -16,7 +16,7 @@ SCAS partner (`/scas`), elevator and laboratory (`/elevator`), or an arranger ac
 
 1. **Field verification** (before structuring): `/scas` lists applications in `field_verification` with the boundaries on the satellite map; "Verify fields" writes one FieldVerified attestation per field (SCAS key).
 2. **Season** (`/scas/pools/<id>`): the partner records Sowing, Vegetation or the pre-harvest yield estimate (a Harvest attestation; the estimate in t/ha is required) with an observation and an optional evidence file. The file goes to `documents/<sha256>` (private, registered to the uploader); the evidence JSON (stub notice, observation, file hash, estimate) goes to `evidence/<sha256>.json`; then one `record_attestation` per field. Allowed only while the pool is Funded or Redeeming.
-3. **Elevator receipt** (`/elevator`, elevator role): tonnes received, receipt number (only its SHA-256 is stored), receiving date, receipt file. Evidence JSON, then `record_delivery(ElevatorReceipt, Pass)`.
+3. **Elevator receipt** (`/elevator`, elevator role): tonnes received, receipt number (never stored: the public evidence carries a salted commitment `sha256("<salt>:<number>")`, the salt stays in the private audit log, so the number cannot be guessed back from the hash), receiving date, receipt file. Evidence JSON, then `record_delivery(ElevatorReceipt, Pass)`.
 4. **Lab protocol** (`/elevator`, lab role): the twelve measurements against the pool's quality spec (loaded from the bucket by its on-chain hash). `evaluateLab` marks each parameter pass or fail; any fail gives verdict Fail, any missing value InsufficientData, otherwise Pass. Evidence JSON with measurements and results, then `record_delivery(LabQuality, verdict)`.
 5. The farmer and the pool's investors are notified after each step; the public pool page shows the season timeline and, once recorded, the harvest and quality block.
 
@@ -39,7 +39,7 @@ Devnet RPC, the SCAS and Issuer keys' SOL, the bucket.
 ## Invariants and assumptions
 
 - Evidence is stored before the attestation that points at it.
-- A receipt number never leaves the server in clear.
+- A receipt number never leaves the server in clear, and its public commitment is salted.
 
 ## Edge cases
 

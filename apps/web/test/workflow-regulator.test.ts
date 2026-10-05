@@ -51,6 +51,19 @@ describe("regulator registry", () => {
   });
 });
 
+describe("regulator events for one pool", () => {
+  it("are found however many newer unrelated rows exist", async () => {
+    await audit(db, { actorUserId: null, action: "pool.open", targetType: "application", targetId: "app-x", payload: { poolId: "77" } });
+    await audit(db, { actorUserId: null, action: "tx.subscribe", targetType: "wallet", targetId: INVESTOR_WALLET, payload: { pool: "Pool77Address", amount: "1" } });
+    await audit(db, { actorUserId: null, action: "pool.disburse", targetType: "pool", targetId: "77" });
+    const filler = Array.from({ length: 1001 }, (_, i) => ({ actorUserId: null, action: "other.event", targetType: "pool", targetId: "1", payload: { i } }));
+    const { auditLog } = await import("../src/lib/db/schema");
+    await db.insert(auditLog).values(filler);
+    const rows = await eventRows(db, { poolId: "77", poolAddress: "Pool77Address" });
+    expect(rows.map((r) => r.action).sort()).toEqual(["pool.disburse", "pool.open", "tx.subscribe"]);
+  });
+});
+
 describe("toCsv", () => {
   it("quotes, doubles quotes and neutralises formulas", () => {
     expect(toCsv(["a", "b"], [["=SUM(1)", 'x "y", z'], [null, 3]])).toBe('a,b\r\n\'=SUM(1),"x ""y"", z"\r\n,3\r\n');

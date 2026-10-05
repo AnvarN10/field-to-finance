@@ -1,4 +1,4 @@
-import { PILOT_QUALITY_SPEC } from "@f2f/sdk";
+import { PILOT_QUALITY_SPEC, sha256, toHex } from "@f2f/sdk";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { applications, auditLog, notifications } from "../src/lib/db/schema";
@@ -37,8 +37,13 @@ describe("elevator and laboratory", () => {
     const { db, elevator, farmer, chain, recorded } = await setup();
     await recordElevatorReceipt(db, elevator, receipt, chain);
     expect(recorded[0]).toMatchObject({ kind: "ElevatorReceipt", verdict: "Pass", poolId: "9", kg: "950000", receivedOn: "2027-08-20", documentSha256: "aa".repeat(32) });
-    expect(recorded[0]?.receiptNumberSha256).toMatch(/^[0-9a-f]{64}$/);
+    const commitment = recorded[0]?.receiptNumberCommitment as string;
+    expect(commitment).toMatch(/^[0-9a-f]{64}$/);
     expect(JSON.stringify(recorded[0])).not.toContain("RCPT-000-DEMO");
+    // A bare hash of a short receipt number could be reversed from the public evidence; the commitment is salted.
+    expect(commitment).not.toBe(toHex(sha256(new TextEncoder().encode("RCPT-000-DEMO"))));
+    const salt = ((await db.select().from(auditLog).where(eq(auditLog.action, "pool.record_delivery")))[0]?.payload as { receiptSalt: string }).receiptSalt;
+    expect(toHex(sha256(new TextEncoder().encode(`${salt}:RCPT-000-DEMO`)))).toBe(commitment);
     expect((await db.select().from(auditLog).where(eq(auditLog.action, "pool.record_delivery")))[0]).toMatchObject({ actingRole: "elevator", txSignature: "sig-ElevatorReceipt" });
     expect((await db.select().from(notifications).where(eq(notifications.userId, farmer.id))).map((n) => n.title)).toContain("Elevator receipt recorded: DWHT27");
   });

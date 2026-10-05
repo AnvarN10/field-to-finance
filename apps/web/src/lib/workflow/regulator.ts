@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import type { PoolView } from "../chain/views";
 import type { Db } from "../db/client";
 import { auditLog, farmerProfiles, investorProfiles, wallets } from "../db/schema";
@@ -82,11 +82,21 @@ export interface EventRow {
   detail: string;
 }
 
+/**
+ * Events, newest first. For one pool the filter runs in SQL, so a pool's whole history comes back however many other rows
+ * exist; across every pool the latest `limit` rows (default 1000).
+ */
 export async function eventRows(db: Db, f: { poolId?: string; poolAddress?: string; limit?: number }): Promise<EventRow[]> {
-  const rows = await db.select().from(auditLog).orderBy(desc(auditLog.createdAt)).limit(Math.min(f.limit ?? 1000, 5000));
+  const ofPool = f.poolId
+    ? or(
+        and(eq(auditLog.targetType, "pool"), eq(auditLog.targetId, f.poolId)),
+        sql`${auditLog.payload}->>'poolId' = ${f.poolId}`,
+        ...(f.poolAddress ? [sql`${auditLog.payload}->>'pool' = ${f.poolAddress}`] : []),
+      )
+    : undefined;
+  const base = db.select().from(auditLog).where(and(sql`not (${auditLog.payload} ? 'error')`, ofPool)).orderBy(desc(auditLog.createdAt));
+  const rows = f.poolId ? await base : await base.limit(Math.min(f.limit ?? 1000, 5000));
   return rows
-    .filter((r) => !r.payload.error)
-    .filter((r) => !f.poolId || (r.targetType === "pool" && r.targetId === f.poolId) || r.payload.poolId === f.poolId || (f.poolAddress !== undefined && r.payload.pool === f.poolAddress))
     .map((r) => ({
       at: r.createdAt.toISOString(),
       action: r.action,

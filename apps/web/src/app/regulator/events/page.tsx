@@ -22,7 +22,7 @@ export default async function RegulatorEvents() {
   }
   return (
     <CabinetShell role="Regulator" title="Events" email={g.user.email} tabs={REGULATOR_TABS}>
-      <Section title="Platform events" description="Every decision and on-chain action, newest first, with the role that acted. Review notes and personal data are left out." action={<a href="/api/regulator/export?kind=events" className={`${textLink} text-sm`}>Events CSV</a>}>
+      <Section title="Platform events" description="The latest 1,000 decisions and on-chain actions, newest first, with the role that acted; a pool's page shows its whole history. Review notes and personal data are left out." action={<a href="/api/regulator/export?kind=events" className={`${textLink} text-sm`}>Events CSV</a>}>
         <EventsTable rows={events.slice(0, 300)} />
       </Section>
     </CabinetShell>
