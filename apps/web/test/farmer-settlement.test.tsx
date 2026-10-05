@@ -57,6 +57,11 @@ describe("SettlementActions", () => {
     expect(runs["fund-redemption"]).toHaveBeenCalledWith({ poolId: "9", amount: "1010000000" });
   });
 
+  it("renders nothing once there is nothing to sign", () => {
+    const { container } = render(<SettlementActions item={item({ election: "Delivery", effectiveElection: "Delivery" })} signer={null} now={NOW} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("asks for the issuer wallet when another wallet is signed in, and says when nothing is left to do", () => {
     const { rerender } = render(<SettlementActions item={item()} signer={{ ...signer, publicKey: "Other1111111111111111111111111111111111111" }} now={NOW} />);
     expect(screen.getByText(/Sign in with the issuer wallet/)).toBeInTheDocument();

@@ -83,6 +83,15 @@ describe("Obligations", () => {
     render(<Obligations items={[{ ...base, settlementMode: null }]} />);
     expect(screen.getByText("Funding deadline")).toBeInTheDocument();
   });
+  it("on the delivery path the buyback is not needed and the card says grain, not cash", () => {
+    render(<Obligations items={[{ ...base, effectiveElection: "Delivery" }]} />);
+    expect(screen.getByText("Not needed: grain delivery")).toBeInTheDocument();
+    expect(screen.queryByText(/Short by/)).not.toBeInTheDocument();
+  });
+  it("names the pool next to the symbol", () => {
+    render(<Obligations items={[base]} />);
+    expect(screen.getByRole("heading", { name: "DWHT27 · pool 9" })).toBeInTheDocument();
+  });
   it("renders nothing without pools", () => {
     const { container } = render(<Obligations items={[]} />);
     expect(container).toBeEmptyDOMElement();

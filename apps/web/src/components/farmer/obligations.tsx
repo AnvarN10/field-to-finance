@@ -31,8 +31,8 @@ export function Obligations({ items }: { items: ObligationItem[] }) {
   return (
     <div className="flex flex-col gap-3">
       {items.map((o) => (
-        <section key={o.symbol} aria-label={`Obligations for ${o.symbol}`} className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
-          <h3 className="text-base font-semibold">{o.symbol}</h3>
+        <section key={o.poolId} aria-label={`Obligations for ${o.symbol}, pool ${o.poolId}`} className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
+          <h3 className="text-base font-semibold">{`${o.symbol} · pool ${o.poolId}`}</h3>
           <dl className="tabular grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex flex-col gap-1">
               <dt className="text-muted-foreground">Due at maturity</dt>
@@ -53,7 +53,7 @@ export function Obligations({ items }: { items: ObligationItem[] }) {
             </div>
             <div className="flex flex-col gap-1">
               <dt className="text-muted-foreground">Buyback funding</dt>
-              <dd className="font-medium">{BigInt(o.buybackShortfall) === 0n ? "Funded" : `Short by ${formatUsdDown(o.buybackShortfall)}`}</dd>
+              <dd className="font-medium">{o.effectiveElection === "Delivery" ? "Not needed: grain delivery" : BigInt(o.buybackShortfall) === 0n ? "Funded" : `Short by ${formatUsdDown(o.buybackShortfall)}`}</dd>
               <dd className="text-xs text-muted-foreground">{`Vault holds ${formatUsd(o.vaultBalance)}`}</dd>
             </div>
           </dl>
