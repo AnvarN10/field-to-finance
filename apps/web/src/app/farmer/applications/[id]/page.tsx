@@ -14,7 +14,7 @@ import { FARMER_TABS } from "@/components/farmer/tabs";
 import { ErrorState } from "@/components/state";
 import { canTransition } from "@/lib/application-status";
 import { RequestError } from "@/lib/errors";
-import { formatTonnes, formatUsd, formatYield } from "@/lib/format";
+import { formatTonnes, formatUsd, formatYield, plural } from "@/lib/format";
 import { arrangerChain } from "@/lib/server/chain-port";
 import { poolObligation } from "@/lib/server/cabinet-data";
 import { getReader } from "@/lib/server/context";
@@ -98,7 +98,7 @@ export default async function FarmerApplication({ params }: { params: Promise<{ 
               <p className="flex flex-wrap items-center gap-2">
                 Registered as project <ExplorerLink kind="address" value={app.projectAddress} cluster={cluster} />
               </p>
-              {project ? <p className="text-muted-foreground">{`${project.fieldCount} field(s), ${project.verifiedFieldCount} verified by the SCAS stub`}</p> : null}
+              {project ? <p className="text-muted-foreground">{`${plural(project.fieldCount, "field")}, ${project.verifiedFieldCount} verified by the SCAS stub`}</p> : null}
             </div>
           ) : app.status === "draft" ? (
             <FieldsSection

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import type { ActionResult } from "../../app/arranger/actions";
 import { rejectAction } from "../../app/arranger/workflow-actions";
 import { Button } from "../ui/button";
@@ -14,9 +14,18 @@ export function RejectApplication({ applicationId }: { applicationId: string }) 
   const [reason, setReason] = useState("");
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [invalid, setInvalid] = useState(false);
+  const hintId = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
+  const close = () => {
+    setOpen(false);
+    setInvalid(false);
+    // Focus goes back to the button that opened the form.
+    requestAnimationFrame(() => trigger.current?.focus());
+  };
   if (!open)
     return (
-      <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => setOpen(true)}>
+      <Button ref={trigger} type="button" variant="outline" size="sm" className="self-start" onClick={() => setOpen(true)}>
         Reject application
       </Button>
     );
@@ -25,6 +34,7 @@ export function RejectApplication({ applicationId }: { applicationId: string }) 
       className="flex flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault();
+        if (reason.trim().length < 3) return setInvalid(true);
         start(async () => {
           const r = await rejectAction(applicationId, reason);
           setResult(r);
@@ -34,13 +44,26 @@ export function RejectApplication({ applicationId }: { applicationId: string }) 
     >
       <label className="flex flex-col gap-1 text-sm font-medium">
         Reason for the farmer
-        <Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} />
+        <Input
+          autoFocus
+          value={reason}
+          onChange={(e) => {
+            setReason(e.target.value);
+            if (invalid && e.target.value.trim().length >= 3) setInvalid(false);
+          }}
+          maxLength={300}
+          aria-invalid={invalid || undefined}
+          aria-describedby={hintId}
+        />
       </label>
+      <p id={hintId} className={`text-xs ${invalid ? "text-destructive" : "text-muted-foreground"}`}>
+        Write at least 3 characters so the farmer knows what to fix.
+      </p>
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" variant="destructive" size="sm" disabled={pending || reason.trim().length < 3}>
+        <Button type="submit" variant="destructive" size="sm" disabled={pending}>
           Yes, reject the application
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+        <Button type="button" variant="ghost" size="sm" onClick={close}>
           Cancel
         </Button>
       </div>

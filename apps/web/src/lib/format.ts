@@ -76,3 +76,6 @@ export function formatUsdDown(baseUnits: bigint | string): string {
   const v = BigInt(baseUnits);
   return formatUsd(v - (v % 10_000n));
 }
+
+/** "1 field", "2 fields": count and noun with the English plural (regular nouns only). */
+export const plural = (n: number, noun: string, many = `${noun}s`) => `${n} ${n === 1 ? noun : many}`;

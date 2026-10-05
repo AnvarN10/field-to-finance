@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { submitApplicationAction, withdrawApplicationAction } from "../../app/farmer/actions";
 import { Button } from "../ui/button";
 
@@ -10,6 +10,11 @@ export function ApplicationActions({ applicationId, canSubmit, canWithdraw }: { 
   const [pending, start] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const cancel = () => {
+    setConfirming(false);
+    requestAnimationFrame(() => trigger.current?.focus());
+  };
   const run = (fn: () => Promise<{ ok: true } | { ok: false; error: string }>) =>
     start(async () => {
       setError(null);
@@ -28,7 +33,7 @@ export function ApplicationActions({ applicationId, canSubmit, canWithdraw }: { 
           </Button>
         ) : null}
         {canWithdraw && !confirming ? (
-          <Button type="button" variant="outline" disabled={pending} onClick={() => setConfirming(true)}>
+          <Button ref={trigger} type="button" variant="outline" disabled={pending} onClick={() => setConfirming(true)}>
             Withdraw application
           </Button>
         ) : null}
@@ -36,10 +41,10 @@ export function ApplicationActions({ applicationId, canSubmit, canWithdraw }: { 
       {confirming ? (
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted p-3 text-sm">
           <span className="mr-auto">Withdraw this application? The arranger stops working on it and it cannot be reopened.</span>
-          <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => run(() => withdrawApplicationAction(applicationId))}>
+          <Button autoFocus type="button" variant="destructive" size="sm" disabled={pending} onClick={() => run(() => withdrawApplicationAction(applicationId))}>
             Yes, withdraw
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)}>
+          <Button type="button" variant="ghost" size="sm" onClick={cancel}>
             Cancel
           </Button>
         </div>

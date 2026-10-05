@@ -23,7 +23,7 @@ import { SETTLEMENT_RULES, type SettlementRuleName } from "@/lib/chain/enums";
 import { explainChainError, type ExplainedError } from "@/lib/chain/explain";
 import { ChainTxError } from "@/lib/chain/send";
 import { RequestError } from "@/lib/errors";
-import { formatUsd } from "@/lib/format";
+import { formatUsd, plural } from "@/lib/format";
 import { seasonAttestationBlocker } from "@/lib/pool-math";
 import { attestStage, verifyAllFields } from "@/lib/scas-stub";
 import {
@@ -113,14 +113,14 @@ export const closeSubscriptionAction = async (poolId: string) =>
 export const disburseAllAction = async (poolId: string) =>
   run(pool(poolId, "pool.disburse"), async () => {
     const signatures = await disburseAll(opsContext(), id(poolId));
-    return { message: signatures.length ? `Paid ${signatures.length} project(s)` : "Every project was already paid", signatures };
+    return { message: signatures.length ? `Paid ${plural(signatures.length, "project")}` : "Every project was already paid", signatures };
   });
 
 export const verifyAllFieldsAction = async () =>
   run({ action: "fields.verify_all", targetType: "fields", targetId: "unpooled" }, async () => {
     const r = await verifyAllFields(stubDeps(), await getReader().unpooledProjects());
     if (r.failures.length) throw new RequestError(`${r.results.length} verified, ${r.failures.length} failed: ${r.failures[0]?.error}`, 502);
-    return { message: r.results.length ? `Verified ${r.results.length} field(s) with the SCAS stub` : "No unverified fields", signatures: r.results.map((x) => x.signature) };
+    return { message: r.results.length ? `Verified ${plural(r.results.length, "field")} with the SCAS stub` : "No unverified fields", signatures: r.results.map((x) => x.signature) };
   });
 
 const STAGES = ["Sowing", "Vegetation", "Harvest"] as const;
@@ -133,7 +133,7 @@ export const attestStageAction = async (poolId: string, kind: (typeof STAGES)[nu
     if (blocked) throw new RequestError(blocked, 409);
     const r = await attestStage(stubDeps(), detail.projects, kind as Exclude<AttestationKindName, "FieldVerified">);
     if (r.failures.length) throw new RequestError(`${r.results.length} attested, ${r.failures.length} failed: ${r.failures[0]?.error}`, 502);
-    return { message: `${kind} attested for ${r.results.length} field(s)`, signatures: r.results.map((x) => x.signature) };
+    return { message: `${kind} attested for ${plural(r.results.length, "field")}`, signatures: r.results.map((x) => x.signature) };
   });
 
 export const recordSettlementAction = async (poolId: string, project: string, rule: string) =>

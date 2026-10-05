@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import type { ActionResult } from "../../app/arranger/actions";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -27,6 +27,13 @@ export function Decision({
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [invalid, setInvalid] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const cancel = () => {
+    setRejecting(false);
+    setInvalid(false);
+    requestAnimationFrame(() => trigger.current?.focus());
+  };
   const go = (fn: () => Promise<ActionResult>) =>
     start(async () => {
       setResult(null);
@@ -44,7 +51,7 @@ export function Decision({
           {pending && !rejecting ? `${approveLabel}…` : approveLabel}
         </Button>
         {!rejecting ? (
-          <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => setRejecting(true)}>
+          <Button ref={trigger} type="button" size="sm" variant="ghost" disabled={pending} onClick={() => setRejecting(true)}>
             {rejectLabel}
           </Button>
         ) : null}
@@ -55,19 +62,35 @@ export function Decision({
           className="flex flex-wrap items-end gap-2"
           onSubmit={(e) => {
             e.preventDefault();
+            if (reason.trim().length < 3) return setInvalid(true);
             go(() => reject(reason));
           }}
         >
           <label htmlFor={id} className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium">
             Reason (sent to the user)
-            <Input id={id} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} className="h-9" />
+            <Input
+              id={id}
+              autoFocus
+              value={reason}
+              onChange={(e) => {
+                setReason(e.target.value);
+                if (invalid && e.target.value.trim().length >= 3) setInvalid(false);
+              }}
+              maxLength={300}
+              className="h-9"
+              aria-invalid={invalid || undefined}
+              aria-describedby={`${id}-hint`}
+            />
           </label>
-          <Button type="submit" size="sm" variant="destructive" disabled={pending || reason.trim().length < 3}>
+          <Button type="submit" size="sm" variant="destructive" disabled={pending}>
             {`Yes, ${rejectLabel.toLowerCase()}`}
           </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setRejecting(false)}>
+          <Button type="button" size="sm" variant="ghost" onClick={cancel}>
             Cancel
           </Button>
+          <p id={`${id}-hint`} className={`basis-full text-xs ${invalid ? "text-destructive" : "text-muted-foreground"}`}>
+            Write at least 3 characters so they know what to fix.
+          </p>
         </form>
       ) : null}
       <ActionResultView result={result} />

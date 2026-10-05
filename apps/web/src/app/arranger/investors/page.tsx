@@ -16,6 +16,7 @@ export const metadata: Metadata = { title: "Investor KYC", robots: { index: fals
 export const dynamic = "force-dynamic";
 
 const NET: Record<string, string> = { "under-100k": "Under USD 100,000", "100k-1m": "USD 100,000 to 1M", "1m-10m": "USD 1M to 10M", "over-10m": "Over USD 10M" };
+const EXPERIENCE: Record<string, string> = { none: "None", some: "Some", extensive: "Extensive" };
 const CATEGORY: Record<string, string> = { professional: "Professional", retail: "Retail", institutional: "Institutional" };
 
 function InvestorCard({ r, decide }: { r: InvestorQueueRow; decide: boolean }) {
@@ -30,7 +31,7 @@ function InvestorCard({ r, decide }: { r: InvestorQueueRow; decide: boolean }) {
         {[
           ["Category", r.profile.category ? CATEGORY[r.profile.category] : "Not answered"],
           ["Net assets", NET[q.answers?.netAssets ?? ""] ?? "Not answered"],
-          ["Experience", q.answers?.experience ?? "Not answered"],
+          ["Experience", EXPERIENCE[q.answers?.experience ?? ""] ?? q.answers?.experience ?? "Not answered"],
           ["Why they qualify", q.answers?.basis ?? "Not given"],
           ["Full name", q.kyc?.fullName ?? "Not given"],
           ["Country", q.kyc?.country ?? "Not given"],

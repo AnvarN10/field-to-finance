@@ -12,7 +12,7 @@ export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView
     ) : r.signature ? (
       <ExplorerLink kind="tx" value={r.signature} cluster={cluster} />
     ) : (
-      <span className="text-muted-foreground">Recorded</span>
+      <span className="text-muted-foreground" aria-label="No transaction">–</span>
     );
   // Compact (one application's page): on phones a stacked list, because five columns cannot fit 390px.
   const list = compact ? (
@@ -20,7 +20,7 @@ export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView
       {rows.map((r) => (
         <li key={r.id} className="flex flex-col gap-1 p-3">
           <span className="tabular text-xs text-muted-foreground">{`${at(r)} UTC · ${r.actor}`}</span>
-          <span className="font-mono text-xs break-all">{r.action}</span>
+          <span className="text-sm">{r.action}</span>
           {r.detail ? <span className="text-xs text-muted-foreground">{r.detail}</span> : null}
           {r.error || r.signature ? <span className="text-xs">{result(r)}</span> : null}
         </li>
@@ -50,7 +50,7 @@ export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView
               </td>
               <td className="px-3 py-3">
                 <div className="flex flex-col gap-0.5">
-                  <span className="font-mono text-xs break-all">{r.action}</span>
+                  <span className="text-sm">{r.action}</span>
                   {compact && r.detail ? <span className="text-xs text-muted-foreground">{r.detail}</span> : null}
                 </div>
               </td>

@@ -21,7 +21,7 @@ export function LinkPhantom({ userId, linked }: { userId: string; linked: string
     return (
       <div className="flex flex-col items-start gap-2 text-sm">
         <p className="text-muted-foreground">Investing from Phantom? Connect it here and sign a message to link it. Signing costs nothing.</p>
-        <ConnectButton />
+        <ConnectButton variant="outline" />
       </div>
     );
   }
