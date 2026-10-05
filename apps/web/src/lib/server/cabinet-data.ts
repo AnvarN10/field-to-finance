@@ -1,5 +1,6 @@
 import "server-only";
 import { BUYBACK_GRACE_SECS } from "@f2f/sdk";
+import { TOKEN_PROGRAM_ID, unpackAccount } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { and, desc, eq, inArray, like, or } from "drizzle-orm";
 import { obligation } from "../accrual";
@@ -15,6 +16,20 @@ export async function vaultBalance(vault: string): Promise<bigint> {
   } catch {
     return 0n;
   }
+}
+
+/** USDC in each pool's vault, in one batched account read; missing accounts count as 0. */
+export async function vaultBalances(pools: { poolId: string; vault: string }[]): Promise<Map<string, bigint>> {
+  const out = new Map<string, bigint>();
+  for (let i = 0; i < pools.length; i += 100) {
+    const chunk = pools.slice(i, i + 100);
+    const infos = await getConnection().getMultipleAccountsInfo(chunk.map((p) => new PublicKey(p.vault)), "confirmed");
+    chunk.forEach((p, j) => {
+      const info = infos[j];
+      out.set(p.poolId, info ? unpackAccount(new PublicKey(p.vault), info, TOKEN_PROGRAM_ID).amount : 0n);
+    });
+  }
+  return out;
 }
 
 /** The issuer's obligation on one pool, serialized for client components; null when the pool cannot be read. */

@@ -1,5 +1,5 @@
 import { effectiveElection, redemptionDue } from "@f2f/sdk";
-import type { PoolDetail } from "./chain/views";
+import type { PoolDetail, PoolView, ProjectView } from "./chain/views";
 import { formatDateUtc } from "./format";
 
 export const PHASES = [
@@ -88,4 +88,9 @@ function currentStep(d: PoolDetail, now: number, vault: bigint | undefined): Now
   if (d.projects.some((x) => x.settlement === null)) return { key: "settlement", owner: "arranger", next: "Record the settlement of each project", action: "record_settlement" };
   if (short && t) return { key: "settlement", owner: "farmer", next: "Fund the buyback: the vault is short" };
   return { key: "settlement", owner: "arranger", next: "Open redemption for holders", action: "open_redemption" };
+}
+
+/** Pool details for the board from one pool list and one project scan (no field reads): what `lifecycle` needs. */
+export function boardDetails(pools: PoolView[], projects: ProjectView[]): PoolDetail[] {
+  return pools.map((pool) => ({ pool, projects: projects.filter((p) => p.pool === pool.address).map((p) => ({ ...p, fields: [] })), arrangementFeeBps: 0, terms: pool.terms ?? null }));
 }

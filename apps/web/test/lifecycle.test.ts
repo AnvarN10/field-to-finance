@@ -63,3 +63,16 @@ describe("lifecycle", () => {
     expect(current(lifecycle(poolDetail({ pool: { status: "Refunding" } }), after))).toMatchObject({ key: "closing", owner: "investors" });
   });
 });
+
+describe("boardDetails", () => {
+  it("groups projects under their pool without field reads, enough for the board", async () => {
+    const { boardDetails } = await import("../src/lib/lifecycle");
+    const { poolView } = await import("./helpers/pool");
+    const a = poolView({ poolId: "1", address: "PoolA" });
+    const b = poolView({ poolId: "2", address: "PoolB" });
+    const { fields: _f, ...p } = projectWith({ pool: "PoolB", harvestAttested: true });
+    const d = boardDetails([a, b], [p]);
+    expect(d.map((x) => x.projects.length)).toEqual([0, 1]);
+    expect(d[1]?.projects[0]?.harvestAttested).toBe(true);
+  });
+});

@@ -30,6 +30,7 @@ import {
   type PoolDetail,
   type PoolView,
   type ProjectAccount,
+  type ProjectView,
   type ProjectWithFields,
 } from "./views";
 
@@ -40,6 +41,8 @@ export interface ChainReader {
   getField(address: string): Promise<FieldDetail | null>;
   projectsByProducer(producer: string): Promise<ProjectWithFields[]>;
   unpooledProjects(): Promise<ProjectWithFields[]>;
+  /** Every Farm Project in one scan, without fields (the arranger's board). */
+  allProjects(): Promise<ProjectView[]>;
   investor(wallet: string): Promise<InvestorState>;
   /** Owners of a non-zero balance of an Instrument mint (Token-2022 accounts), largest first. */
   holders(mint: string, candidates?: string[]): Promise<{ wallet: string; balance: string }[]>;
@@ -171,6 +174,8 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
 
     unpooledProjects: () =>
       lists.get("unpooled", async () => withFields(await program.account.farmProject.all([projectsWithoutPool()]))),
+
+    allProjects: () => lists.get("projects", async () => (await program.account.farmProject.all()).map((r) => toProjectView(r.publicKey, r.account))),
 
     investor: (wallet) =>
       cache.get(`investor:${wallet}`, async () => {

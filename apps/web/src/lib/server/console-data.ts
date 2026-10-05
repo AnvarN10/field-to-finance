@@ -2,7 +2,8 @@ import "server-only";
 import { roleMismatches } from "../chain/admin-ops";
 import { shortKey } from "../format";
 import { roleKeyProblem } from "../keys";
-import { vaultBalance } from "./cabinet-data";
+import { boardDetails } from "../lifecycle";
+import { vaultBalances } from "./cabinet-data";
 import { getConnection, getReader, roleKeypair, sponsorPublicKey } from "./context";
 import { serverEnv } from "./env";
 
@@ -52,13 +53,9 @@ export async function consoleData() {
   const pools = await reader.listPools();
   const unpooled = await reader.unpooledProjects();
   const fees = await reader.fees();
-  const details = [];
-  const vaults = new Map<string, bigint>();
-  for (const p of pools) {
-    const d = await reader.getPool(p.poolId);
-    if (d) details.push(d);
-    if (p.status !== "Draft") vaults.set(p.poolId, await vaultBalance(p.vault));
-  }
+  // One project scan and one batched balance read for every pool's board, instead of a detail read per pool.
+  const details = boardDetails(pools, await reader.allProjects());
+  const vaults = await vaultBalances(pools.filter((p) => p.status !== "Draft"));
   const sponsor = await sponsorState();
   const producers = [...new Set(unpooled.map((p) => p.producer))];
   const farmers = (await reader.approvedWallets(producers)).map((wallet) => ({ wallet, label: `Farmer ${shortKey(wallet)}` }));
