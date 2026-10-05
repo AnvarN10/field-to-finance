@@ -3,8 +3,11 @@ import { ActionButton } from "@/components/admin/action-button";
 import { CreatePoolForm } from "@/components/admin/create-pool-form";
 import { FieldImport } from "@/components/admin/field-import";
 import { OnboardingPanel } from "@/components/admin/onboarding-panel";
-import { PoolConsole } from "@/components/admin/pool-console";
 import { KeyAlerts } from "@/components/arranger/key-alerts";
+import { LifecycleBoard } from "@/components/arranger/lifecycle-board";
+import { PoolStatusBadge } from "@/components/status-badge";
+import Link from "next/link";
+import { lifecycle } from "@/lib/lifecycle";
 import { ARRANGER_TABS } from "@/components/arranger/tabs";
 import { CabinetShell } from "@/components/cabinet/cabinet-shell";
 import { guardCabinet } from "@/components/cabinet/guard";
@@ -34,16 +37,26 @@ export default async function LivePools() {
   return (
     <CabinetShell role="Arranger" title="Live pools" email={g.user.email} tabs={ARRANGER_TABS}>
       <KeyAlerts keyProblems={data.keyProblems} mismatches={data.mismatches} />
-      <p className="max-w-prose text-sm text-muted-foreground">Raised, vault, maturity, election, delivery documents and settlement actions for every pool on devnet. New pools from applications are created in the application&apos;s term builder; the forms below stay for manual pilot work.</p>
+      <p className="max-w-prose text-sm text-muted-foreground">Every pool on devnet with its current phase, who acts next and your button when the step is yours. Open a pool for its details and the manual tools. New pools come from the application&apos;s term builder.</p>
 
       {data.details.length === 0 ? (
         <EmptyState title="No pools yet" body="Structure an application or create a pool below." />
       ) : (
-        data.details.map((d) => (
-          <div key={d.pool.address} id={`pool-${d.pool.poolId}`} className="scroll-mt-20">
-            <PoolConsole detail={d} unpooled={data.unpooled} now={now} />
-          </div>
-        ))
+        <ul className="flex flex-col gap-4">
+          {data.details.map((d) => (
+            <li key={d.pool.address} id={`pool-${d.pool.poolId}`} className="flex scroll-mt-20 flex-col gap-4 rounded-lg border border-border bg-card p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-base font-semibold">
+                  <Link href={`/arranger/pools/${d.pool.poolId}`} className="rounded-sm underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current">
+                    {`${d.pool.instrument?.symbol ?? "Pool"} · #${d.pool.poolId}`}
+                  </Link>
+                </h2>
+                <PoolStatusBadge status={d.pool.status} />
+              </div>
+              <LifecycleBoard poolId={d.pool.poolId} phases={lifecycle(d, now, data.vaults.get(d.pool.poolId))} />
+            </li>
+          ))}
+        </ul>
       )}
 
       <details className="group rounded-lg border border-border bg-card p-6">

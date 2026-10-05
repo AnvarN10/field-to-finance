@@ -145,6 +145,22 @@ export const recordSettlementAction = async (poolId: string, project: string, ru
     };
   });
 
+/**
+ * Records the settlement of every unsettled project: Delivered when its harvest is attested, otherwise
+ * CashRepaidWithPremium, which the program accepts after maturity (the buyback path).
+ */
+export const recordSettlementAllAction = async (poolId: string) =>
+  run(pool(poolId, "pool.record_settlement"), async () => {
+    const detail = await getReader().getPool(poolId);
+    if (!detail) throw new RequestError(`Pool ${poolId} does not exist`, 404);
+    const signatures: string[] = [];
+    for (const p of detail.projects.filter((x) => x.settlement === null)) {
+      const rule: SettlementRuleName = p.harvestAttested ? "Delivered" : "CashRepaidWithPremium";
+      signatures.push(await recordSettlement(opsContext(), id(poolId), new PublicKey(p.address), rule));
+    }
+    return { message: signatures.length ? `Settlement recorded for ${plural(signatures.length, "project")}` : "Every project was already settled", signatures };
+  });
+
 export const fundRedemptionAction = async (poolId: string) =>
   run(pool(poolId, "pool.fund_redemption"), async () => {
     const r = await fundRedemption(opsContext(), id(poolId));
