@@ -1,0 +1,6 @@
+import type { ReactNode } from "react";
+import { AuthProvider } from "@/components/auth/auth-provider";
+
+export default function ArrangerLayout({ children }: { children: ReactNode }) {
+  return <AuthProvider>{children}</AuthProvider>;
+}
