@@ -30,7 +30,7 @@ export function KfdAccept({ poolId }: { poolId: string }) {
           start(async () => {
             setError(null);
             const r = await acceptKfdAction(poolId);
-            if (r.ok) router.push(`/pools/${poolId}#invest`);
+            if (r.ok) router.refresh();
             else setError(r.error);
           })
         }

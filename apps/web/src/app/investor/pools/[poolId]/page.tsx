@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CabinetShell } from "@/components/cabinet/cabinet-shell";
 import { guardCabinet } from "@/components/cabinet/guard";
-import { primaryLink, textLink } from "@/components/cabinet/section";
+import { textLink } from "@/components/cabinet/section";
+import { CabinetInvest } from "@/components/investor/cabinet-invest";
 import { KfdAccept } from "@/components/investor/kfd-accept";
 import { INVESTOR_TABS } from "@/components/investor/tabs";
 import { ErrorState } from "@/components/state";
@@ -64,8 +65,8 @@ export default async function KfdPage({ params }: { params: Promise<{ poolId: st
           {current ? (
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <span className="text-success">{`Accepted ${formatDateUtc(Math.floor(accepted!.acceptedAt.getTime() / 1000))}`}</span>
-              <Link href={`/pools/${poolId}#invest`} className={primaryLink}>
-                Continue to subscribe
+              <Link href={`/pools/${poolId}`} className={textLink}>
+                Open the public pool page
               </Link>
             </div>
           ) : onboarding.kycStatus === "approved" && onboarding.riskAcknowledged ? (
@@ -83,6 +84,12 @@ export default async function KfdPage({ params }: { params: Promise<{ poolId: st
           )}
         </div>
       </article>
+      {/* Holders can always refund, redeem or claim; subscribing needs the current KFD (the server checks it too). */}
+      {current || (detail.pool.status !== "Open" && onboarding.complete) ? (
+        <div id="invest" className="max-w-md">
+          <CabinetInvest pool={detail.pool} networkFee={fees?.networkFee ?? null} />
+        </div>
+      ) : null}
     </CabinetShell>
   );
 }

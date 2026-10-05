@@ -42,6 +42,13 @@ beforeEach(() => {
 });
 
 describe("InvestPanel", () => {
+  it("uses an explicit signer (the investor's email wallet in the cabinet) instead of the adapter wallet", async () => {
+    const other = Keypair.generate().publicKey.toBase58();
+    render(<InvestPanel pool={POOL} networkFee="500000" signer={{ publicKey: other, sign: vi.fn() }} />);
+    await screen.findByText("Not completed");
+    expect(vi.mocked(fetch).mock.calls.some(([u]) => u === `/api/investor/${other}`)).toBe(true);
+  });
+
   it("names KYC the same way everywhere: Not completed, with a Complete KYC link to investor onboarding", async () => {
     render(<InvestPanel pool={POOL} networkFee="500000" />);
     expect(await screen.findByText("Not completed")).toBeInTheDocument();

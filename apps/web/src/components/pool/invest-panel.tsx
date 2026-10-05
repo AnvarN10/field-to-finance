@@ -11,6 +11,7 @@ import { formatDateUtc, formatTonnes, formatUsd, formatUsdDown, formatYield, par
 import { claimableKg, couponLabel, payoutForAmount, payoutForTokens, tokenCount, validateTokenSubscription } from "../../lib/instrument-terms";
 import { disconnectedCopy, panelMode, positionFor, subscriptionTotal, validateSubscription } from "../../lib/invest";
 import { remaining } from "../../lib/pool-math";
+import type { TxSigner } from "../../lib/tx-client";
 import { TxStatus } from "../tx/tx-status";
 import { useTransaction } from "../tx/use-transaction";
 import { Button } from "../ui/button";
@@ -28,11 +29,15 @@ function typedAmount(input: string): bigint {
   }
 }
 
-/** `networkFee`: FeeConfig.network_fee in USDC base units, or null while fees are not configured (ADR 0013). */
-export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: string | null }) {
+/**
+ * `networkFee`: FeeConfig.network_fee in USDC base units, or null while fees are not configured (ADR 0013).
+ * `signer`: an explicit wallet (the investor's Privy email wallet in the cabinet); without it the adapter wallet signs.
+ */
+export function InvestPanel({ pool, networkFee, signer: explicit }: { pool: PoolView; networkFee: string | null; signer?: TxSigner | null }) {
   const { publicKey } = useWallet();
-  const signer = useAdapterSigner();
-  const wallet = publicKey?.toBase58() ?? null;
+  const adapterSigner = useAdapterSigner();
+  const signer = explicit ?? adapterSigner;
+  const wallet = explicit ? explicit.publicKey : (publicKey?.toBase58() ?? null);
   const investor = useJson<InvestorState>(wallet ? `/api/investor/${wallet}` : null);
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState<string | null>(null);
