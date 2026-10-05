@@ -54,6 +54,27 @@ describe("parseServerEnv", () => {
     expect(() => parseServerEnv({ F2F_PROGRAM_ID: "not-a-key" })).toThrow(/F2F_PROGRAM_ID/);
   });
 
+  it("reads the cabinet settings: DATABASE_URL, Privy secret, ARRANGER_EMAILS, dev auth off by default", () => {
+    const env = parseServerEnv({ DATABASE_URL: "postgres://u:p@h:5432/db", PRIVY_APP_SECRET: "s", ARRANGER_EMAILS: "a@example.com", NEXT_PUBLIC_PRIVY_APP_ID: "app" });
+    expect(env.DATABASE_URL).toBe("postgres://u:p@h:5432/db");
+    expect(env.PRIVY_APP_SECRET).toBe("s");
+    expect(env.ARRANGER_EMAILS).toBe("a@example.com");
+    expect(env.NEXT_PUBLIC_PRIVY_APP_ID).toBe("app");
+    expect(parseServerEnv({}).F2F_DEV_AUTH).toBe(false);
+    expect(parseServerEnv({ F2F_DEV_AUTH: "1" }).F2F_DEV_AUTH).toBe(true);
+  });
+
+  it("rejects a DATABASE_URL that is not a Postgres URL without echoing it", () => {
+    let message = "";
+    try {
+      parseServerEnv({ DATABASE_URL: "mysql://secret@h/db" });
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toMatch(/DATABASE_URL/);
+    expect(message).not.toContain("secret");
+  });
+
   it("parses BUCKET_FORCE_PATH_STYLE", () => {
     expect(parseServerEnv({ BUCKET_FORCE_PATH_STYLE: "true" }).BUCKET_FORCE_PATH_STYLE).toBe(true);
   });

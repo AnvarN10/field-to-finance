@@ -40,6 +40,17 @@ export const serverEnvSchema = z.object({
       message: `must be at most ${MAX_PUBLIC_BASE_URL_LEN} characters so evidence URIs fit the program's 128-byte limit`,
     }),
   ADMIN_PASSWORD: z.preprocess(blank, z.string().min(8, "must be at least 8 characters").optional()),
+  /** Postgres for the cabinets (spec 2026-10-05); Railway reference variable in production. */
+  DATABASE_URL: z.preprocess(blank, z.string().regex(/^postgres(ql)?:\/\//, "must be a postgres:// URL").optional()),
+  /** Privy server verification (ADR 0016); the app id is public, the secret is not. */
+  NEXT_PUBLIC_PRIVY_APP_ID: optional,
+  PRIVY_APP_SECRET: optional,
+  /** Comma-separated emails that get the arranger role on first sign-in. */
+  ARRANGER_EMAILS: optional,
+  /** Local screenshots only: accept `dev:<email>` tokens. Ignored when NODE_ENV is production. */
+  F2F_DEV_AUTH: z
+    .preprocess(blank, z.enum(["1", "0", "true", "false"]).default("0"))
+    .transform((v) => v === "1" || v === "true"),
   SENTRY_ENVIRONMENT: z.preprocess(blank, z.string().default("development")),
   FAUCET_USDC: z.preprocess(blank, z.coerce.number().int().positive().max(100_000).default(1_000)),
   /** SOL top-up from the faucet. Off by default: the sponsor pays gas (ADR 0013). */
