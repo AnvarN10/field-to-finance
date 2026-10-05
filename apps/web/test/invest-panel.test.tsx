@@ -6,7 +6,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PoolView } from "../src/lib/chain/views";
 
 const wallet = Keypair.generate().publicKey;
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push }) }));
+let subscribeError: unknown = null;
 vi.mock("@solana/wallet-adapter-react", () => ({
   useWallet: () => ({ publicKey: wallet, connected: true, signTransaction: vi.fn() }),
   useConnection: () => ({ connection: {} }),
@@ -31,6 +33,7 @@ beforeEach(() => {
         return Response.json({ wallet: wallet.toBase58(), approved: false, approvedAt: null, usdcBalance: "1000000000", solLamports: 50_000_000, positions: [{ poolId: "7", pool: "A", symbol: "WHEAT-2027", status: "Open", yieldBps: 800, ata: "X", exists: false, frozen: true, balance: "0" }] });
       }
       if (url === "/api/tx/subscribe") {
+        if (subscribeError) return Response.json({ ok: false, error: subscribeError, logs: [] }, { status: 403 });
         return Response.json({ ok: false, error: { code: "KycRequired", title: "This wallet hasn't passed KYC", detail: "Instrument accounts start frozen and only KYC-approved wallets can subscribe. Complete KYC, then subscribe again.", action: "kyc" }, logs: ["Program log: AnchorError caused by account: investor_record."] }, { status: 422 });
       }
       throw new Error(`unexpected fetch ${url}`);
@@ -39,10 +42,11 @@ beforeEach(() => {
 });
 
 describe("InvestPanel", () => {
-  it("names KYC the same way everywhere: Not completed, with a Complete KYC action", async () => {
+  it("names KYC the same way everywhere: Not completed, with a Complete KYC link to investor onboarding", async () => {
     render(<InvestPanel pool={POOL} networkFee="500000" />);
     expect(await screen.findByText("Not completed")).toBeInTheDocument();
-    const kyc = screen.getByRole("button", { name: "Complete KYC" });
+    const kyc = screen.getByRole("link", { name: "Complete KYC" });
+    expect(kyc).toHaveAttribute("href", "/investor/onboarding");
     const subscribe = screen.getByRole("button", { name: /^Subscribe/ });
     // The required first step comes before the subscribe form.
     expect(kyc.compareDocumentPosition(subscribe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -56,8 +60,22 @@ describe("InvestPanel", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("This wallet hasn't passed KYC");
     await userEvent.click(within(alert).getByRole("button", { name: "Complete KYC" }));
-    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
-    expect(screen.getByRole("heading", { name: "Complete KYC" })).toBeInTheDocument();
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/investor/onboarding"));
+  });
+
+  it("sends an onboarded investor to the pool's key features document when it is not accepted yet", async () => {
+    subscribeError = { code: "KfdRequired", title: "Accept this pool's key features document", detail: "", action: "kfd" };
+    try {
+      render(<InvestPanel pool={POOL} networkFee="500000" />);
+      expect(await screen.findByText("Not completed")).toBeInTheDocument();
+      await userEvent.type(screen.getByLabelText("Amount (USD)"), "250");
+      await userEvent.click(screen.getByRole("button", { name: /^Subscribe/ }));
+      const alert = await screen.findByRole("alert");
+      await userEvent.click(within(alert).getByRole("button", { name: "Read the key features" }));
+      await waitFor(() => expect(push).toHaveBeenCalledWith("/investor/pools/7"));
+    } finally {
+      subscribeError = null;
+    }
   });
 
   it("blocks an amount above the remaining capacity before calling the server", async () => {

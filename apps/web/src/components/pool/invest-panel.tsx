@@ -2,6 +2,8 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { CircleAlert, CircleCheck, Fuel } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { ErrorAction } from "../../lib/chain/explain";
 import type { InvestorState, PoolView } from "../../lib/chain/views";
@@ -16,7 +18,6 @@ import { useJson } from "../use-json";
 import { ConnectButton } from "../wallet/connect-button";
 import { FaucetButton } from "../wallet/faucet-button";
 import { useAdapterSigner } from "../wallet/use-adapter-signer";
-import { KycDialog } from "./kyc-dialog";
 
 function typedAmount(input: string): bigint {
   try {
@@ -35,7 +36,7 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
   const investor = useJson<InvestorState>(wallet ? `/api/investor/${wallet}` : null);
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState<string | null>(null);
-  const [kycOpen, setKycOpen] = useState(false);
+  const router = useRouter();
   const [showFaucet, setShowFaucet] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
   const subscribe = useTransaction("subscribe", signer, { onSuccess: investor.reload });
@@ -58,7 +59,9 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
 
   // Each transaction gets its own handler so "Try again" re-sends that transaction.
   const handlerFor = (tx: { retry: () => Promise<unknown> }) => (a: ErrorAction) => {
-    if (a === "kyc") setKycOpen(true);
+    // KYC and the key features document live in the investor cabinet (spec 2026-10-05).
+    if (a === "kyc" || a === "onboarding") router.push("/investor/onboarding");
+    if (a === "kfd") router.push(`/investor/pools/${pool.poolId}`);
     if (a === "faucet") setShowFaucet(true);
     if (a === "retry") void tx.retry();
   };
@@ -107,10 +110,13 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
 
       {mode === "subscribe" && investor.data && !kycDone ? (
         <div className="flex flex-col items-start gap-2 border-t border-border pt-4">
-          <p className="text-sm text-muted-foreground">KYC comes first: one approval covers every pool.</p>
-          <Button type="button" size="lg" className="text-base" onClick={() => setKycOpen(true)}>
+          <p className="text-sm text-muted-foreground">KYC comes first: sign in to the investor cabinet, finish onboarding and link this wallet. One approval covers every pool.</p>
+          <Link
+            href="/investor/onboarding"
+            className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-base font-medium text-primary-foreground transition-[background-color,scale] duration-150 ease-(--ease-out) active:scale-[0.98] motion-reduce:active:scale-100 [@media(hover:hover)]:hover:bg-primary-hover"
+          >
             Complete KYC
-          </Button>
+          </Link>
         </div>
       ) : null}
 
@@ -234,7 +240,6 @@ export function InvestPanel({ pool, networkFee }: { pool: PoolView; networkFee: 
         </div>
       ) : null}
 
-      <KycDialog open={kycOpen} onOpenChange={setKycOpen} wallet={wallet} onApproved={investor.reload} />
     </Panel>
   );
 }

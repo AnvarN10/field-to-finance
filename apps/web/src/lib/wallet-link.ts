@@ -1,11 +1,9 @@
 import { createPublicKey, verify } from "node:crypto";
 import bs58 from "bs58";
 
-/** A signed message proves the investor controls a wallet before it is linked (Phantom; Privy wallets come from Privy). */
-export const WALLET_LINK_TTL_MS = 10 * 60_000;
+import { WALLET_LINK_TTL_MS } from "./wallet-link-message";
 
-export const walletLinkMessage = (userId: string, wallet: string, issuedAtIso: string) =>
-  `Field-to-Finance wants you to link wallet ${wallet} to account ${userId}.\nIssued at: ${issuedAtIso}`;
+export { WALLET_LINK_TTL_MS, walletLinkMessage } from "./wallet-link-message";
 
 function decode58(s: string): Uint8Array | null {
   try {
