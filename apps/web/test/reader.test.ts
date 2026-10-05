@@ -193,7 +193,7 @@ describe("ChainReader", () => {
       { pubkey: Keypair.generate().publicKey, account: tokenAccount(mint, a, 300n, false, TOKEN_2022_PROGRAM_ID) },
       { pubkey: Keypair.generate().publicKey, account: tokenAccount(mint, b, 0n, true, TOKEN_2022_PROGRAM_ID) },
     ] as never);
-    expect(await reader.holders(mint.toBase58())).toEqual([{ wallet: a.toBase58(), balance: "300" }]);
+    expect(await reader.holders(mint.toBase58())).toEqual({ holders: [{ wallet: a.toBase58(), balance: "300" }], complete: true });
     const [programId, opts] = spy.mock.calls[0] as unknown as [PublicKey, { filters: { memcmp: { offset: number } }[] }];
     expect(programId.equals(TOKEN_2022_PROGRAM_ID)).toBe(true);
     expect(opts.filters[0]?.memcmp.offset).toBe(0);
@@ -208,7 +208,7 @@ describe("ChainReader", () => {
     vi.spyOn(connection, "getProgramAccounts").mockRejectedValue(new Error("excluded from account secondary indexes"));
     vi.spyOn(connection, "getTokenLargestAccounts").mockResolvedValue({ context: { slot: 1 }, value: [{ address: accA, amount: "500", decimals: 6, uiAmount: 0.0005, uiAmountString: "0.0005" }, { address: accB, amount: "0", decimals: 6, uiAmount: 0, uiAmountString: "0" }] } as never);
     vi.mocked(connection.getMultipleAccountsInfo).mockResolvedValue([tokenAccount(mint, a, 500n, false, TOKEN_2022_PROGRAM_ID)]);
-    expect(await reader.holders(mint.toBase58())).toEqual([{ wallet: a.toBase58(), balance: "500" }]);
+    expect(await reader.holders(mint.toBase58())).toEqual({ holders: [{ wallet: a.toBase58(), balance: "500" }], complete: true });
   });
 
   it("falls back to the platform's known wallets when both scans are refused", async () => {
@@ -219,7 +219,7 @@ describe("ChainReader", () => {
     vi.spyOn(connection, "getProgramAccounts").mockRejectedValue(new Error("excluded from account secondary indexes"));
     vi.spyOn(connection, "getTokenLargestAccounts").mockRejectedValue(new Error("429 Too Many Requests"));
     vi.mocked(connection.getMultipleAccountsInfo).mockResolvedValue([tokenAccount(mint, a, 700n, false, TOKEN_2022_PROGRAM_ID), null]);
-    expect(await reader.holders(mint.toBase58(), [a.toBase58(), b.toBase58()])).toEqual([{ wallet: a.toBase58(), balance: "700" }]);
+    expect(await reader.holders(mint.toBase58(), [a.toBase58(), b.toBase58()])).toEqual({ holders: [{ wallet: a.toBase58(), balance: "700" }], complete: false });
   });
 
   it("after a refused scan it goes straight to the known wallets for the next mint", async () => {
@@ -232,5 +232,17 @@ describe("ChainReader", () => {
     await reader.holders(Keypair.generate().publicKey.toBase58(), [a.toBase58()]);
     expect(scan).toHaveBeenCalledTimes(1);
     expect(largest).toHaveBeenCalledTimes(1);
+  });
+
+  it("twenty largest accounts may not be all of them: the list is marked incomplete", async () => {
+    const { reader, connection } = await setup();
+    const mint = Keypair.generate().publicKey;
+    vi.spyOn(connection, "getProgramAccounts").mockRejectedValue(new Error("excluded from account secondary indexes"));
+    const value = Array.from({ length: 20 }, () => ({ address: Keypair.generate().publicKey, amount: "5", decimals: 6, uiAmount: 0, uiAmountString: "0" }));
+    vi.spyOn(connection, "getTokenLargestAccounts").mockResolvedValue({ context: { slot: 1 }, value } as never);
+    vi.mocked(connection.getMultipleAccountsInfo).mockResolvedValue(value.map(() => tokenAccount(mint, Keypair.generate().publicKey, 5n, false, TOKEN_2022_PROGRAM_ID)));
+    const r = await reader.holders(mint.toBase58());
+    expect(r.holders).toHaveLength(20);
+    expect(r.complete).toBe(false);
   });
 });

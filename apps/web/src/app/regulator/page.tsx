@@ -80,6 +80,9 @@ export default async function RegulatorHome({ searchParams }: { searchParams: Pr
           </div>
         }
       >
+        {data.registry.some((r) => r.holders === null || !r.holdersComplete) ? (
+          <p className="max-w-prose text-sm text-muted-foreground">Some holder lists are partial: this RPC endpoint does not index token accounts, so counts marked &ldquo;at least&rdquo; or &ldquo;–&rdquo; and the IIN filter cover the platform&apos;s linked wallets only.</p>
+        ) : null}
         <RegistryTable rows={data.registry} />
       </Section>
     </CabinetShell>

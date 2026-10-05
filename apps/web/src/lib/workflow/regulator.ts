@@ -21,9 +21,11 @@ export interface RegistryRow {
   maturityTs: number;
   /** null when the holders could not be read (RPC rate limit). */
   holders: number | null;
+  /** false when only a partial holder source answered: `holders` is then a lower bound. */
+  holdersComplete: boolean;
 }
 
-export async function registryRows(db: Db, pools: PoolView[], holderCounts: Map<string, number>): Promise<RegistryRow[]> {
+export async function registryRows(db: Db, pools: PoolView[], holderCounts: Map<string, number>, partial: Set<string> = new Set()): Promise<RegistryRow[]> {
   const issuers = [...new Set(pools.map((p) => p.issuer))];
   const profiles = issuers.length ? await db.select({ wallet: farmerProfiles.kycWallet, legalName: farmerProfiles.legalName, bin: farmerProfiles.bin }).from(farmerProfiles).where(inArray(farmerProfiles.kycWallet, issuers)) : [];
   const byWallet = new Map(profiles.map((p) => [p.wallet as string, p]));
@@ -40,6 +42,7 @@ export async function registryRows(db: Db, pools: PoolView[], holderCounts: Map<
     settlementMode: p.terms?.settlementMode ?? null,
     maturityTs: p.maturityTs,
     holders: holderCounts.get(p.poolId) ?? null,
+    holdersComplete: holderCounts.has(p.poolId) && !partial.has(p.poolId),
   }));
 }
 

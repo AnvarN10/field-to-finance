@@ -6,7 +6,7 @@ const { RegistryTable, HoldersTable } = await import("../src/components/regulato
 
 describe("regulator tables", () => {
   it("registry rows link to the pool and show the issuer's BIN", () => {
-    render(<RegistryTable rows={[{ poolId: "9", symbol: "DWHT27", status: "Funded", issuerWallet: "FarmerWa11et1111111111111111111111111111111", issuerLegalName: "Demo Farm LLP", issuerBin: "000000000000", raised: "1000000000", target: "1000000000", couponBps: 1200, settlementMode: "Hybrid", maturityTs: 1_800_000_000, holders: 3 }]} />);
+    render(<RegistryTable rows={[{ poolId: "9", symbol: "DWHT27", status: "Funded", issuerWallet: "FarmerWa11et1111111111111111111111111111111", issuerLegalName: "Demo Farm LLP", issuerBin: "000000000000", raised: "1000000000", target: "1000000000", couponBps: 1200, settlementMode: "Hybrid", maturityTs: 1_800_000_000, holders: 3, holdersComplete: true }]} />);
     const row = screen.getByRole("row", { name: /DWHT27/ });
     expect(within(row).getByRole("link", { name: "DWHT27" })).toHaveAttribute("href", "/regulator/pools/9");
     expect(within(row).getByText("000000000000")).toBeInTheDocument();

@@ -34,8 +34,8 @@ export async function GET(req: Request) {
       csv =
         kind === "registry"
           ? toCsv(
-              ["Pool", "Symbol", "Status", "Issuer wallet", "Issuer legal name", "Issuer BIN", "Raised (USD)", "Target (USD)", "Coupon (bps)", "Settlement", "Maturity (UTC)", "Holders"],
-              d.registry.map((r) => [r.poolId, r.symbol, r.status, r.issuerWallet, r.issuerLegalName, r.issuerBin, usd(r.raised), usd(r.target), r.couponBps, r.settlementMode, new Date(r.maturityTs * 1000).toISOString(), r.holders]),
+              ["Pool", "Symbol", "Status", "Issuer wallet", "Issuer legal name", "Issuer BIN", "Raised (USD)", "Target (USD)", "Coupon (bps)", "Settlement", "Maturity (UTC)", "Holders", "Holders complete"],
+              d.registry.map((r) => [r.poolId, r.symbol, r.status, r.issuerWallet, r.issuerLegalName, r.issuerBin, usd(r.raised), usd(r.target), r.couponBps, r.settlementMode, new Date(r.maturityTs * 1000).toISOString(), r.holders, r.holders === null ? "unknown" : r.holdersComplete ? "yes" : "no"]),
             )
           : toCsv(["Pool", "Wallet", "Balance (USD)", "Category", "IIN"], d.holders.map((h) => [h.poolId, h.wallet, usd(h.balance), h.category, h.iin]));
     }

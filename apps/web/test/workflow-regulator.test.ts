@@ -21,6 +21,12 @@ describe("regulator registry", () => {
     expect(rows[0]).toMatchObject({ poolId: "9", symbol: "DWHT27", status: "Funded", issuerWallet: FARMER_WALLET, issuerLegalName: "Demo Farm LLP", issuerBin: "000000000000", couponBps: 1200, holders: 3 });
   });
 
+  it("a partial holder list is flagged so the count reads as a lower bound", async () => {
+    const rows = await registryRows(db, [poolView({ terms: terms() })], new Map([["9", 20]]), new Set(["9"]));
+    expect(rows[0]).toMatchObject({ holders: 20, holdersComplete: false });
+    expect((await registryRows(db, [poolView({ terms: terms() })], new Map([["9", 3]])))[0]).toMatchObject({ holders: 3, holdersComplete: true });
+  });
+
   it("a pool whose holders could not be read shows an unknown count, not zero", async () => {
     const rows = await registryRows(db, [poolView({ terms: terms() })], new Map());
     expect(rows[0]?.holders).toBeNull();

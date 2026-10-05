@@ -18,12 +18,14 @@ export async function regulatorData(db: Db, f: RegulatorFilters = {}): Promise<{
   const known = (await db.select({ address: wallets.address }).from(wallets)).map((w) => w.address);
   const raw: { poolId: string; wallet: string; balance: string }[] = [];
   const counts = new Map<string, number>();
+  const partial = new Set<string>();
   for (const p of pools) {
     // A rate-limited holder read leaves that pool's count unknown instead of failing the registry.
     const list = await reader.holders(p.mint, known).catch(() => null);
     if (!list) continue;
     counts.set(p.poolId, 0);
-    for (const h of list) raw.push({ poolId: p.poolId, ...h });
+    if (!list.complete) partial.add(p.poolId);
+    for (const h of list.holders) raw.push({ poolId: p.poolId, ...h });
   }
   const holders = await holderRows(db, raw);
   const byIin = new Map<string, Set<string>>();
@@ -31,7 +33,7 @@ export async function regulatorData(db: Db, f: RegulatorFilters = {}): Promise<{
     counts.set(h.poolId, (counts.get(h.poolId) ?? 0) + 1);
     if (h.iin) byIin.set(h.iin, (byIin.get(h.iin) ?? new Set()).add(h.poolId));
   }
-  const registry = filterRegistry(await registryRows(db, pools, counts), { ...f, holdersByIin: byIin });
+  const registry = filterRegistry(await registryRows(db, pools, counts, partial), { ...f, holdersByIin: byIin });
   const shown = new Set(registry.map((r) => r.poolId));
   return { registry, holders: holders.filter((h) => shown.has(h.poolId) && (!f.iin || h.iin === f.iin.trim())) };
 }

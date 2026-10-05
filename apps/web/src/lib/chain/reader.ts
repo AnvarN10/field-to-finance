@@ -45,7 +45,8 @@ export interface ChainReader {
   allProjects(): Promise<ProjectView[]>;
   investor(wallet: string): Promise<InvestorState>;
   /** Owners of a non-zero balance of an Instrument mint (Token-2022 accounts), largest first. */
-  holders(mint: string, candidates?: string[]): Promise<{ wallet: string; balance: string }[]>;
+  /** `complete` is false when only a partial source answered (the 20 largest accounts, or known wallets). */
+  holders(mint: string, candidates?: string[]): Promise<{ holders: { wallet: string; balance: string }[]; complete: boolean }>;
   /** Every Attestation on the pool's projects (season timeline), oldest first. */
   poolAttestations(poolId: string): Promise<AttestationView[]>;
   /** FeeConfig plus the treasury's USDC balance; null until fees are configured. */
@@ -223,6 +224,7 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
         const key = parseKey(mint);
         if (!key) throw new RequestError("mint is not a valid public key", 400);
         let accounts: ReturnType<typeof unpackAccount>[];
+        let complete = true;
         try {
           if (!usable(refused.scan)) throw new Error("program scan refused recently");
           const rows = await connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, { commitment: "confirmed", filters: [{ memcmp: { offset: 0, bytes: key.toBase58() } }] });
@@ -235,6 +237,7 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
             const largest = (await connection.getTokenLargestAccounts(key, "confirmed")).value.filter((v) => v.amount !== "0");
             const infos = largest.length ? await connection.getMultipleAccountsInfo(largest.map((v) => v.address), "confirmed") : [];
             accounts = infos.flatMap((info, i) => (info ? [unpackAccount(largest[i]!.address, info, TOKEN_2022_PROGRAM_ID)] : []));
+            complete = largest.length < 20;
           } catch (e) {
             refused.largest = refused.largest && !usable(refused.largest) ? refused.largest : Date.now();
             // Last resort: the Instrument accounts of the platform's known wallets (every subscriber is linked: KFD gate).
@@ -243,12 +246,14 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
             const atas = owners.map((o) => getAssociatedTokenAddressSync(key, o, false, TOKEN_2022_PROGRAM_ID));
             const infos = await connection.getMultipleAccountsInfo(atas, "confirmed");
             accounts = infos.flatMap((info, i) => (info ? [unpackAccount(atas[i]!, info, TOKEN_2022_PROGRAM_ID)] : []));
+            complete = false;
           }
         }
-        return accounts
+        const holders = accounts
           .filter((a) => a.amount > 0n)
           .sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0))
           .map((a) => ({ wallet: a.owner.toBase58(), balance: a.amount.toString() }));
+        return { holders, complete };
       }),
 
     poolAttestations: (poolId) =>
