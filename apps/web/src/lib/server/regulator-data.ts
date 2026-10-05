@@ -1,5 +1,6 @@
 import "server-only";
 import type { Db } from "../db/client";
+import { wallets } from "../db/schema";
 import { eventRows, filterRegistry, holderRows, registryRows, type EventRow, type HolderRow, type RegistryRow } from "../workflow/regulator";
 import { getReader } from "./context";
 
@@ -14,11 +15,12 @@ export interface RegulatorFilters {
 export async function regulatorData(db: Db, f: RegulatorFilters = {}): Promise<{ registry: RegistryRow[]; holders: HolderRow[] }> {
   const reader = getReader();
   const pools = (await reader.listPools()).filter((p) => p.status !== "Draft");
+  const known = (await db.select({ address: wallets.address }).from(wallets)).map((w) => w.address);
   const raw: { poolId: string; wallet: string; balance: string }[] = [];
   const counts = new Map<string, number>();
   for (const p of pools) {
     // A rate-limited holder read leaves that pool's count unknown instead of failing the registry.
-    const list = await reader.holders(p.mint).catch(() => null);
+    const list = await reader.holders(p.mint, known).catch(() => null);
     if (!list) continue;
     counts.set(p.poolId, 0);
     for (const h of list) raw.push({ poolId: p.poolId, ...h });

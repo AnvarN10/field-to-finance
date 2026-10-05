@@ -89,7 +89,7 @@ export async function runLifecycleFlowFromEnv(source: Record<string, string | un
       holders: async (m) => {
         for (let i = 0; i < 5; i++) {
           try {
-            return await ctx.reader.holders(m);
+            return await ctx.reader.holders(m, [investor.publicKey.toBase58()]);
           } catch {
             await sleep(10_000);
           }

@@ -42,7 +42,7 @@ export interface ChainReader {
   unpooledProjects(): Promise<ProjectWithFields[]>;
   investor(wallet: string): Promise<InvestorState>;
   /** Owners of a non-zero balance of an Instrument mint (Token-2022 accounts), largest first. */
-  holders(mint: string): Promise<{ wallet: string; balance: string }[]>;
+  holders(mint: string, candidates?: string[]): Promise<{ wallet: string; balance: string }[]>;
   /** Every Attestation on the pool's projects (season timeline), oldest first. */
   poolAttestations(poolId: string): Promise<AttestationView[]>;
   /** FeeConfig plus the treasury's USDC balance; null until fees are configured. */
@@ -210,8 +210,8 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
         };
       }),
 
-    holders: (mint) =>
-      lists.get(`holders:${mint}`, async () => {
+    holders: (mint, candidates = []) =>
+      lists.get(`holders:${mint}:${candidates.length}`, async () => {
         const key = parseKey(mint);
         if (!key) throw new RequestError("mint is not a valid public key", 400);
         let accounts: ReturnType<typeof unpackAccount>[];
@@ -219,10 +219,19 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
           const rows = await connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, { commitment: "confirmed", filters: [{ memcmp: { offset: 0, bytes: key.toBase58() } }] });
           accounts = rows.map((r) => unpackAccount(r.pubkey, r.account, TOKEN_2022_PROGRAM_ID));
         } catch {
-          // The public devnet RPC refuses Token-2022 program scans; its 20 largest accounts cover a pilot pool.
-          const largest = (await connection.getTokenLargestAccounts(key, "confirmed")).value.filter((v) => v.amount !== "0");
-          const infos = largest.length ? await connection.getMultipleAccountsInfo(largest.map((v) => v.address), "confirmed") : [];
-          accounts = infos.flatMap((info, i) => (info ? [unpackAccount(largest[i]!.address, info, TOKEN_2022_PROGRAM_ID)] : []));
+          try {
+            // The public devnet RPC refuses Token-2022 program scans; its 20 largest accounts cover a pilot pool.
+            const largest = (await connection.getTokenLargestAccounts(key, "confirmed")).value.filter((v) => v.amount !== "0");
+            const infos = largest.length ? await connection.getMultipleAccountsInfo(largest.map((v) => v.address), "confirmed") : [];
+            accounts = infos.flatMap((info, i) => (info ? [unpackAccount(largest[i]!.address, info, TOKEN_2022_PROGRAM_ID)] : []));
+          } catch (e) {
+            // Last resort: the Instrument accounts of the platform's known wallets (every subscriber is linked: KFD gate).
+            const owners = candidates.map(parseKey).filter((k): k is PublicKey => k !== null);
+            if (!owners.length) throw e;
+            const atas = owners.map((o) => getAssociatedTokenAddressSync(key, o, false, TOKEN_2022_PROGRAM_ID));
+            const infos = await connection.getMultipleAccountsInfo(atas, "confirmed");
+            accounts = infos.flatMap((info, i) => (info ? [unpackAccount(atas[i]!, info, TOKEN_2022_PROGRAM_ID)] : []));
+          }
         }
         return accounts
           .filter((a) => a.amount > 0n)

@@ -210,4 +210,15 @@ describe("ChainReader", () => {
     vi.mocked(connection.getMultipleAccountsInfo).mockResolvedValue([tokenAccount(mint, a, 500n, false, TOKEN_2022_PROGRAM_ID)]);
     expect(await reader.holders(mint.toBase58())).toEqual([{ wallet: a.toBase58(), balance: "500" }]);
   });
+
+  it("falls back to the platform's known wallets when both scans are refused", async () => {
+    const { reader, connection } = await setup();
+    const mint = Keypair.generate().publicKey;
+    const a = Keypair.generate().publicKey;
+    const b = Keypair.generate().publicKey;
+    vi.spyOn(connection, "getProgramAccounts").mockRejectedValue(new Error("excluded from account secondary indexes"));
+    vi.spyOn(connection, "getTokenLargestAccounts").mockRejectedValue(new Error("429 Too Many Requests"));
+    vi.mocked(connection.getMultipleAccountsInfo).mockResolvedValue([tokenAccount(mint, a, 700n, false, TOKEN_2022_PROGRAM_ID), null]);
+    expect(await reader.holders(mint.toBase58(), [a.toBase58(), b.toBase58()])).toEqual([{ wallet: a.toBase58(), balance: "700" }]);
+  });
 });
