@@ -2,7 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { PublicKey } from "@solana/web3.js";
-import { PILOT_QUALITY_SPEC, VERDICTS, type AttestationKindName, type VerdictName } from "@f2f/sdk";
+import { PILOT_QUALITY_SPEC, VERDICTS, effectiveElection, type AttestationKindName, type VerdictName } from "@f2f/sdk";
 import {
   adminMintUsdc,
   addProject,
@@ -146,16 +146,18 @@ export const recordSettlementAction = async (poolId: string, project: string, ru
   });
 
 /**
- * Records the settlement of every unsettled project: Delivered when its harvest is attested, otherwise
- * CashRepaidWithPremium, which the program accepts after maturity (the buyback path).
+ * Records the settlement of every unsettled project: CashRepaidWithPremium on the buyback path (the program accepts it
+ * after maturity) or without a Harvest attestation, otherwise Delivered.
  */
 export const recordSettlementAllAction = async (poolId: string) =>
   run(pool(poolId, "pool.record_settlement"), async () => {
     const detail = await getReader().getPool(poolId);
     if (!detail) throw new RequestError(`Pool ${poolId} does not exist`, 404);
     const signatures: string[] = [];
+    const buyback = detail.terms ? effectiveElection(detail.terms, Math.floor(Date.now() / 1000), detail.pool.maturityTs) === "Buyback" : false;
     for (const p of detail.projects.filter((x) => x.settlement === null)) {
-      const rule: SettlementRuleName = p.harvestAttested ? "Delivered" : "CashRepaidWithPremium";
+      // The buyback repays in cash; otherwise a harvested project counts as delivered.
+      const rule: SettlementRuleName = buyback || !p.harvestAttested ? "CashRepaidWithPremium" : "Delivered";
       signatures.push(await recordSettlement(opsContext(), id(poolId), new PublicKey(p.address), rule));
     }
     return { message: signatures.length ? `Settlement recorded for ${plural(signatures.length, "project")}` : "Every project was already settled", signatures };

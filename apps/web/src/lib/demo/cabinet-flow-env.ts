@@ -5,16 +5,17 @@ import { makeArrangerChain } from "../chain/arranger-chain";
 import { createUsdcAtaIx, mintUsdcIx, registerFieldIx, registerProjectIx, subscribeIx, usdcAta } from "../chain/ix";
 import { isProductionDb } from "../auth/session";
 import { createPgDb, schema, type Db } from "../db/client";
-import { storeDocument, storeFieldSet } from "../pilot-docs";
+import type { ApplicationRow } from "../db/schema";
+import { storeDocument, storeFieldSet, type FieldSetEntry } from "../pilot-docs";
 import { uploadPolygon } from "../polygons";
 import { runCabinetFlow } from "./cabinet-flow";
-import { createDemoContext } from "./context";
+import { createDemoContext, type DemoContext } from "./context";
 import { DEMO_FIELDS } from "./fields";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** An in-process Postgres (PGlite) with every committed migration: the walk's accounts live and die with the process. */
-async function ephemeralDb(): Promise<Db> {
+export async function ephemeralDb(): Promise<Db> {
   const [{ PGlite }, { drizzle }, { migrate }, { fileURLToPath }] = await Promise.all([
     import("@electric-sql/pglite"),
     import("drizzle-orm/pglite"),
@@ -61,30 +62,7 @@ export async function runCabinetFlowFromEnv(source: Record<string, string | unde
           createUsdcAtaIx(ctx.keys.deployer.publicKey, new PublicKey(i), ctx.usdcMint),
           mintUsdcIx(ctx.usdcMint, usdcAta(ctx.usdcMint, new PublicKey(i)), ctx.keys.deployer.publicKey, BigInt(investorUsd) * 1_000_000n),
         ]),
-      registerFields: async (app) => {
-        const uploads = [];
-        for (const f of DEMO_FIELDS) uploads.push({ name: f.name, ...(await uploadPolygon(ctx.store, f.geojson)) });
-        const projectId = BigInt(Date.now());
-        const project = projectPda(ctx.programId, farmer.publicKey, projectId);
-        const signature = await ctx.sponsored("register-project", farmer, [
-          await registerProjectIx(ctx.program, {
-            producer: farmer.publicKey,
-            payer: ctx.keys.sponsor.publicKey,
-            projectId,
-            crop: app.crop,
-            season: app.season,
-            expectedKg: BigInt(app.volumeT) * 1000n,
-            requestedAmount: BigInt(app.requestedUsd) * 1_000_000n,
-            fees: { usdcMint: ctx.usdcMint, treasury: ctx.treasury },
-          }),
-          ...(await Promise.all(
-            uploads.map((u, index) => registerFieldIx(ctx.program, { producer: farmer.publicKey, payer: ctx.keys.sponsor.publicKey, project, index, polygonHash: u.polygonHash, areaHaX100: u.areaHaX100 })),
-          )),
-        ]);
-        // Fake cadastral numbers: the field set lives in the bucket only.
-        const fields = uploads.map((u, i) => ({ polygonHash: u.polygonHash, areaHaX100: u.areaHaX100, name: u.name, cadastralNumber: `00-000-000-00${i}`, declaredAreaHa: u.areaHaX100 / 100 }));
-        return { project: project.toBase58(), signature, fields };
-      },
+      registerFields: (app) => registerDemoFields(ctx, farmer, app),
       networkFee: ctx.fees.networkFee,
       subscribe: async (poolId, amount) => {
         const d = await ctx.reader.getPool(poolId);
@@ -112,4 +90,30 @@ export async function runCabinetFlowFromEnv(source: Record<string, string | unde
     log,
     stamp,
   );
+}
+
+/** register_project + register_field for the demo fields, signed by `farmer`, sponsored; fake cadastral numbers. */
+export async function registerDemoFields(ctx: DemoContext, farmer: Keypair, app: ApplicationRow): Promise<{ project: string; signature: string; fields: FieldSetEntry[] }> {
+  const uploads = [];
+  for (const f of DEMO_FIELDS) uploads.push({ name: f.name, ...(await uploadPolygon(ctx.store, f.geojson)) });
+  const projectId = BigInt(Date.now());
+  const project = projectPda(ctx.programId, farmer.publicKey, projectId);
+  const signature = await ctx.sponsored("register-project", farmer, [
+    await registerProjectIx(ctx.program, {
+      producer: farmer.publicKey,
+      payer: ctx.keys.sponsor.publicKey,
+      projectId,
+      crop: app.crop,
+      season: app.season,
+      expectedKg: BigInt(app.volumeT) * 1000n,
+      requestedAmount: BigInt(app.requestedUsd) * 1_000_000n,
+      fees: { usdcMint: ctx.usdcMint, treasury: ctx.treasury },
+    }),
+    ...(await Promise.all(
+      uploads.map((u, index) => registerFieldIx(ctx.program, { producer: farmer.publicKey, payer: ctx.keys.sponsor.publicKey, project, index, polygonHash: u.polygonHash, areaHaX100: u.areaHaX100 })),
+    )),
+  ]);
+  // Fake cadastral numbers: the field set lives in the bucket only.
+  const fields = uploads.map((u, i) => ({ polygonHash: u.polygonHash, areaHaX100: u.areaHaX100, name: u.name, cadastralNumber: `00-000-000-00${i}`, declaredAreaHa: u.areaHaX100 / 100 }));
+  return { project: project.toBase58(), signature, fields };
 }
