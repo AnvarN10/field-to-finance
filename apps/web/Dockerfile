@@ -20,7 +20,7 @@ ENV NEXT_PUBLIC_SOLANA_RPC_URL=$NEXT_PUBLIC_SOLANA_RPC_URL \
     NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
     NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV \
     NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
-RUN pnpm --filter @f2f/web run build
+RUN pnpm --filter @f2f/web run build && pnpm --filter @f2f/web run build:migrate
 
 FROM node:22-slim
 ENV NODE_ENV=production PORT=8080 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
@@ -28,6 +28,9 @@ WORKDIR /app
 COPY --from=build /repo/apps/web/.next/standalone ./
 COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /repo/apps/web/public ./apps/web/public
+# Railway pre-deploy runs `node apps/web/dist/migrate.mjs` (bundled Drizzle migrator) against DATABASE_URL.
+COPY --from=build /repo/apps/web/dist/migrate.mjs ./apps/web/dist/migrate.mjs
+COPY --from=build /repo/apps/web/drizzle ./apps/web/drizzle
 USER node
 EXPOSE 8080
 CMD ["node", "apps/web/server.js"]
