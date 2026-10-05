@@ -105,6 +105,9 @@ describe("basic auth response", () => {
     try {
       expect(proxy(req("/")).status).toBe(401);
       expect(proxy(req("/", header("demo", "pw"))).status).toBe(200);
+      // Past basic auth, a cabinet without a session cookie redirects to sign-in; without basic auth it stays 401.
+      expect(proxy(req("/farmer", header("demo", "pw"))).status).toBe(307);
+      expect(proxy(req("/farmer")).status).toBe(401);
     } finally {
       if (saved.u === undefined) delete process.env.BASIC_AUTH_USER; else process.env.BASIC_AUTH_USER = saved.u;
       if (saved.p === undefined) delete process.env.BASIC_AUTH_PASSWORD; else process.env.BASIC_AUTH_PASSWORD = saved.p;
