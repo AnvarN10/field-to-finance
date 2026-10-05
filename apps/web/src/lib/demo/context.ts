@@ -13,6 +13,7 @@ import { parseKeypair } from "../keys";
 import { type StubDeps } from "../scas-stub";
 import { S3Store, polygonKey } from "../store";
 import { poolPda } from "@f2f/sdk";
+import { retryingFetch } from "../chain/rpc-fetch";
 
 /** Everything a devnet demo run needs: program, reader, bucket, role keys, ops and the sponsored send path. */
 export async function createDemoContext(source: Record<string, string | undefined>) {
@@ -21,7 +22,7 @@ export async function createDemoContext(source: Record<string, string | undefine
   if (missingBucket.length) throw new Error(`Set ${missingBucket.join(", ")} (Railway bucket credentials) before running the demo`);
   const cluster = env.SOLANA_CLUSTER;
   const tx = (sig: string) => explorerTx(sig, cluster);
-  const connection = new Connection(env.SOLANA_RPC_URL, "confirmed");
+  const connection = new Connection(env.SOLANA_RPC_URL, { commitment: "confirmed", fetch: retryingFetch(), disableRetryOnRateLimit: true });
   const programId = new PublicKey(env.F2F_PROGRAM_ID);
   const usdcMint = new PublicKey(env.USDC_MINT);
   const program = createProgram(connection, programId);

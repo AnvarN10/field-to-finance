@@ -4,6 +4,7 @@ import type { F2f } from "@f2f/sdk";
 import type { Keypair, TransactionInstruction } from "@solana/web3.js";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { createProgram } from "../chain/program";
+import { retryingFetch } from "../chain/rpc-fetch";
 import { sendServerTx } from "../chain/send";
 import { createChainReader, type ChainReader } from "../chain/reader";
 import { parseKeypair } from "../keys";
@@ -22,7 +23,8 @@ let connection: Connection | undefined;
 let reader: ChainReader | undefined;
 
 export function getConnection(): Connection {
-  connection ??= new Connection(serverEnv().SOLANA_RPC_URL, "confirmed");
+  // web3.js retries 429 only a few times without Retry-After; retryingFetch backs off properly instead.
+  connection ??= new Connection(serverEnv().SOLANA_RPC_URL, { commitment: "confirmed", fetch: retryingFetch(), disableRetryOnRateLimit: true });
   return connection;
 }
 

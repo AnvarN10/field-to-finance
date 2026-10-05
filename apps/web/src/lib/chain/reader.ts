@@ -52,6 +52,8 @@ export interface ReaderDeps {
   connection: Connection;
   usdcMint: PublicKey;
   ttlMs?: number;
+  /** Pool and project lists: a longer TTL, and a failed reload serves the last good list (public RPC 429s). */
+  listTtlMs?: number;
 }
 
 function parseKey(s: string): PublicKey | null {
@@ -62,8 +64,9 @@ function parseKey(s: string): PublicKey | null {
   }
 }
 
-export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000 }: ReaderDeps): ChainReader {
+export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000, listTtlMs = 15_000 }: ReaderDeps): ChainReader {
   const cache = createTtlCache(ttlMs);
+  const lists = createTtlCache(listTtlMs, Date.now, { staleOnError: () => true });
   const programId = program.programId;
 
   async function instruments(mints: PublicKey[]): Promise<(InstrumentView | null)[]> {
@@ -91,7 +94,7 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
   }
 
   const listPools = () =>
-    cache.get("pools", async () => {
+    lists.get("pools", async () => {
       const [rows, termRows] = await Promise.all([program.account.pool.all(), program.account.instrumentTerms.all()]);
       const meta = await instruments(rows.map((r) => r.account.mint));
       const termsByPool = new Map(termRows.map((t) => [t.account.pool.toBase58(), toInstrumentTermsView(t.account)]));
@@ -159,7 +162,7 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
       }),
 
     unpooledProjects: () =>
-      cache.get("unpooled", async () => withFields(await program.account.farmProject.all([projectsWithoutPool()]))),
+      lists.get("unpooled", async () => withFields(await program.account.farmProject.all([projectsWithoutPool()]))),
 
     investor: (wallet) =>
       cache.get(`investor:${wallet}`, async () => {
@@ -225,6 +228,9 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
       return wallets.filter((_, i) => records[i]?.approved === true);
     },
 
-    invalidate: () => cache.clear(),
+    invalidate: () => {
+      cache.clear();
+      lists.clear();
+    },
   };
 }
