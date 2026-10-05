@@ -47,7 +47,7 @@ describe("DocumentChecklist", () => {
   it("offers an upload only where it is allowed", () => {
     render(<DocumentChecklist rows={rows} editable="rejected-only" upload={vi.fn()} />);
     expect(screen.queryByLabelText("Upload Crop insurance")).toBeNull();
-    expect(screen.getByLabelText("Upload Land-use right")).toBeInTheDocument();
+    expect(screen.getByLabelText("Replace Land-use right")).toBeInTheDocument();
     expect(screen.getByLabelText("Upload Historical field yields")).toBeInTheDocument();
   });
 

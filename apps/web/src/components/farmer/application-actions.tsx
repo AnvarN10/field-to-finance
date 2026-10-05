@@ -28,7 +28,7 @@ export function ApplicationActions({ applicationId, canSubmit, canWithdraw }: { 
           </Button>
         ) : null}
         {canWithdraw && !confirming ? (
-          <Button type="button" variant="ghost" disabled={pending} onClick={() => setConfirming(true)}>
+          <Button type="button" variant="outline" disabled={pending} onClick={() => setConfirming(true)}>
             Withdraw application
           </Button>
         ) : null}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { attachProjectAction } from "../../app/farmer/actions";
@@ -25,10 +26,10 @@ export function FieldsSection({
   if (!auth.authenticated) {
     return (
       <div className="flex flex-col items-start gap-3 text-sm">
-        <p className="text-muted-foreground">Your wallet signs the registration. Sign in again to unlock it.</p>
-        <button type="button" onClick={auth.login} className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground">
-          Sign in
-        </button>
+        <p className="text-muted-foreground">Your wallet signs the registration. Confirm your sign-in to unlock it.</p>
+        <Button type="button" variant="outline" onClick={auth.login}>
+          Confirm sign-in
+        </Button>
       </div>
     );
   }

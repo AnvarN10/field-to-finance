@@ -13,7 +13,7 @@ export function CabinetShell({ role, title, email, tabs, children }: { role: str
             <h1 className="text-2xl font-semibold">{title}</h1>
           </div>
           <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-            <span className="truncate" title={email}>
+            <span className="min-w-0 break-all">
               {email}
             </span>
             <SignOutButton />

@@ -29,7 +29,7 @@ export default async function RolesPage() {
           <RoleForm />
         </Panel>
       </Section>
-      <Section title={`Accounts (${people.length})`}>
+      <Section title={`Accounts (${people.length})`} description="Role changes are signed by the arranger.">
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
           {people.map((p) => (
             <li key={p.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -44,6 +44,8 @@ export default async function RolesPage() {
                     key={r}
                     label={`Remove ${r}`}
                     role="Arranger"
+                    variant="outline"
+                    hideRole
                     action={revokeRoleAction.bind(null, p.id, r)}
                     confirmText={`Remove the ${r} role from ${p.email}?`}
                     disabled={r === "arranger" && p.id === g.user.id}

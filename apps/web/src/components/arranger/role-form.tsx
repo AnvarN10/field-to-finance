@@ -31,7 +31,7 @@ export function RoleForm() {
       }}
     >
       <div className="flex flex-wrap items-end gap-3">
-        <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium sm:max-w-sm">
+        <label className="flex min-w-0 flex-1 basis-full flex-col gap-1.5 text-sm font-medium sm:max-w-sm sm:basis-auto">
           Email
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
         </label>

@@ -9,7 +9,7 @@ export type CabinetTab = { href: string; label: string };
 export function CabinetNav({ tabs }: { tabs: CabinetTab[] }) {
   const path = usePathname() ?? "";
   return (
-    <nav aria-label="Cabinet" className="-mb-px flex gap-1 overflow-x-auto border-b border-border">
+    <nav aria-label="Cabinet" className="-mb-px flex flex-wrap gap-x-1 border-b border-border">
       {tabs.map((t, i) => {
         const active = i === 0 ? path === t.href : path === t.href || path.startsWith(`${t.href}/`);
         return (

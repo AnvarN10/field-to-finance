@@ -28,7 +28,7 @@ export function StatusTimeline({ status, note, viewer }: { status: ApplicationSt
         </p>
         {note ? <p className="text-muted-foreground">{note}</p> : null}
       </div>
-      <ol className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+      <ol className="grid gap-x-4 gap-y-2 text-sm sm:grid-flow-col sm:grid-rows-7 lg:grid-rows-4">
         {steps.map((s) => (
           <li key={s.status} aria-current={s.state === "current" ? "step" : undefined} className="flex items-center gap-2">
             {s.state === "done" ? (

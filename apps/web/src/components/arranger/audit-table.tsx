@@ -5,8 +5,32 @@ export type AuditView = { id: string; at: Date; actor: string; action: string; t
 /** `compact`: on one application's page the target column repeats itself, so it is dropped and the detail joins the action. */
 export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView[]; cluster: string; compact?: boolean }) {
   if (!rows.length) return <p className="text-sm text-muted-foreground">No entries yet.</p>;
+  const at = (r: AuditView) => r.at.toISOString().slice(0, 19).replace("T", " ");
+  const result = (r: AuditView) =>
+    r.error ? (
+      <span className="text-destructive">{`Failed: ${r.error}`}</span>
+    ) : r.signature ? (
+      <ExplorerLink kind="tx" value={r.signature} cluster={cluster} />
+    ) : (
+      <span className="text-muted-foreground">Recorded</span>
+    );
+  // Compact (one application's page): on phones a stacked list, because five columns cannot fit 390px.
+  const list = compact ? (
+    <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card text-sm sm:hidden">
+      {rows.map((r) => (
+        <li key={r.id} className="flex flex-col gap-1 p-3">
+          <span className="tabular text-xs text-muted-foreground">{`${at(r)} UTC · ${r.actor}`}</span>
+          <span className="font-mono text-xs break-all">{r.action}</span>
+          {r.detail ? <span className="text-xs text-muted-foreground">{r.detail}</span> : null}
+          {r.error || r.signature ? <span className="text-xs">{result(r)}</span> : null}
+        </li>
+      ))}
+    </ul>
+  ) : null;
   return (
-    <div className="relative overflow-x-auto rounded-lg border border-border bg-card" role="region" aria-label="Audit log" tabIndex={0}>
+    <>
+    {list}
+    <div className={`relative overflow-x-auto rounded-lg border border-border bg-card ${compact ? "hidden sm:block" : ""}`} role="region" aria-label="Audit log" tabIndex={0}>
       <table className="tabular w-full text-sm">
         <thead className="border-b border-border text-left text-xs text-muted-foreground">
           <tr>
@@ -20,13 +44,13 @@ export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView
         <tbody>
           {rows.map((r) => (
             <tr key={r.id} className="border-t border-border align-top first:border-t-0">
-              <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">{r.at.toISOString().slice(0, 19).replace("T", " ")}</td>
-              <td className="max-w-48 truncate px-3 py-3" title={r.actor}>
+              <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">{at(r)}</td>
+              <td className="min-w-32 px-3 py-3 break-all">
                 {r.actor}
               </td>
               <td className="px-3 py-3">
                 <div className="flex flex-col gap-0.5">
-                  <span className="font-mono text-xs whitespace-nowrap">{r.action}</span>
+                  <span className="font-mono text-xs break-all">{r.action}</span>
                   {compact && r.detail ? <span className="text-xs text-muted-foreground">{r.detail}</span> : null}
                 </div>
               </td>
@@ -39,18 +63,13 @@ export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView
                 </td>
               )}
               <td className="px-3 py-3">
-                {r.error ? (
-                  <span className="text-destructive">{`Failed: ${r.error}`}</span>
-                ) : r.signature ? (
-                  <ExplorerLink kind="tx" value={r.signature} cluster={cluster} />
-                ) : (
-                  <span className="text-muted-foreground">Recorded</span>
-                )}
+                {result(r)}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+    </>
   );
 }

@@ -16,7 +16,7 @@ export function DocumentReview({ rows, reviewOpen }: { rows: ChecklistRow[]; rev
           </div>
           {r.sha256 ? (
             <a href={`/api/documents/${r.sha256}`} className={`${textLink} self-start text-sm`}>
-              {`Download ${r.sha256.slice(0, 8)}…`}
+              {`Download ${r.label}`}
             </a>
           ) : null}
           {r.note ? <p className="text-sm text-muted-foreground">{`Note: ${r.note}`}</p> : null}

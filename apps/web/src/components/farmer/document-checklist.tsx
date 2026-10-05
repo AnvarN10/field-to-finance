@@ -55,7 +55,7 @@ export function DocumentChecklist({
                 {busy === r.kind ? "Uploading" : r.status === "missing" ? "Upload" : "Replace"}
                 <input
                   type="file"
-                  aria-label={`Upload ${r.label}`}
+                  aria-label={`${r.status === "missing" ? "Upload" : "Replace"} ${r.label}`}
                   className="sr-only"
                   disabled={busy !== null}
                   accept=".pdf,.png,.jpg,.jpeg,.webp,.csv,.xlsx,.docx,.zip"

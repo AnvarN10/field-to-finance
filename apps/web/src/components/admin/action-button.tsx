@@ -15,6 +15,8 @@ export function ActionButton({
   confirmText,
   disabled,
   disabledReason,
+  variant = "default",
+  hideRole = false,
 }: {
   label: string;
   role: "Issuer" | "Arranger" | "Compliance" | "SCAS stub" | "Deployer" | "Anyone";
@@ -22,6 +24,10 @@ export function ActionButton({
   confirmText?: string;
   disabled?: boolean;
   disabledReason?: string;
+  /** `outline` for secondary or destructive actions, so wheat stays on the one primary action. */
+  variant?: "default" | "outline";
+  /** Hide "Signed by" when the page states the signer once for a whole list. */
+  hideRole?: boolean;
 }) {
   const router = useRouter();
   const reasonId = useId();
@@ -49,6 +55,7 @@ export function ActionButton({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <Button
           type="button"
+          variant={variant}
           disabled={disabled || pending}
           aria-describedby={showReason ? reasonId : undefined}
           onClick={() => (confirmText ? setConfirming(true) : go())}
@@ -56,7 +63,7 @@ export function ActionButton({
         >
           {pending ? `${label}…` : label}
         </Button>
-        <span className="text-xs text-muted-foreground">Signed by {role}</span>
+        {hideRole ? null : <span className="text-xs text-muted-foreground">Signed by {role}</span>}
       </div>
       {showReason ? (
         <p id={reasonId} className="text-xs text-muted-foreground">

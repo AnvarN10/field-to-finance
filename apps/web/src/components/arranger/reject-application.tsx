@@ -16,7 +16,7 @@ export function RejectApplication({ applicationId }: { applicationId: string }) 
   const [result, setResult] = useState<ActionResult | null>(null);
   if (!open)
     return (
-      <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => setOpen(true)}>
+      <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => setOpen(true)}>
         Reject application
       </Button>
     );
