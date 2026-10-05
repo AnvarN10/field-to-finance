@@ -44,7 +44,7 @@ export function RegistryTable({ rows }: { rows: RegistryRow[] }) {
               </td>
               <td className={td}>{r.status}</td>
               <td className={`${td} min-w-40`}>
-                {r.issuerLegalName ?? "Platform issuer"}
+                {r.issuerLegalName ?? "Not in platform records"}
                 <span className="block font-mono text-xs text-muted-foreground">{shortKey(r.issuerWallet)}</span>
               </td>
               <td className={td}>{r.issuerBin ?? "–"}</td>
