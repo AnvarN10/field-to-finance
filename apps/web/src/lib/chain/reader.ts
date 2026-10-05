@@ -72,6 +72,9 @@ function parseKey(s: string): PublicKey | null {
 export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000, listTtlMs = 15_000 }: ReaderDeps): ChainReader {
   const cache = createTtlCache(ttlMs);
   const lists = createTtlCache(listTtlMs, Date.now, { staleOnError: () => true });
+  // When the RPC refuses a holder scan method, skip it for 10 minutes instead of paying the refusal per mint.
+  const refused = { scan: 0, largest: 0 };
+  const usable = (at: number) => Date.now() - at > 10 * 60_000;
   const programId = program.programId;
 
   async function instruments(mints: PublicKey[]): Promise<(InstrumentView | null)[]> {
@@ -216,15 +219,19 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
         if (!key) throw new RequestError("mint is not a valid public key", 400);
         let accounts: ReturnType<typeof unpackAccount>[];
         try {
+          if (!usable(refused.scan)) throw new Error("program scan refused recently");
           const rows = await connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, { commitment: "confirmed", filters: [{ memcmp: { offset: 0, bytes: key.toBase58() } }] });
           accounts = rows.map((r) => unpackAccount(r.pubkey, r.account, TOKEN_2022_PROGRAM_ID));
         } catch {
+          refused.scan = refused.scan && !usable(refused.scan) ? refused.scan : Date.now();
           try {
+            if (!usable(refused.largest)) throw new Error("largest accounts refused recently");
             // The public devnet RPC refuses Token-2022 program scans; its 20 largest accounts cover a pilot pool.
             const largest = (await connection.getTokenLargestAccounts(key, "confirmed")).value.filter((v) => v.amount !== "0");
             const infos = largest.length ? await connection.getMultipleAccountsInfo(largest.map((v) => v.address), "confirmed") : [];
             accounts = infos.flatMap((info, i) => (info ? [unpackAccount(largest[i]!.address, info, TOKEN_2022_PROGRAM_ID)] : []));
           } catch (e) {
+            refused.largest = refused.largest && !usable(refused.largest) ? refused.largest : Date.now();
             // Last resort: the Instrument accounts of the platform's known wallets (every subscriber is linked: KFD gate).
             const owners = candidates.map(parseKey).filter((k): k is PublicKey => k !== null);
             if (!owners.length) throw e;

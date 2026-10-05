@@ -221,4 +221,16 @@ describe("ChainReader", () => {
     vi.mocked(connection.getMultipleAccountsInfo).mockResolvedValue([tokenAccount(mint, a, 700n, false, TOKEN_2022_PROGRAM_ID), null]);
     expect(await reader.holders(mint.toBase58(), [a.toBase58(), b.toBase58()])).toEqual([{ wallet: a.toBase58(), balance: "700" }]);
   });
+
+  it("after a refused scan it goes straight to the known wallets for the next mint", async () => {
+    const { reader, connection } = await setup();
+    const a = Keypair.generate().publicKey;
+    const scan = vi.spyOn(connection, "getProgramAccounts").mockRejectedValue(new Error("excluded from account secondary indexes"));
+    const largest = vi.spyOn(connection, "getTokenLargestAccounts").mockRejectedValue(new Error("429 Too Many Requests"));
+    vi.mocked(connection.getMultipleAccountsInfo).mockResolvedValue([null]);
+    await reader.holders(Keypair.generate().publicKey.toBase58(), [a.toBase58()]);
+    await reader.holders(Keypair.generate().publicKey.toBase58(), [a.toBase58()]);
+    expect(scan).toHaveBeenCalledTimes(1);
+    expect(largest).toHaveBeenCalledTimes(1);
+  });
 });
