@@ -51,6 +51,9 @@ describe("deriveFromChain", () => {
     expect(deriveFromChain(detail({ status: "Redeeming", instrument: { supply: "0" } as never }), 3_000)).toBe("closed");
     expect(deriveFromChain(detail({ status: "Refunding" }), 1_000)).toBe("closed");
   });
+  it("is closed on the delivery path once every token is claimed after maturity", () => {
+    expect(deriveFromChain(detail({ status: "Funded", instrument: { supply: "0" } as never }), 3_000)).toBe("closed");
+  });
 });
 
 describe("status info and timeline", () => {

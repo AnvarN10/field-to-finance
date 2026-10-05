@@ -71,7 +71,8 @@ export function deriveFromChain(d: ChainStatusInput, nowSec: number): Applicatio
     case "Redeeming":
       return BigInt(p.instrument?.supply ?? "1") === 0n ? "closed" : "settlement";
     case "Funded":
-      if (nowSec >= p.maturityTs) return "settlement";
+      // Delivery path: holders burn tokens for grain while the pool stays Funded; nothing left means closed.
+      if (nowSec >= p.maturityTs) return BigInt(p.instrument?.supply ?? "1") === 0n ? "closed" : "settlement";
       if (p.disbursedCount < p.projectCount) return "funded";
       if (d.projects.some((x) => x.harvestAttested)) return "harvest";
       // Every field carries its FieldVerified attestation; anything beyond it is a season attestation.
