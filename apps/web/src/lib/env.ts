@@ -39,7 +39,6 @@ export const serverEnvSchema = z.object({
     .refine((v) => v.length <= MAX_PUBLIC_BASE_URL_LEN, {
       message: `must be at most ${MAX_PUBLIC_BASE_URL_LEN} characters so evidence URIs fit the program's 128-byte limit`,
     }),
-  ADMIN_PASSWORD: z.preprocess(blank, z.string().min(8, "must be at least 8 characters").optional()),
   /** Postgres for the cabinets (spec 2026-10-05); Railway reference variable in production. */
   DATABASE_URL: z.preprocess(blank, z.string().regex(/^postgres(ql)?:\/\//, "must be a postgres:// URL").optional()),
   /** Privy server verification (ADR 0016); the app id is public, the secret is not. */

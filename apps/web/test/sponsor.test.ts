@@ -107,6 +107,12 @@ describe("validateSponsoredTx reports what the sponsor would pay rent for", () =
     expect(r.rentAccounts.map((k) => k.toBase58())).toEqual([instrumentAta(new PublicKey(POOL.mint), b.signer).toBase58()]);
   });
 
+  it("summarizes the pool and amount of a holder transaction for the history", async () => {
+    const b = await built("subscribe");
+    const r = validateSponsoredTx(policy, "subscribe", compile(sponsor, b.instructions));
+    expect(r.summary).toEqual({ pool: POOL.address, project: null, amount: "250000000" });
+  });
+
   it("register-project: the project and its fields, plus the polygon hashes", async () => {
     const b = await built("register-project");
     const r = validateSponsoredTx(policy, "register-project", compile(sponsor, b.instructions));

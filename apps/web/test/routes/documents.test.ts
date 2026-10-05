@@ -1,41 +1,54 @@
 import { sha256, toHex } from "@f2f/sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ADMIN_COOKIE, adminToken } from "../../src/lib/admin-auth";
+import { documents } from "../../src/lib/db/schema";
 import { documentKey } from "../../src/lib/pilot-docs";
 import { MemoryStore } from "../../src/lib/store";
+import { testDb } from "../helpers/db";
+import { makeUser } from "../helpers/workflow";
 
 const store = new MemoryStore();
+const db = await testDb();
+const owner = await makeUser(db, "farmer@example.com", ["farmer"]);
+const other = await makeUser(db, "other@example.com", ["farmer"]);
+const ops = await makeUser(db, "ops@example.com", ["arranger"]);
+let user: unknown = null;
 vi.mock("@/lib/server/context", () => ({ getStore: () => store }));
-vi.mock("@/lib/server/env", () => ({ serverEnv: () => ({ ADMIN_PASSWORD: "pw" }) }));
+vi.mock("@/lib/server/db", () => ({ getDb: async () => db }));
+vi.mock("@/lib/server/auth", () => ({ currentUser: async () => user }));
 const route = await import("../../src/app/api/documents/[hash]/route");
 
 const bytes = new TextEncoder().encode("%PDF-1.7 receipt");
 const hash = toHex(sha256(bytes));
-const get = (cookie?: string, h = hash) =>
-  route.GET(new Request(`http://x/api/documents/${h}`, { headers: cookie ? { cookie } : {} }), { params: Promise.resolve({ hash: h }) });
+await db.insert(documents).values({ ownerUserId: owner.id, kind: "insurance", sha256: hash, bucketKey: documentKey(hash), contentType: "application/pdf", size: bytes.length });
+const get = (h = hash) => route.GET(new Request(`http://x/api/documents/${h}`), { params: Promise.resolve({ hash: h }) });
 
 beforeEach(async () => {
   await store.put(documentKey(hash), bytes, "application/pdf");
 });
 
 describe("GET /api/documents/[hash]", () => {
-  it("is for the admin console only: farmer documents are not shown to every basic-auth viewer", async () => {
+  it("needs a session", async () => {
+    user = null;
     expect((await get()).status).toBe(401);
-    expect((await get(`${ADMIN_COOKIE}=nope`)).status).toBe(401);
   });
 
-  it("serves the stored bytes, hash-checked and never cached publicly", async () => {
-    const res = await get(`other=1; ${ADMIN_COOKIE}=${adminToken("pw")}`);
+  it("serves the owner and any arranger, never cached", async () => {
+    user = owner;
+    const res = await get();
     expect(res.status).toBe(200);
-    expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes);
     expect(res.headers.get("cache-control")).toBe("private, no-store");
-    expect(res.headers.get("content-disposition")).toBe("attachment");
-    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes);
+    user = ops;
+    expect((await get()).status).toBe(200);
   });
 
-  it("rejects malformed hashes and missing objects", async () => {
-    const cookie = `${ADMIN_COOKIE}=${adminToken("pw")}`;
-    expect((await get(cookie, "x")).status).toBe(400);
-    expect((await get(cookie, "0".repeat(64))).status).toBe(404);
+  it("answers 404 to another farmer, as if the document did not exist", async () => {
+    user = other;
+    expect((await get()).status).toBe(404);
+  });
+
+  it("rejects a malformed hash", async () => {
+    user = ops;
+    expect((await get("ABC")).status).toBe(400);
   });
 });

@@ -1,0 +1,62 @@
+import { Keypair } from "@solana/web3.js";
+import { describe, expect, it, vi } from "vitest";
+import { kfdAcceptances, investorProfiles, wallets } from "../../src/lib/db/schema";
+import { testDb } from "../helpers/db";
+import { makeUser } from "../helpers/workflow";
+
+const db = await testDb();
+const POOL = Keypair.generate().publicKey.toBase58();
+let dbDown = false;
+const buildUserTx = vi.fn(async () => ({ payer: Keypair.generate().publicKey, instructions: [], meta: {} }));
+vi.mock("@/lib/server/db", () => ({ getDb: async () => { if (dbDown) throw new Error("down"); return db; } }));
+vi.mock("@/lib/chain/user-tx", async (orig) => ({ ...(await orig<typeof import("../../src/lib/chain/user-tx")>()), buildUserTx: (...a: unknown[]) => buildUserTx(...(a as [])) }));
+vi.mock("@/lib/chain/send", async (orig) => ({
+  ...(await orig<typeof import("../../src/lib/chain/send")>()),
+  buildV0: async () => ({ tx: { serialize: () => new Uint8Array([1]) }, blockhash: "b", lastValidBlockHeight: 1 }),
+  simulate: async () => ({ err: null, logs: [] }),
+}));
+vi.mock("@/lib/server/context", () => ({
+  getBuildProgram: () => ({}),
+  getConnection: () => ({}),
+  getStore: () => ({}),
+  getUsdcMint: () => ({}),
+  sponsorPublicKey: () => ({}),
+  getReader: () => ({ getPool: async (id: string) => (id === "7" ? { pool: { address: POOL, poolId: "7" } } : null), fees: async () => null }),
+}));
+const route = await import("../../src/app/api/tx/[action]/route");
+
+const call = (action: string, body: unknown) =>
+  route.POST(new Request(`http://x/api/tx/${action}`, { method: "POST", body: JSON.stringify(body) }), { params: Promise.resolve({ action }) });
+
+describe("subscribe gate (KFD before the first subscription)", () => {
+  it("refuses an unlinked wallet with a way to onboarding, before anything is built", async () => {
+    const w = Keypair.generate().publicKey.toBase58();
+    const res = await call("subscribe", { signer: w, poolId: "7", amount: "1000000" });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toMatchObject({ code: "WalletNotLinked", action: "onboarding" });
+    expect(buildUserTx).not.toHaveBeenCalled();
+  });
+
+  it("asks for the KFD when the investor is onboarded but has not accepted it for this pool, then lets them through", async () => {
+    const inv = await makeUser(db, "inv@example.com", ["investor"]);
+    const w = Keypair.generate().publicKey.toBase58();
+    await db.insert(wallets).values({ address: w, userId: inv.id, kind: "phantom" });
+    await db.insert(investorProfiles).values({ userId: inv.id, category: "professional", kycStatus: "approved", riskAckAt: new Date() });
+    const res = await call("subscribe", { signer: w, poolId: "7", amount: "1000000" });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toMatchObject({ code: "KfdRequired", action: "kfd" });
+    await db.insert(kfdAcceptances).values({ investorUserId: inv.id, poolAddress: POOL, documentHash: "a".repeat(64) });
+    expect((await call("subscribe", { signer: w, poolId: "7", amount: "1000000" })).status).toBe(200);
+  });
+
+  it("fails closed for subscribe when Postgres is down, but refund still builds", async () => {
+    dbDown = true;
+    try {
+      const w = Keypair.generate().publicKey.toBase58();
+      expect((await call("subscribe", { signer: w, poolId: "7", amount: "1000000" })).status).toBe(503);
+      expect((await call("refund", { signer: w, poolId: "7", amount: "1000000" })).status).toBe(200);
+    } finally {
+      dbDown = false;
+    }
+  });
+});

@@ -1,4 +1,4 @@
-export type ErrorAction = "kyc" | "faucet" | "switch-network" | "retry" | "none";
+export type ErrorAction = "kyc" | "faucet" | "switch-network" | "retry" | "onboarding" | "kfd" | "none";
 
 export interface ExplainedError {
   code: string;

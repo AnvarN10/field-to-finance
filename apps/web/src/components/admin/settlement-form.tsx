@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { recordSettlementAction } from "../../app/admin/actions";
+import { recordSettlementAction } from "../../app/arranger/actions";
 import { SETTLEMENT_LABELS, SETTLEMENT_RULES, type SettlementRuleName } from "../../lib/chain/enums";
 import { ActionButton } from "./action-button";
 

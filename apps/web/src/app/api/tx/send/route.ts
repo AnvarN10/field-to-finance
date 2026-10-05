@@ -6,6 +6,7 @@ import { TX_ACTIONS } from "@/lib/chain/user-tx";
 import { RequestError } from "@/lib/errors";
 import { clientIp, createRateLimit, takeAll } from "@/lib/rate-limit";
 import { getConnection, getStore, roleKeypair, sponsorPolicy, sponsorPublicKey } from "@/lib/server/context";
+import { recordUserTx } from "@/lib/server/tx-history";
 import { polygonKey } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,9 @@ export async function POST(req: Request) {
         connection: getConnection(),
         polygonExists: async (hash) => (await getStore().get(polygonKey(hash))) !== null,
         allowRent: (wallet) => takeAll([[rentPerWallet, wallet], [rentGlobal, "all"]]),
+        // Best effort: the history must never fail a sent transaction.
+        onSent: (info, signature) =>
+          void recordUserTx({ action: b.data.action, wallet: info.signer.toBase58(), signature, ...info.summary }).catch((e) => Sentry.captureException(e)),
       },
       b.data.action,
       b.data.tx,

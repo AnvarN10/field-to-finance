@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { saveFieldSetAction } from "../../app/admin/actions";
+import { saveFieldSetAction } from "../../app/arranger/actions";
 import { FieldImportError, areaCheck, parseFieldFile } from "../../lib/field-import";
 import { shortKey } from "../../lib/format";
 import { Button } from "../ui/button";

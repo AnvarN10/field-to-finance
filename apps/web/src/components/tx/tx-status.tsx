@@ -5,7 +5,13 @@ import type { ErrorAction } from "../../lib/chain/explain";
 import type { TxPhase } from "../../lib/tx-client";
 import { ExplorerLink } from "../explorer-link";
 
-const ACTION_LABEL: Partial<Record<ErrorAction, string>> = { kyc: "Complete KYC", faucet: "Get test funds", retry: "Try again" };
+const ACTION_LABEL: Partial<Record<ErrorAction, string>> = {
+  kyc: "Complete KYC",
+  faucet: "Get test funds",
+  retry: "Try again",
+  onboarding: "Finish onboarding",
+  kfd: "Read the key features",
+};
 const PENDING: Record<"building" | "signing" | "confirming", string> = {
   building: "Preparing transaction",
   signing: "Approve in your wallet",

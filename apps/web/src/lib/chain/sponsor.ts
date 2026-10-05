@@ -29,6 +29,8 @@ export interface SponsoredTxInfo {
   rentAccounts: PublicKey[];
   /** register-project only: the polygon hash of every field, in order. */
   polygonHashes: string[];
+  /** What the transaction acts on, for the user's transaction history (amount in base units). */
+  summary: { pool: string | null; project: string | null; amount: string | null };
 }
 
 /** Priority fee cap: 50,000 micro-lamports per CU is 10,000 lamports at the 200k CU default limit, 70,000 at the 1.4M maximum. */
@@ -239,18 +241,19 @@ export function validateSponsoredTx(p: SponsorPolicy, action: TxAction, tx: Vers
   for (const ix of f2f) checkSponsorSlots(ix, p);
 
   const account = (ix: DecodedIx, name: string) => ix.accounts.get(norm(name)) as PublicKey;
+  const holderSummary = () => ({ pool: account(first, "pool")?.toBase58() ?? null, project: null, amount: first.data.amount != null ? String(first.data.amount) : null });
   if (action === "subscribe") {
     checkSubscribe(first, p, signer);
-    return { signer, rentAccounts: [account(first, "investorInstrument")], polygonHashes: [] };
+    return { signer, rentAccounts: [account(first, "investorInstrument")], polygonHashes: [], summary: holderSummary() };
   }
   if (action === "redeem-delivery") {
     checkRedeemDelivery(first, p, signer);
-    return { signer, rentAccounts: [], polygonHashes: [] };
+    return { signer, rentAccounts: [], polygonHashes: [], summary: holderSummary() };
   }
   if (action === "refund" || action === "redeem") {
     checkHolder(first, p, signer);
     if (action === "redeem") checkInstrumentTerms(first, p);
-    return { signer, rentAccounts: ataCreates > 0 ? [usdcAta(p.usdcMint, signer)] : [], polygonHashes: [] };
+    return { signer, rentAccounts: ataCreates > 0 ? [usdcAta(p.usdcMint, signer)] : [], polygonHashes: [], summary: holderSummary() };
   }
   // Project and Field PDAs can never be closed: every sponsored registration is pure rent spend, so it
   // happens only while the producer pays a mint fee.
@@ -263,7 +266,7 @@ export function validateSponsoredTx(p: SponsorPolicy, action: TxAction, tx: Vers
     if (!raw || raw.length !== 32) throw new SponsorRejected("register_field: missing polygon hash");
     return Buffer.from(raw).toString("hex");
   });
-  return { signer, rentAccounts: [project, ...rest.map((ix) => account(ix, "field"))], polygonHashes };
+  return { signer, rentAccounts: [project, ...rest.map((ix) => account(ix, "field"))], polygonHashes, summary: { pool: null, project: project.toBase58(), amount: null } };
 }
 
 export interface CosignDeps {
@@ -277,6 +280,8 @@ export interface CosignDeps {
    * Returns 0 to allow, else the seconds until the wallet may try again. Stops close-and-recreate loops.
    */
   allowRent(wallet: string): number;
+  /** Called after the transaction was accepted by the RPC node (history; must not throw). */
+  onSent?(info: SponsoredTxInfo, signature: string): void;
 }
 
 /**
@@ -305,5 +310,7 @@ export async function cosignAndSend(deps: CosignDeps, action: TxAction, txBase64
     }
   }
   tx.sign([deps.sponsorKey]);
-  return deps.connection.sendRawTransaction(tx.serialize(), { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 3 });
+  const signature = await deps.connection.sendRawTransaction(tx.serialize(), { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 3 });
+  deps.onSent?.(info, signature);
+  return signature;
 }

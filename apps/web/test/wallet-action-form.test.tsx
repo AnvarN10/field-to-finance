@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 const approveInvestorAction = vi.fn(async (_w: string) => ({ ok: true, message: "Approved", signatures: [] }));
-vi.mock("../src/app/admin/actions", () => ({ approveInvestorAction, revokeInvestorAction: vi.fn() }));
+vi.mock("../src/app/arranger/actions", () => ({ approveInvestorAction, revokeInvestorAction: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const { WalletActionForm } = await import("../src/components/admin/wallet-action-form");
 

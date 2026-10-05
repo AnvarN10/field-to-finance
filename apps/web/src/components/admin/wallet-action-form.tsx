@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { approveInvestorAction, revokeInvestorAction } from "../../app/admin/actions";
+import { approveInvestorAction, revokeInvestorAction } from "../../app/arranger/actions";
 import { Input } from "../ui/input";
 import { ActionButton } from "./action-button";
 

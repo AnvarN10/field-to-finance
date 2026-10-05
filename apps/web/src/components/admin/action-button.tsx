@@ -3,7 +3,7 @@
 import { CircleCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import type { ActionResult } from "../../app/admin/actions";
+import type { ActionResult } from "../../app/arranger/actions";
 import { ExplorerLink } from "../explorer-link";
 import { TxStatus } from "../tx/tx-status";
 import { Button } from "../ui/button";

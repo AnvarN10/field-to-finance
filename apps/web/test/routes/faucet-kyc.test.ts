@@ -27,17 +27,10 @@ describe("public routes that spend role keys", () => {
     expect(statuses.at(-1)).toBe(429);
   });
 
-  it("kyc: one IP cannot approve an unbounded number of wallets", async () => {
-    const statuses = [];
-    for (let i = 0; i < 8; i++) statuses.push((await kyc.POST(post("http://x/api/kyc", kycBody(), "2.2.2.2"))).status);
-    expect(statuses.filter((s) => s === 200).length).toBeLessThanOrEqual(5);
-    expect(statuses.at(-1)).toBe(429);
-  });
-
-  it("kyc: an already approved wallet costs nothing", async () => {
-    investor.mockResolvedValueOnce({ approved: true });
-    const r = await kyc.POST(post("http://x/api/kyc", kycBody(), "3.3.3.3"));
-    expect(r.status).toBe(200);
+  it("kyc: instant approval is gone; onboarding goes through the investor cabinet", async () => {
+    const r = await kyc.POST();
+    expect(r.status).toBe(410);
+    expect((await r.json()).error.title).toBe("KYC moved to the investor cabinet");
     expect(approveInvestor).not.toHaveBeenCalled();
   });
 });

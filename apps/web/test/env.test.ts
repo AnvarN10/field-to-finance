@@ -9,7 +9,6 @@ describe("parseServerEnv", () => {
     expect(env.USDC_MINT).toBe("Fhfr7QZ6PpZF4ug1kVdnA7dfMGaSJawGL6dhwNMFvTjv");
     expect(env.PUBLIC_BASE_URL).toBe("http://localhost:3000");
     expect(env.BUCKET_FORCE_PATH_STYLE).toBe(false);
-    expect(env.ADMIN_PASSWORD).toBeUndefined();
     // ADR 0013: users need no SOL, so the faucet sends test USDC only unless FAUCET_SOL=true.
     expect(env.FAUCET_SOL).toBe(false);
     expect(env.F2F_SPONSOR_KEYPAIR).toBeUndefined();
@@ -25,8 +24,8 @@ describe("parseServerEnv", () => {
   });
 
   it("treats blank strings as unset", () => {
-    const env = parseServerEnv({ ADMIN_PASSWORD: "  ", SOLANA_RPC_URL: "" });
-    expect(env.ADMIN_PASSWORD).toBeUndefined();
+    const env = parseServerEnv({ PRIVY_APP_SECRET: "  ", SOLANA_RPC_URL: "" });
+    expect(env.PRIVY_APP_SECRET).toBeUndefined();
     expect(env.SOLANA_RPC_URL).toBe("https://api.devnet.solana.com");
   });
 
@@ -37,17 +36,6 @@ describe("parseServerEnv", () => {
   it("rejects a PUBLIC_BASE_URL that would push evidence URIs past 128 bytes", () => {
     const long = `https://${"a".repeat(MAX_PUBLIC_BASE_URL_LEN)}.app`;
     expect(() => parseServerEnv({ PUBLIC_BASE_URL: long })).toThrow(/PUBLIC_BASE_URL/);
-  });
-
-  it("rejects a short ADMIN_PASSWORD without echoing it", () => {
-    let message = "";
-    try {
-      parseServerEnv({ ADMIN_PASSWORD: "hunter2" });
-    } catch (e) {
-      message = (e as Error).message;
-    }
-    expect(message).toMatch(/ADMIN_PASSWORD/);
-    expect(message).not.toContain("hunter2");
   });
 
   it("rejects a malformed program id", () => {

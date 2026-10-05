@@ -14,6 +14,8 @@ vi.mock("@/lib/chain/sponsor", async (orig) => ({
   ...(await orig<typeof import("../../src/lib/chain/sponsor")>()),
   cosignAndSend: (...a: unknown[]) => cosignAndSend(...a),
 }));
+const recordTx = vi.fn(async () => {});
+vi.mock("@/lib/server/tx-history", () => ({ recordUserTx: (...a: unknown[]) => recordTx(...(a as [])) }));
 const { POST } = await import("../../src/app/api/tx/send/route");
 
 const req = (body: unknown, ip = "4.4.4.4") =>
@@ -25,6 +27,16 @@ beforeEach(() => {
 });
 
 describe("POST /api/tx/send", () => {
+  it("records the sent transaction in the history of the wallet's owner", async () => {
+    cosignAndSend.mockImplementation(async (deps: { onSent?: (i: unknown, s: string) => void }) => {
+      deps.onSent?.({ signer: { toBase58: () => "W1" }, summary: { pool: "P1", project: null, amount: "5" } }, "5sig");
+      return "5sig";
+    });
+    await POST(req({ action: "subscribe", tx: "AAAA" }, "6.6.6.6"));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(recordTx).toHaveBeenCalledWith({ action: "subscribe", wallet: "W1", signature: "5sig", pool: "P1", project: null, amount: "5" });
+  });
+
   it("returns the signature of a co-signed transaction", async () => {
     cosignAndSend.mockResolvedValue("5sig");
     const r = await POST(req({ action: "subscribe", tx: "AAAA" }));
