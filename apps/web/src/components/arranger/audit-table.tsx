@@ -45,7 +45,7 @@ export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView
           {rows.map((r) => (
             <tr key={r.id} className="border-t border-border align-top first:border-t-0">
               <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">{at(r)}</td>
-              <td className="min-w-32 px-3 py-3 break-all">
+              <td className="min-w-32 px-3 py-3 break-all md:min-w-64 md:break-normal">
                 {r.actor}
               </td>
               <td className="px-3 py-3">
@@ -62,7 +62,7 @@ export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView
                   </div>
                 </td>
               )}
-              <td className="px-3 py-3">
+              <td className="px-3 py-3 whitespace-nowrap">
                 {result(r)}
               </td>
             </tr>
