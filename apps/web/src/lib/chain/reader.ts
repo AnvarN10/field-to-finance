@@ -12,7 +12,7 @@ import {
 import { PublicKey, type Connection } from "@solana/web3.js";
 import { RequestError } from "../errors";
 import { createTtlCache } from "../ttl-cache";
-import { attestationsOfField, fieldsOfProject, projectsByProducer, projectsInPool, projectsWithoutPool } from "./filters";
+import { attestationsOfField, attestationsOfProject, fieldsOfProject, projectsByProducer, projectsInPool, projectsWithoutPool } from "./filters";
 import { parseTokenMetadata } from "./token-metadata";
 import {
   toAttestationView,
@@ -21,6 +21,7 @@ import {
   toInstrumentTermsView,
   toPoolView,
   toProjectView,
+  type AttestationView,
   type ConfigView,
   type FeeStatus,
   type FieldDetail,
@@ -40,6 +41,8 @@ export interface ChainReader {
   projectsByProducer(producer: string): Promise<ProjectWithFields[]>;
   unpooledProjects(): Promise<ProjectWithFields[]>;
   investor(wallet: string): Promise<InvestorState>;
+  /** Every Attestation on the pool's projects (season timeline), oldest first. */
+  poolAttestations(poolId: string): Promise<AttestationView[]>;
   /** FeeConfig plus the treasury's USDC balance; null until fees are configured. */
   fees(): Promise<FeeStatus | null>;
   /** The subset of `wallets` whose InvestorRecord is approved (platform KYC). */
@@ -203,6 +206,18 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
           solLamports: lamports,
           positions,
         };
+      }),
+
+    poolAttestations: (poolId) =>
+      cache.get(`attestations:${poolId}`, async () => {
+        if (!/^\d{1,20}$/.test(poolId)) return [];
+        const address = poolPda(programId, BigInt(poolId));
+        const projects = await program.account.farmProject.all([projectsInPool(address)]);
+        const perProject = await Promise.all(projects.map((p) => program.account.attestation.all([attestationsOfProject(p.publicKey)])));
+        return perProject
+          .flat()
+          .map((a) => toAttestationView(a.publicKey, a.account))
+          .sort((a, b) => a.recordedAt - b.recordedAt || a.sequence - b.sequence);
       }),
 
     fees: () =>

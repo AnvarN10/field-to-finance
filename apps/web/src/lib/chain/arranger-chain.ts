@@ -2,7 +2,7 @@ import { PILOT_QUALITY_SPEC, poolPda, type F2f } from "@f2f/sdk";
 import type { Program } from "@anchor-lang/core";
 import { PublicKey } from "@solana/web3.js";
 import { storeQualitySpec } from "../pilot-docs";
-import { verifyAllFields, type StubDeps } from "../scas-stub";
+import { attestStage, verifyAllFields, type StubDeps } from "../scas-stub";
 import type { BlobStore } from "../store";
 import type { ArrangerChain } from "../workflow/ports";
 import { RequestError } from "../errors";
@@ -61,6 +61,14 @@ export function makeArrangerChain(d: ArrangerChainDeps): ArrangerChain {
       const fields = await d.program.account.field.all([fieldsOfProject(key)]);
       return { ...toProjectView(key, account), fields: fields.map((f) => toFieldView(f.publicKey, f.account)).sort((a, b) => a.index - b.index) };
     },
+    attest: (input) =>
+      tx(async () => {
+        const detail = await d.getPool(input.poolId);
+        if (!detail) throw new RequestError(`Pool ${input.poolId} does not exist`, 404);
+        const r = await attestStage(d.stub(), detail.projects, input.kind, { observation: input.note, documentSha256: input.documentSha256, yieldEstimateTPerHa: input.yieldEstimateTPerHa });
+        if (r.failures.length) throw new Error(`${r.results.length} attested, ${r.failures.length} failed: ${r.failures[0]?.error}`);
+        return r.results.map((x) => x.signature);
+      }),
     verifyFields: (project) =>
       tx(async () => {
         const r = await verifyAllFields(d.stub(), [project]);

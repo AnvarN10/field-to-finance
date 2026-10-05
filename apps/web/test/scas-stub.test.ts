@@ -136,4 +136,15 @@ describe("verifyAllFields", () => {
     const again = await verifyAllFields(deps, projects);
     expect(again.failures[0]?.error).toBe("rpc down");
   });
+
+  it("carries the partner's note, evidence file and yield estimate in the evidence of a season attestation", async () => {
+    const { deps, project, store } = await makeDeps();
+    const r = await attestStub(deps, { project, fieldIndex: 0, kind: "Harvest", extra: { observation: "Grain filling, low lodging", documentSha256: "ef".repeat(32), yieldEstimateTPerHa: 3.2 } });
+    const doc = JSON.parse(new TextDecoder().decode(store.objects.get(evidenceKey(r.evidenceHash)))) as StubEvidence;
+    expect(doc).toMatchObject({ kind: "Harvest", note: SCAS_STUB_NOTE, observation: "Grain filling, low lodging", documentSha256: "ef".repeat(32), yieldEstimateTPerHa: 3.2 });
+    const plain = await attestStub(deps, { project, fieldIndex: 0, kind: "Sowing" });
+    const plainDoc = JSON.parse(new TextDecoder().decode(store.objects.get(evidenceKey(plain.evidenceHash)))) as Record<string, unknown>;
+    expect(plainDoc).not.toHaveProperty("observation");
+    expect(plainDoc).not.toHaveProperty("yieldEstimateTPerHa");
+  });
 });

@@ -19,7 +19,7 @@ export function ActionButton({
   hideRole = false,
 }: {
   label: string;
-  role: "Issuer" | "Arranger" | "Compliance" | "SCAS stub" | "Deployer" | "Anyone";
+  role: "Issuer" | "Arranger" | "Compliance" | "SCAS stub" | "SCAS" | "Deployer" | "Anyone";
   action: () => Promise<ActionResult>;
   confirmText?: string;
   disabled?: boolean;

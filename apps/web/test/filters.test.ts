@@ -1,7 +1,7 @@
 import bs58 from "bs58";
 import { Keypair } from "@solana/web3.js";
 import { describe, expect, it } from "vitest";
-import { attestationsOfField, fieldsOfProject, projectsByProducer, projectsInPool, projectsWithoutPool } from "../src/lib/chain/filters";
+import { attestationsOfField, attestationsOfProject, fieldsOfProject, projectsByProducer, projectsInPool, projectsWithoutPool } from "../src/lib/chain/filters";
 import { attestationValue, fieldValue, offlineProgram, projectValue, roundTrip } from "./fixtures/accounts";
 
 const program = offlineProgram();
@@ -32,5 +32,13 @@ describe("memcmp filters match real account bytes", () => {
     const at = await roundTrip(program, "attestation", attestationValue({ field }));
     expect(matches(fd.data, fieldsOfProject(project) as never)).toBe(true);
     expect(matches(at.data, attestationsOfField(field) as never)).toBe(true);
+  });
+
+  it("finds attestations by project", async () => {
+    const project = Keypair.generate().publicKey;
+    const at = await roundTrip(program, "attestation", attestationValue({ project }));
+    const other = await roundTrip(program, "attestation", attestationValue({}));
+    expect(matches(at.data, attestationsOfProject(project) as never)).toBe(true);
+    expect(matches(other.data, attestationsOfProject(project) as never)).toBe(false);
   });
 });

@@ -22,6 +22,19 @@ export interface StubEvidence {
   recordedAt: string;
   subject: { cluster: string; programId: string; project: string; field: string; fieldIndex: number; sequence: number };
   signer: string;
+  /** What the SCAS partner observed (season attestations from the SCAS cabinet). */
+  observation?: string;
+  /** SHA-256 of the partner's evidence file under `documents/`. */
+  documentSha256?: string;
+  /** Pre-harvest yield estimate, tonnes per hectare (Harvest). */
+  yieldEstimateTPerHa?: number;
+}
+
+/** Optional partner input for a season attestation; absent keys stay out of the evidence JSON. */
+export interface AttestExtra {
+  observation?: string | null;
+  documentSha256?: string | null;
+  yieldEstimateTPerHa?: number | null;
 }
 
 export function encodeEvidence(doc: StubEvidence): { bytes: Uint8Array; hash: Uint8Array; hashHex: string } {
@@ -56,6 +69,7 @@ export interface AttestStubInput {
   project: PublicKey;
   fieldIndex: number;
   kind: AttestationKindName;
+  extra?: AttestExtra;
 }
 
 export interface AttestStubResult {
@@ -102,6 +116,9 @@ export function attestStub(deps: StubDeps, input: AttestStubInput): Promise<Atte
         sequence,
       },
       signer: deps.scas.toBase58(),
+      ...(input.extra?.observation ? { observation: input.extra.observation } : {}),
+      ...(input.extra?.documentSha256 ? { documentSha256: input.extra.documentSha256 } : {}),
+      ...(input.extra?.yieldEstimateTPerHa != null ? { yieldEstimateTPerHa: input.extra.yieldEstimateTPerHa } : {}),
     };
     const enc = encodeEvidence(doc);
     const uri = evidenceUri(deps.publicBaseUrl, enc.hashHex);
@@ -140,11 +157,11 @@ export interface BatchResult {
   failures: { field: string; error: string }[];
 }
 
-async function runBatch(deps: StubDeps, targets: { project: string; field: string; index: number }[], kind: AttestationKindName): Promise<BatchResult> {
+async function runBatch(deps: StubDeps, targets: { project: string; field: string; index: number }[], kind: AttestationKindName, extra?: AttestExtra): Promise<BatchResult> {
   const out: BatchResult = { results: [], failures: [] };
   for (const t of targets) {
     try {
-      out.results.push(await attestStub(deps, { project: new PublicKey(t.project), fieldIndex: t.index, kind }));
+      out.results.push(await attestStub(deps, { project: new PublicKey(t.project), fieldIndex: t.index, kind, ...(extra ? { extra } : {}) }));
     } catch (e) {
       out.failures.push({ field: t.field, error: e instanceof Error ? e.message : String(e) });
     }
@@ -161,7 +178,7 @@ export function verifyAllFields(deps: StubDeps, projects: ProjectWithFields[]): 
 }
 
 /** Admin "Attest season stage": one Attestation of `kind` for every field of the given projects. */
-export function attestStage(deps: StubDeps, projects: ProjectWithFields[], kind: Exclude<AttestationKindName, "FieldVerified">): Promise<BatchResult> {
+export function attestStage(deps: StubDeps, projects: ProjectWithFields[], kind: Exclude<AttestationKindName, "FieldVerified">, extra?: AttestExtra): Promise<BatchResult> {
   const targets = projects.flatMap((p) => p.fields.map((f) => ({ project: p.address, field: f.address, index: f.index })));
-  return runBatch(deps, targets, kind);
+  return runBatch(deps, targets, kind, extra);
 }

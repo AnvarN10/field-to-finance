@@ -56,6 +56,10 @@ export function fakeChain(over: Partial<ArrangerChain> = {}) {
       calls.push(`project:${address}`);
       return project(verified ? { verifiedFieldCount: 2 } : {});
     },
+    async attest(input) {
+      calls.push(`attest:${input.poolId}:${input.kind}`);
+      return [`sig-attest-${input.kind}`];
+    },
     async verifyFields(p) {
       calls.push(`verifyFields:${p.address}`);
       verified = true;

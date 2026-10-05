@@ -6,10 +6,11 @@ import type { SessionUser } from "../auth/session";
 import { explainChainError } from "../chain/explain";
 import { ChainTxError } from "../chain/send";
 import type { Db } from "../db/client";
-import { auditLog, type ServiceRole } from "../db/schema";
+import { auditLog, documents, type ServiceRole } from "../db/schema";
 import { RequestError } from "../errors";
 import { requireServiceAction } from "./auth";
-import { invalidateReads } from "./context";
+import { documentKey, storeDocument } from "../pilot-docs";
+import { getStore, invalidateReads } from "./context";
 import { getDb } from "./db";
 
 /** Signatures the workflow recorded in audit_log during this action (each step audits itself). */
@@ -45,4 +46,20 @@ export async function serviceAction(role: ServiceRole, message: string, fn: (use
   } finally {
     invalidateReads();
   }
+}
+
+/**
+ * A file a service user attaches (SCAS evidence, elevator receipt, lab protocol): stored in the bucket under its hash
+ * and registered to its uploader, so the uploader and arrangers can download it (`/api/documents/<hash>`).
+ * Returns null when the field is empty and `required` is false.
+ */
+export async function storeUpload(db: Db, ownerUserId: string, form: FormData, name: string, required: boolean): Promise<string | null> {
+  const f = form.get(name);
+  if (!(f instanceof File) || f.size === 0) {
+    if (required) throw new RequestError("Choose a file", 400);
+    return null;
+  }
+  const doc = await storeDocument(getStore(), new Uint8Array(await f.arrayBuffer()), f.type);
+  await db.insert(documents).values({ ownerUserId, kind: "other", sha256: doc.sha256, bucketKey: documentKey(doc.sha256), contentType: doc.contentType, size: doc.size, status: "accepted" });
+  return doc.sha256;
 }

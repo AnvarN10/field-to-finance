@@ -117,7 +117,7 @@ export const disburseAllAction = async (poolId: string) =>
   });
 
 export const verifyAllFieldsAction = async () =>
-  run({ action: "fields.verify_all", targetType: "fields", targetId: "unpooled" }, async () => {
+  run({ action: "fields.verify_all", targetType: "fields", targetId: "unpooled", actingRole: "scas" }, async () => {
     const r = await verifyAllFields(stubDeps(), await getReader().unpooledProjects());
     if (r.failures.length) throw new RequestError(`${r.results.length} verified, ${r.failures.length} failed: ${r.failures[0]?.error}`, 502);
     return { message: r.results.length ? `Verified ${plural(r.results.length, "field")} with the SCAS stub` : "No unverified fields", signatures: r.results.map((x) => x.signature) };
@@ -125,7 +125,7 @@ export const verifyAllFieldsAction = async () =>
 
 const STAGES = ["Sowing", "Vegetation", "Harvest"] as const;
 export const attestStageAction = async (poolId: string, kind: (typeof STAGES)[number]) =>
-  run(pool(poolId, "pool.attest_stage", { kind }), async () => {
+  run({ ...pool(poolId, "pool.attest_stage", { kind }), actingRole: "scas" }, async () => {
     if (!STAGES.includes(kind)) throw new RequestError("Unknown season stage", 400);
     const detail = await getReader().getPool(poolId);
     if (!detail) throw new RequestError(`Pool ${poolId} does not exist`, 404);
