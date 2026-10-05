@@ -1,7 +1,8 @@
 // The role cabinets end to end on devnet, through the same workflow code as the server actions: a farmer signs up
 // and applies, the arranger reviews documents, approves KYC on-chain, verifies fields and structures the pool, an
 // investor onboards, accepts the KFD and subscribes, the arranger disburses. Prints steps with explorer links.
-// Writes demo accounts (example.com emails, fake company data) to the Railway Postgres.
+// Workflow data (example.com accounts, fake company data) goes to an in-process database, or DEMO_DATABASE_URL for a
+// non-production Postgres; never to the production one. The chain side is real devnet.
 //
 //   scripts/inf.sh pnpm exec tsx scripts/demo-cabinets.ts
 import { runCabinetFlowFromEnv } from "../apps/web/src/lib/demo/cabinet-flow-env";

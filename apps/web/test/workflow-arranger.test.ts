@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auditLog, notifications } from "../src/lib/db/schema";
+import { applications, auditLog, farmerProfiles, notifications, wallets } from "../src/lib/db/schema";
 import {
   advanceApplication,
   applicationDetail,
@@ -15,7 +15,7 @@ import {
 import { REQUIRED_KINDS } from "../src/lib/workflow/documents";
 import { addApplicationDocument, attachProject, createApplication, saveFarmerProfile, submitApplication, submitFarmerKyc } from "../src/lib/workflow/farmer";
 import { testDb } from "./helpers/db";
-import { doc, fakeChain, FARMER_WALLET, makeUser, PROJECT } from "./helpers/workflow";
+import { doc, fakeChain, FARMER_WALLET, makeUser, project, PROJECT } from "./helpers/workflow";
 
 const APP = { crop: "wheat", grade: "3", volumeT: 10000, tokenizedShareBps: 3000, requestedUsd: 200000, proposedCouponBps: 1200, season: 2027, elevator: "Demo elevator", lab: "Demo lab" };
 const TERMS = { name: "Demo wheat 2027", symbol: "DWHT27", unitNominalUsd: 100000, couponBps: 1200, settlementMode: "Hybrid", closeInMinutes: 60, maturityInMinutes: 600, arrangementFeeBps: 200 } as const;
@@ -111,5 +111,31 @@ describe("arranger pipeline", () => {
     expect(await refreshChainStatuses(db, chain, 1_000)).toBe(1);
     expect((await pipeline(db)).find((a) => a.id === app.id)?.status).toBe("disbursed");
     void ops;
+  });
+
+  it("binds issuer KYC to the issuer wallet: approval records it, structuring refuses a project from another wallet", async () => {
+    const { db, ops, farmer, app } = await submitted();
+    const chain = fakeChain();
+    await decideFarmerKyc(db, ops, farmer.id, "approved", null, chain);
+    expect((await db.select().from(farmerProfiles))[0]?.kycWallet).toBe(FARMER_WALLET);
+    await db.update(applications).set({ status: "structuring" });
+    const other = fakeChain({ project: async () => project({ producer: "0ther1111111111111111111111111111111111111" }) });
+    await expect(structureApplication(db, ops, app.id, TERMS, other)).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/issuer KYC approved/) });
+  });
+
+  it("structuring refuses before issuer KYC is approved", async () => {
+    const { db, ops, app } = await submitted();
+    await db.update(applications).set({ status: "structuring" });
+    await expect(structureApplication(db, ops, app.id, TERMS, fakeChain())).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/issuer KYC/) });
+  });
+
+  it("attaching a project registered by the farmer's linked Phantom wallet is refused: only the issuer wallet may", async () => {
+    const db = await testDb();
+    const farmer = await makeUser(db, "f2@example.com", ["farmer"], FARMER_WALLET);
+    const phantom = "PhantomWa11et11111111111111111111111111111";
+    await db.insert(wallets).values({ address: phantom, userId: farmer.id, kind: "phantom" });
+    const app = await createApplication(db, farmer, APP);
+    await expect(attachProject(db, farmer, app.id, PROJECT, phantom)).rejects.toMatchObject({ status: 403, message: expect.stringContaining(FARMER_WALLET) });
+    await attachProject(db, farmer, app.id, PROJECT, FARMER_WALLET);
   });
 });

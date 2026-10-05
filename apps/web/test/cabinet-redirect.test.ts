@@ -20,4 +20,12 @@ describe("cabinetRedirect", () => {
     expect(cabinetRedirect(req("/farmers-market"))).toBeNull();
     expect(cabinetRedirect(req("/investor"))?.status).toBe(307);
   });
+
+  it("lets a server action POST without a cookie reach the action, which answers \"Sign in again\"", () => {
+    const post = new NextRequest("https://f2f.example/farmer/applications/1", { method: "POST", headers: { "next-action": "abc123" } });
+    expect(cabinetRedirect(post)).toBeNull();
+    const plainPost = new NextRequest("https://f2f.example/arranger", { method: "POST" });
+    expect(cabinetRedirect(plainPost)).toBeNull();
+    expect(cabinetRedirect(req("/arranger"))?.status).toBe(307);
+  });
 });

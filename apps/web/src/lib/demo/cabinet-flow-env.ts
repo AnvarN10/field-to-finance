@@ -3,7 +3,8 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { closeSubscription, disburseAll } from "../chain/admin-ops";
 import { makeArrangerChain } from "../chain/arranger-chain";
 import { createUsdcAtaIx, mintUsdcIx, registerFieldIx, registerProjectIx, subscribeIx, usdcAta } from "../chain/ix";
-import { createPgDb } from "../db/client";
+import { isProductionDb } from "../auth/session";
+import { createPgDb, schema, type Db } from "../db/client";
 import { storeDocument, storeFieldSet } from "../pilot-docs";
 import { uploadPolygon } from "../polygons";
 import { runCabinetFlow } from "./cabinet-flow";
@@ -12,11 +13,29 @@ import { DEMO_FIELDS } from "./fields";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** The cabinet walk on devnet: fresh farmer and investor keypairs, the Railway Postgres, the real role keys and sponsor. */
+/** An in-process Postgres (PGlite) with every committed migration: the walk's accounts live and die with the process. */
+async function ephemeralDb(): Promise<Db> {
+  const [{ PGlite }, { drizzle }, { migrate }, { fileURLToPath }] = await Promise.all([
+    import("@electric-sql/pglite"),
+    import("drizzle-orm/pglite"),
+    import("drizzle-orm/pglite/migrator"),
+    import("node:url"),
+  ]);
+  const db = drizzle(new PGlite(), { schema });
+  await migrate(db, { migrationsFolder: fileURLToPath(new URL("../../../drizzle", import.meta.url)) });
+  return db as unknown as Db;
+}
+
+/**
+ * The cabinet walk on devnet: fresh farmer and investor keypairs, the real role keys and sponsor. The workflow data goes
+ * to an in-process database (or DEMO_DATABASE_URL), never to the production Postgres: demo and dev identities must not
+ * exist there, and the database refuses them once marked production.
+ */
 export async function runCabinetFlowFromEnv(source: Record<string, string | undefined> = process.env, log: (line: string) => void = console.log) {
-  const url = source.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set; run under scripts/inf.sh");
-  const db = await createPgDb(url);
+  const url = source.DEMO_DATABASE_URL?.trim();
+  const db = url ? await createPgDb(url) : await ephemeralDb();
+  if (await isProductionDb(db)) throw new Error("DEMO_DATABASE_URL points at the production database; the walk never writes demo accounts there.");
+  log(url ? "Workflow data: DEMO_DATABASE_URL" : "Workflow data: in-process database (discarded at exit)");
   const ctx = await createDemoContext(source);
   const farmer = Keypair.generate();
   const investor = Keypair.generate();

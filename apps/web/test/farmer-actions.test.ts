@@ -48,7 +48,7 @@ describe("farmer actions", () => {
   it("attach a project only when the chain says the farmer's wallet registered it", async () => {
     const [a] = await db.select().from(applications);
     onChainProducer = "SomeoneE1se111111111111111111111111111111";
-    expect(await actions.attachProjectAction(a!.id, "Proj1111111111111111111111111111111111111", [])).toMatchObject({ ok: false, error: "The project was registered by a wallet that is not yours." });
+    expect(await actions.attachProjectAction(a!.id, "Proj1111111111111111111111111111111111111", [])).toMatchObject({ ok: false, error: expect.stringContaining(`Register the fields from your platform wallet ${FARMER_WALLET}`) });
     onChainProducer = FARMER_WALLET;
     expect(await actions.attachProjectAction(a!.id, "Proj1111111111111111111111111111111111111", [{ polygonHash: "a".repeat(64), areaHaX100: 100, name: "Demo field", cadastralNumber: "00-000-000-000", declaredAreaHa: 1 }])).toEqual({ ok: true });
     const [row] = await db.select().from(applications);

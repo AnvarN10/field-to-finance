@@ -23,6 +23,7 @@ import { audit, audited, listAudit } from "./audit";
 import { checklist, type ChecklistRow } from "./documents";
 import { assertRole, assertUuid, parseOr400 } from "./guards";
 import { notify } from "./notifications";
+import { issuerWalletOf } from "./farmer";
 import type { ArrangerChain } from "./ports";
 
 async function loadApplication(db: Db, id: string): Promise<ApplicationRow> {
@@ -163,11 +164,11 @@ export async function decideFarmerKyc(db: Db, actor: SessionUser, farmerUserId: 
     await notify(db, farmerUserId, "kyc", "Issuer KYC rejected", reason);
     return;
   }
-  const ws = await db.select().from(wallets).where(eq(wallets.userId, farmerUserId));
-  const wallet = (ws.find((w) => w.kind === "privy-embedded") ?? ws[0])?.address;
-  if (!wallet) throw new RequestError("The farmer has no wallet yet. Ask them to sign in once so Privy creates it.", 409);
+  // Exactly the issuer wallet: the one that registers the project and becomes the issuer of record.
+  const wallet = await issuerWalletOf(db, farmerUserId);
+  if (!wallet) throw new RequestError("The farmer has no platform wallet yet. Ask them to sign in once so Privy creates it.", 409);
   await audited(db, { actorUserId: actor.id, action: "farmer_kyc.approve", targetType: "user", targetId: farmerUserId, payload: { wallet } }, () => chain.approveKyc(wallet), (s) => [s]);
-  await db.update(farmerProfiles).set({ kycStatus: "approved", kycNote: null, kycDecidedBy: actor.id, kycDecidedAt: new Date(), updatedAt: new Date() }).where(eq(farmerProfiles.userId, farmerUserId));
+  await db.update(farmerProfiles).set({ kycStatus: "approved", kycNote: null, kycWallet: wallet, kycDecidedBy: actor.id, kycDecidedAt: new Date(), updatedAt: new Date() }).where(eq(farmerProfiles.userId, farmerUserId));
   await notify(db, farmerUserId, "kyc", "Issuer KYC approved", "Your company can be the issuer of record of its pool.");
 }
 
@@ -232,6 +233,11 @@ export async function structureApplication(db: Db, actor: SessionUser, id: strin
   const project = app.projectAddress ? await chain.project(app.projectAddress) : null;
   if (!project) throw new RequestError("The farm project was not found on-chain.", 404);
   if (project.pool) throw new RequestError("The farm project is already in a pool.", 409);
+  const issuer = await db.query.farmerProfiles.findFirst({ where: eq(farmerProfiles.userId, app.farmerUserId) });
+  if (issuer?.kycStatus !== "approved" || !issuer.kycWallet) throw new RequestError("Approve the farmer's issuer KYC before building the pool.", 409);
+  if (issuer.kycWallet !== project.producer) {
+    throw new RequestError(`The project was registered by ${project.producer}, but issuer KYC approved ${issuer.kycWallet}. The issuer of record must be the approved wallet.`, 409);
+  }
   if (!app.poolId) {
     const pool: CreatePoolInput = parseOr400(createPoolInput, {
       poolId: t.poolId ?? (await chain.nextPoolId()),

@@ -116,14 +116,26 @@ export async function addApplicationDocument(db: Db, user: SessionUser, id: stri
   return checklist(db, id);
 }
 
+/**
+ * The farmer's issuer wallet: the Privy embedded wallet created at sign-in. Issuer KYC approves exactly this wallet,
+ * only it may register the project, and it becomes the issuer of record of the pool.
+ */
+export async function issuerWalletOf(db: Db, userId: string): Promise<string | null> {
+  const profile = await db.query.farmerProfiles.findFirst({ where: eq(farmerProfiles.userId, userId) });
+  if (profile?.kycWallet) return profile.kycWallet;
+  const w = await db.query.wallets.findFirst({ where: and(eq(wallets.userId, userId), eq(wallets.kind, "privy-embedded")) });
+  return w?.address ?? null;
+}
+
 /** Links the on-chain farm project (registered and signed by the farmer's wallet) to the application. */
 export async function attachProject(db: Db, user: SessionUser, id: string, projectAddress: string, producer: string, fieldSetHash?: string): Promise<ApplicationRow> {
   const app = await getOwnApplication(db, user, id);
   if (app.status !== "draft") throw new RequestError("Fields can only change while the application is a draft.", 409);
   if (!WALLET.test(projectAddress) || !WALLET.test(producer)) throw new RequestError("Invalid project address", 400);
   if (fieldSetHash !== undefined && !/^[0-9a-f]{64}$/.test(fieldSetHash)) throw new RequestError("Invalid field set", 400);
-  const own = await db.query.wallets.findFirst({ where: and(eq(wallets.address, producer), eq(wallets.userId, user.id)) });
-  if (!own) throw new RequestError("The project was registered by a wallet that is not yours.", 403);
+  const issuer = await issuerWalletOf(db, user.id);
+  if (!issuer) throw new RequestError("Your platform wallet is not ready yet. Reload the page in a few seconds.", 409);
+  if (producer !== issuer) throw new RequestError(`Register the fields from your platform wallet ${issuer}: it is the wallet issuer KYC approves as the issuer of record.`, 403);
   const [row] = await db
     .update(applications)
     .set({ projectAddress, ...(fieldSetHash ? { fieldSetHash } : {}), updatedAt: new Date() })

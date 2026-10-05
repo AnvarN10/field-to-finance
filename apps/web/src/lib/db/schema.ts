@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { APPLICATION_STATUSES, type ApplicationStatus } from "../application-status";
 
 export const ROLES = ["farmer", "investor", "arranger"] as const;
@@ -36,7 +36,12 @@ export const userRoles = pgTable(
     grantedBy: uuid("granted_by").references(() => users.id, { onDelete: "set null" }),
     grantedAt: ts("granted_at").notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.role] }), check("user_roles_role", oneOf("role", ROLES))],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.role] }),
+    check("user_roles_role", oneOf("role", ROLES)),
+    // Self-service gives one cabinet per account; the database refuses a second self-chosen one even under a race.
+    uniqueIndex("user_roles_one_self_cabinet").on(t.userId).where(sql`"role" in ('farmer', 'investor') and "granted_by" = "user_id"`),
+  ],
 );
 
 export const wallets = pgTable(
@@ -64,6 +69,8 @@ export const farmerProfiles = pgTable(
     contact: text("contact"),
     kycStatus: text("kyc_status").$type<KycStatus>().notNull().default("not_started"),
     kycNote: text("kyc_note"),
+    /** The wallet issuer KYC approved on-chain: the only wallet that may register the project and be the issuer of record. */
+    kycWallet: text("kyc_wallet"),
     kycDecidedBy: uuid("kyc_decided_by").references(() => users.id, { onDelete: "set null" }),
     kycDecidedAt: ts("kyc_decided_at"),
     updatedAt: ts("updated_at").notNull().defaultNow(),
@@ -202,3 +209,13 @@ export type FarmerProfileRow = typeof farmerProfiles.$inferSelect;
 export type InvestorProfileRow = typeof investorProfiles.$inferSelect;
 export type AuditRow = typeof auditLog.$inferSelect;
 export type NotificationRow = typeof notifications.$inferSelect;
+
+/**
+ * Per-database settings. `environment = production` marks the production database: a trigger (migration 0001) then
+ * refuses dev-verifier identities (`did:dev:*`), whatever process connects.
+ */
+export const platformSettings = pgTable("platform_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});

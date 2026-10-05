@@ -3,7 +3,8 @@
 import * as Sentry from "@sentry/nextjs";
 import { and, eq, gte, isNotNull } from "drizzle-orm";
 import type { ApplicationStatus } from "@/lib/application-status";
-import type { SessionUser } from "@/lib/auth/session";
+import { parseArrangerEmails, type SessionUser } from "@/lib/auth/session";
+import { serverEnv } from "@/lib/server/env";
 import { explainChainError } from "@/lib/chain/explain";
 import { ChainTxError } from "@/lib/chain/send";
 import type { Db } from "@/lib/db/client";
@@ -89,5 +90,5 @@ export const grantRoleAction = async (email: string, role: string) =>
 export const revokeRoleAction = async (userId: string, role: string) =>
   wf("Role removed", (a, db) => {
     if (!(ROLES as readonly string[]).includes(role)) throw new RequestError("Unknown role", 400);
-    return revokeRole(db, a, userId, role as Role);
+    return revokeRole(db, a, userId, role as Role, parseArrangerEmails(serverEnv().ARRANGER_EMAILS));
   });

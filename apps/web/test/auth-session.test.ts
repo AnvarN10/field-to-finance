@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { checkRole, parseArrangerEmails, resolveSession, signInWithToken, type PrivyPort } from "../src/lib/auth/session";
-import { userRoles, users, wallets } from "../src/lib/db/schema";
+import { platformSettings, userRoles, users, wallets } from "../src/lib/db/schema";
 import { testDb } from "./helpers/db";
 
 type Entry = { did: string; email: string | null; wallets?: string[]; expiresAt?: number };
@@ -40,13 +40,25 @@ describe("signInWithToken", () => {
     expect(user.roles).toEqual([]);
   });
 
-  it("bootstraps only on first sign-in, so a revoked arranger stays revoked", async () => {
+  it("recovers the arranger role on the next sign-in of a listed address that signed in before it was listed", async () => {
     const db = await testDb();
     const privy = fakePrivy({ t: { did: "did:privy:c", email: "ops@example.com" } });
-    const { user } = await signInWithToken(db, privy, "t", ["ops@example.com"]);
-    await db.delete(userRoles).where(eq(userRoles.userId, user.id));
+    const { user } = await signInWithToken(db, privy, "t", []);
+    expect(user.roles).toEqual([]);
     const again = await signInWithToken(db, privy, "t", ["ops@example.com"]);
-    expect(again.user.roles).toEqual([]);
+    expect(again.user.roles).toEqual(["arranger"]);
+    expect((await signInWithToken(db, privy, "t", ["ops@example.com"])).user.roles).toEqual(["arranger"]);
+  });
+
+  it("refuses dev identities when the database is marked production, in the app and in the database itself", async () => {
+    const db = await testDb();
+    const dev = fakePrivy({ "dev:x@example.com": { did: "did:dev:x@example.com", email: "x@example.com" } });
+    await db.insert(platformSettings).values({ key: "environment", value: "production" });
+    await expect(signInWithToken(db, dev, "dev:x@example.com", [])).rejects.toMatchObject({ status: 403 });
+    await expect(db.insert(users).values({ email: "y@example.com", privyDid: "did:dev:y@example.com" })).rejects.toThrow();
+    // Real Privy identities still sign in.
+    const real = fakePrivy({ t: { did: "did:privy:z", email: "z@example.com" } });
+    expect((await signInWithToken(db, real, "t", [])).user.email).toBe("z@example.com");
   });
 
   it("attaches a user pre-created by email (role granted before first sign-in) to the Privy DID", async () => {

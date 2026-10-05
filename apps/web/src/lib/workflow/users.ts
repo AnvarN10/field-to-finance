@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { normalizeEmail, rolesOf, type SessionUser } from "../auth/session";
 import type { Db } from "../db/client";
+import { isUniqueViolation } from "../db/errors";
 import { farmerProfiles, investorProfiles, ROLES, userRoles, users, type Role } from "../db/schema";
 import { RequestError } from "../errors";
 import { audit } from "./audit";
@@ -16,9 +17,16 @@ async function ensureProfile(db: Db, userId: string, role: Role): Promise<void> 
 /** "I am a farmer" / "I am an investor": granted at once; onboarding gates what the role can do. One cabinet per account. */
 export async function chooseRole(db: Db, user: SessionUser, role: "farmer" | "investor"): Promise<Role[]> {
   if (role !== "farmer" && role !== "investor") throw new RequestError("Choose farmer or investor.", 400);
+  const taken = () => new RequestError("Your account already has a cabinet. Ask an arranger to change it.", 409);
   const current = await rolesOf(db, user.id);
-  if (current.includes("farmer") || current.includes("investor")) throw new RequestError("Your account already has a cabinet. Ask an arranger to change it.", 409);
-  await db.insert(userRoles).values({ userId: user.id, role, grantedBy: user.id }).onConflictDoNothing();
+  if (current.includes("farmer") || current.includes("investor")) throw taken();
+  // Two parallel clicks both pass the check above; the unique index user_roles_one_self_cabinet refuses the second.
+  try {
+    await db.insert(userRoles).values({ userId: user.id, role, grantedBy: user.id });
+  } catch (e) {
+    if (isUniqueViolation(e)) throw taken();
+    throw e;
+  }
   await ensureProfile(db, user.id, role);
   await audit(db, { actorUserId: user.id, action: "role.choose", targetType: "user", targetId: user.id, payload: { role } });
   return rolesOf(db, user.id);
@@ -41,17 +49,26 @@ export async function grantRoleByEmail(db: Db, actor: SessionUser, email: string
   await notify(db, user.id, "role", `You have the ${role} role`, `An arranger gave your account access to the ${role} cabinet.`);
 }
 
-export async function revokeRole(db: Db, actor: SessionUser, userId: string, role: Role): Promise<void> {
+/**
+ * Removes a role. The last-arranger check and the delete run in one transaction that locks every arranger row, so two
+ * arrangers removing each other at the same time cannot leave the platform with none. `arrangerEmails` (ARRANGER_EMAILS)
+ * would grant the role back on the next sign-in, so those addresses are refused here.
+ */
+export async function revokeRole(db: Db, actor: SessionUser, userId: string, role: Role, arrangerEmails: string[] = []): Promise<void> {
   assertRole(actor, "arranger");
   assertUuid(userId, "User");
-  if (role === "arranger") {
-    if (userId === actor.id) throw new RequestError("You cannot remove your own arranger role.", 409);
-    const arrangers = await db.select({ userId: userRoles.userId }).from(userRoles).where(eq(userRoles.role, "arranger"));
-    if (arrangers.length <= 1 && arrangers.some((a) => a.userId === userId)) throw new RequestError("Keep at least one arranger.", 409);
-  }
-  const removed = await db.delete(userRoles).where(and(eq(userRoles.userId, userId), eq(userRoles.role, role))).returning();
-  if (!removed.length) throw new RequestError("The user does not have that role.", 404);
-  await audit(db, { actorUserId: actor.id, action: "role.revoke", targetType: "user", targetId: userId, payload: { role } });
+  await db.transaction(async (tx) => {
+    if (role === "arranger") {
+      if (userId === actor.id) throw new RequestError("You cannot remove your own arranger role.", 409);
+      const target = await tx.query.users.findFirst({ where: eq(users.id, userId) });
+      if (target && arrangerEmails.includes(target.email)) throw new RequestError("This address is in ARRANGER_EMAILS and gets the role back at sign-in. Remove it there first.", 409);
+      const arrangers = await tx.select({ userId: userRoles.userId }).from(userRoles).where(eq(userRoles.role, "arranger")).for("update");
+      if (arrangers.length <= 1 && arrangers.some((a) => a.userId === userId)) throw new RequestError("Keep at least one arranger.", 409);
+    }
+    const removed = await tx.delete(userRoles).where(and(eq(userRoles.userId, userId), eq(userRoles.role, role))).returning();
+    if (!removed.length) throw new RequestError("The user does not have that role.", 404);
+    await audit(tx as unknown as Db, { actorUserId: actor.id, action: "role.revoke", targetType: "user", targetId: userId, payload: { role } });
+  });
 }
 
 export interface UserWithRoles {
