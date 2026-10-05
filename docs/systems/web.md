@@ -44,6 +44,9 @@ Pool, Instrument, Farm Project, Field, Attestation, KYC Thaw, Shortfall, Cabinet
 - **Live pools for the pilot.** The create-pool form has a "Term sheet instrument" mode: issuer of record from KYC-approved farmers with waiting projects (`ChainReader.approvedWallets`), nominal, coupon, settlement mode, volume, tokenized share, elevator, laboratory and an optional demo interest backdate; the action stores the quality spec JSON in the bucket before `create_pool` + `set_instrument_terms`. Each term-sheet pool gets "5. Term sheet settlement": elect buyback or delivery, and record an elevator receipt or lab certificate (file to `documents/`, evidence JSON to `evidence/`, then `record_delivery`). "Fund redemption" uses the coupon and is disabled once delivery applies. New sections: farmer onboarding checklist (upload per requirement), field import (GeoJSON or KML, MultiPolygons split into fields, cadastral number and declared area per field, more than 5% area difference flagged, saved as a field set), and an arranger-only test-USDC mint up to $5,000,000 for demo investors (the public faucet stays at `FAUCET_USDC`).
 - **SCAS stub.** See [ADR 0012](../architecture/decisions/0012-scas-external-provider-stub.md) and the [field verification flow](../flows/field-verification.md).
 
+- **Hidden pools.** On-chain pools cannot be deleted. `HIDDEN_POOL_IDS` (comma-separated pool ids) hides test and superseded pools from the home page and `/pools` (`src/lib/listed-pools.ts`). A hidden pool still opens by direct link, still shows in a holder's portfolio and in the arranger cabinet. Since 2026-10-05 only the pilot pool 8 is listed.
+- **User transaction compute budget.** `buildV0` prepends its own compute unit limit and price (`src/lib/chain/send.ts`), so wallets do not inject a priority fee above the gas sponsor's cap.
+
 ## Important flows
 
 - [Primary subscription](../flows/primary-subscription.md)

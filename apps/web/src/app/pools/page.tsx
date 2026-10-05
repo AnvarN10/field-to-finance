@@ -3,6 +3,7 @@ import { PoolSummaryCard } from "@/components/pool/pool-summary-card";
 import { EmptyState, ErrorState } from "@/components/state";
 import { staggerDelay } from "@/lib/motion";
 import { getReader } from "@/lib/server/context";
+import { hiddenPoolIds, listedPools } from "@/lib/listed-pools";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Pools" };
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Pools" };
 export default async function PoolsPage() {
   let pools;
   try {
-    pools = await getReader().listPools();
+    pools = listedPools(await getReader().listPools(), hiddenPoolIds());
   } catch {
     return <ErrorState level={1} title="Could not load pools" body="Solana devnet did not answer. This is usually brief." retryHref="/pools" />;
   }

@@ -11,13 +11,14 @@ import { PoolSummaryCard } from "@/components/pool/pool-summary-card";
 import { formatYield } from "@/lib/format";
 import { landingStats } from "@/lib/landing-stats";
 import { getReader } from "@/lib/server/context";
+import { hiddenPoolIds, listedPools } from "@/lib/listed-pools";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const stats = await getReader()
     .listPools()
-    .then(landingStats)
+    .then((pools) => landingStats(listedPools(pools, hiddenPoolIds())))
     .catch(() => null);
   const featured = stats?.featured ?? null;
 
