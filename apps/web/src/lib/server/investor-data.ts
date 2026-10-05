@@ -6,6 +6,9 @@ import type { Db } from "../db/client";
 import { auditLog, wallets } from "../db/schema";
 import { claimableKg, deliveryOpen, payoutForAmount, settlementStatus, tokenCount } from "../instrument-terms";
 import { withYield } from "../format";
+import { effectiveElection, redemptionDue } from "@f2f/sdk";
+import type { GrainClaim } from "../../components/investor/grain-claims";
+import { vaultBalance } from "./cabinet-data";
 import { getReader } from "./context";
 import type { PositionRow } from "../../components/investor/positions";
 
@@ -54,6 +57,25 @@ export async function investorPortfolio(db: Db, user: { id: string }, now = Math
       });
     }
   });
+  // Buyback path: does the vault already hold what holders are owed? (one balance read per held pool)
+  const funded = new Map<string, boolean>();
+  for (const pos of positions) {
+    const p = byId.get(pos.poolId);
+    if (!p?.terms || p.status !== "Funded" || funded.has(p.poolId) || effectiveElection(p.terms, now, p.maturityTs) !== "Buyback") continue;
+    funded.set(p.poolId, (await vaultBalance(p.vault)) >= redemptionDue(BigInt(p.raisedAmount), { yieldBps: p.yieldBps, maturityTs: p.maturityTs }, p.terms));
+  }
+  for (const pos of positions) {
+    const f = funded.get(pos.poolId);
+    if (f !== undefined) pos.settlement = `${pos.settlement}. ${f ? "The buyback is funded in full." : "The buyback is not funded yet."}`;
+  }
+  const claims: GrainClaim[] = rows
+    .filter((r) => r.action === "tx.redeem-delivery" && typeof r.payload.pool === "string" && typeof r.payload.amount === "string")
+    .flatMap((r) => {
+      const p = byAddress.get(r.payload.pool as string);
+      const t = p?.terms;
+      if (!p || !t) return [];
+      return [{ id: r.id, at: r.createdAt, symbol: p.instrument?.symbol ?? `POOL-${p.poolId}`, poolId: p.poolId, kg: claimableKg(p, t, BigInt(r.payload.amount as string)).toString(), elevator: t.elevator, lab: t.lab, labPassed: t.labPassed, receiptHash: t.receiptHash, signature: r.txSignature }];
+    });
   const history: InvestorHistoryRow[] = rows.map((r) => {
     const pool = typeof r.payload.pool === "string" ? byAddress.get(r.payload.pool) : undefined;
     const amount = typeof r.payload.amount === "string" ? r.payload.amount : null;
@@ -68,5 +90,5 @@ export async function investorPortfolio(db: Db, user: { id: string }, now = Math
       signature: r.txSignature,
     };
   });
-  return { wallets: ws, states, positions, history, pools };
+  return { wallets: ws, states, positions, history, pools, claims };
 }

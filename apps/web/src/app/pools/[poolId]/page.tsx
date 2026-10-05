@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { InstrumentCard } from "@/components/pool/instrument-card";
+import { HarvestBlock } from "@/components/pool/harvest-block";
 import { InvestPanel } from "@/components/pool/invest-panel";
+import { SeasonTimeline } from "@/components/pool/season-timeline";
+import { settlementStatus } from "@/lib/instrument-terms";
+import { deliveryRecords } from "@/lib/season-data";
 import { ErrorState } from "@/components/state";
 import { getReader, getStore } from "@/lib/server/context";
 import { termSheetData } from "@/lib/server/term-sheet-data";
@@ -26,6 +30,13 @@ export default async function PoolPage({ params }: { params: Promise<{ poolId: s
   if (!detail) notFound();
   const { spec, requirements } = detail.terms ? await Promise.resolve().then(() => termSheetData(getStore(), detail)).catch(() => ({ spec: null, requirements: null })) : { spec: null, requirements: null };
   const symbol = detail.pool.instrument?.symbol ?? `POOL-${poolId}`;
+  const fieldCount = detail.projects.reduce((n, p) => n + p.fields.length, 0);
+  // Season and harvest degrade to nothing when devnet or the bucket does not answer; the term sheet still renders.
+  const [attestations, delivery] = await Promise.all([
+    fieldCount && detail.pool.status !== "Draft" ? getReader().poolAttestations(poolId).catch(() => null) : Promise.resolve(null),
+    deliveryRecords(getStore(), detail.terms).catch(() => ({ receipt: null, quality: null })),
+  ]);
+  const now = Math.floor(Date.now() / 1000);
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -40,6 +51,25 @@ export default async function PoolPage({ params }: { params: Promise<{ poolId: s
         </aside>
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <InstrumentCard detail={detail} cluster={serverEnv().SOLANA_CLUSTER} networkFee={fees?.networkFee ?? null} spec={spec} requirements={requirements} />
+          {attestations ? (
+            <section aria-labelledby="season-title" className="mt-8 flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <h2 id="season-title" className="text-xl font-semibold">
+                  Season
+                </h2>
+                <p className="text-sm text-muted-foreground">{`Satellite and field checks by the SCAS partner across ${fieldCount} fields.${detail.terms ? ` ${settlementStatus(detail.pool, detail.terms, now).label.replace(/\.$/, "")}.` : ""}`}</p>
+              </div>
+              <SeasonTimeline attestations={attestations} fieldCount={fieldCount} cluster={serverEnv().SOLANA_CLUSTER} />
+            </section>
+          ) : null}
+          {detail.terms && (delivery.receipt || delivery.quality) ? (
+            <section aria-labelledby="harvest-title" className="mt-8 flex flex-col gap-4">
+              <h2 id="harvest-title" className="text-xl font-semibold">
+                Harvest and quality
+              </h2>
+              <HarvestBlock elevator={detail.terms.elevator} lab={detail.terms.lab} receipt={delivery.receipt} quality={delivery.quality} />
+            </section>
+          ) : null}
         </div>
       </div>
     </div>

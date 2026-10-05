@@ -6,6 +6,7 @@ import { guardCabinet } from "@/components/cabinet/guard";
 import { HistoryTable } from "@/components/cabinet/history-table";
 import { Panel, primaryLink, Section, textLink } from "@/components/cabinet/section";
 import { Updates } from "@/components/cabinet/updates";
+import { GrainClaims } from "@/components/investor/grain-claims";
 import { Positions } from "@/components/investor/positions";
 import { INVESTOR_TABS } from "@/components/investor/tabs";
 import { ErrorState } from "@/components/state";
@@ -93,6 +94,12 @@ export default async function InvestorHome() {
               </li>
             ))}
           </ul>
+        </Section>
+      ) : null}
+
+      {portfolio.claims.length ? (
+        <Section title="Grain claims" description="Certificates for tokens burned for grain at the elevator.">
+          <GrainClaims claims={portfolio.claims} cluster={cluster} />
         </Section>
       ) : null}
 
