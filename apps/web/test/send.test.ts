@@ -1,6 +1,7 @@
-import { Keypair, SystemProgram, VersionedTransaction } from "@solana/web3.js";
+import { ComputeBudgetProgram, Keypair, SystemProgram, VersionedTransaction } from "@solana/web3.js";
 import { describe, expect, it, vi } from "vitest";
 import { ChainTxError, buildV0, bytesToBase64, sendServerTx, sendSkippingPreflight, simulate } from "../src/lib/chain/send";
+import { MAX_CU_PRICE_MICROLAMPORTS } from "../src/lib/chain/sponsor";
 
 const blockhash = Keypair.generate().publicKey.toBase58();
 const ix = (from = Keypair.generate().publicKey) => SystemProgram.transfer({ fromPubkey: from, toPubkey: Keypair.generate().publicKey, lamports: 1 });
@@ -15,6 +16,22 @@ describe("send", () => {
     expect(u.tx.message.staticAccountKeys[0]?.equals(payer)).toBe(true);
     const back = VersionedTransaction.deserialize(Buffer.from(bytesToBase64(u.tx.serialize()), "base64"));
     expect(back.message.recentBlockhash).toBe(blockhash);
+  });
+
+  it("sets its own compute budget so wallets do not inject a priority fee above the sponsor's cap", async () => {
+    const payer = Keypair.generate().publicKey;
+    const u = await buildV0({ getLatestBlockhash: async () => ({ blockhash, lastValidBlockHeight: 1 }) } as never, payer, [ix(payer)]);
+    const keys = u.tx.message.staticAccountKeys;
+    const cb = u.tx.message.compiledInstructions.filter((c) => keys[c.programIdIndex]?.equals(ComputeBudgetProgram.programId));
+    const price = cb.find((c) => c.data[0] === 3);
+    const limit = cb.find((c) => c.data[0] === 2);
+    expect(limit).toBeDefined();
+    expect(price).toBeDefined();
+    const micro = Buffer.from(price!.data).readBigUInt64LE(1);
+    expect(micro).toBeGreaterThan(0n);
+    expect(micro).toBeLessThanOrEqual(MAX_CU_PRICE_MICROLAMPORTS);
+    const last = u.tx.message.compiledInstructions.at(-1)!;
+    expect(keys[last.programIdIndex]?.equals(SystemProgram.programId)).toBe(true);
   });
 
   it("returns simulation errors and logs", async () => {

@@ -1,4 +1,4 @@
-import { TransactionMessage, VersionedTransaction, type Connection, type Keypair, type PublicKey, type TransactionInstruction } from "@solana/web3.js";
+import { ComputeBudgetProgram, TransactionMessage, VersionedTransaction, type Connection, type Keypair, type PublicKey, type TransactionInstruction } from "@solana/web3.js";
 import { extractLogs, messageOf } from "./explain";
 
 export interface UnsignedTx {
@@ -7,13 +7,25 @@ export interface UnsignedTx {
   lastValidBlockHeight: number;
 }
 
+/**
+ * Every user transaction carries its own compute budget. Without it Phantom injects a priority fee of its own,
+ * which can exceed the sponsor's cap (lib/chain/sponsor.ts) and gets the transaction refused at co-signing.
+ * The price stays well under MAX_CU_PRICE_MICROLAMPORTS; the limit covers the largest flow (register-project with 4 fields).
+ */
+export const USER_TX_CU_LIMIT = 600_000;
+export const USER_TX_CU_PRICE_MICROLAMPORTS = 1_000;
+
 export async function buildV0(
   connection: Pick<Connection, "getLatestBlockhash">,
   payer: PublicKey,
   ixs: TransactionInstruction[],
 ): Promise<UnsignedTx> {
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-  const message = new TransactionMessage({ payerKey: payer, recentBlockhash: blockhash, instructions: ixs }).compileToV0Message();
+  const message = new TransactionMessage({ payerKey: payer, recentBlockhash: blockhash, instructions: [
+    ComputeBudgetProgram.setComputeUnitLimit({ units: USER_TX_CU_LIMIT }),
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: USER_TX_CU_PRICE_MICROLAMPORTS }),
+    ...ixs,
+  ] }).compileToV0Message();
   return { tx: new VersionedTransaction(message), blockhash, lastValidBlockHeight };
 }
 
