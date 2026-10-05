@@ -54,7 +54,7 @@ export function RegistryTable({ rows }: { rows: RegistryRow[] }) {
               </td>
               <td className={`${td} text-right`}>{r.couponBps !== null ? formatYield(r.couponBps) : "–"}</td>
               <td className={`${td} whitespace-nowrap`}>{formatDateUtc(r.maturityTs)}</td>
-              <td className={`${td} text-right`}>{r.holders}</td>
+              <td className={`${td} text-right`}>{r.holders ?? <span aria-label="Not available right now">–</span>}</td>
             </tr>
           ))}
         </tbody>

@@ -15,9 +15,15 @@ export async function regulatorData(db: Db, f: RegulatorFilters = {}): Promise<{
   const reader = getReader();
   const pools = (await reader.listPools()).filter((p) => p.status !== "Draft");
   const raw: { poolId: string; wallet: string; balance: string }[] = [];
-  for (const p of pools) for (const h of await reader.holders(p.mint)) raw.push({ poolId: p.poolId, ...h });
-  const holders = await holderRows(db, raw);
   const counts = new Map<string, number>();
+  for (const p of pools) {
+    // A rate-limited holder read leaves that pool's count unknown instead of failing the registry.
+    const list = await reader.holders(p.mint).catch(() => null);
+    if (!list) continue;
+    counts.set(p.poolId, 0);
+    for (const h of list) raw.push({ poolId: p.poolId, ...h });
+  }
+  const holders = await holderRows(db, raw);
   const byIin = new Map<string, Set<string>>();
   for (const h of holders) {
     counts.set(h.poolId, (counts.get(h.poolId) ?? 0) + 1);

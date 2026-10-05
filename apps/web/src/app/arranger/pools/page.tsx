@@ -53,7 +53,7 @@ export default async function LivePools() {
                 </h2>
                 <PoolStatusBadge status={d.pool.status} />
               </div>
-              <LifecycleBoard poolId={d.pool.poolId} phases={lifecycle(d, now, data.vaults.get(d.pool.poolId))} />
+              <LifecycleBoard poolId={d.pool.poolId} phases={lifecycle(d, now, data.vaults.get(d.pool.poolId))} compact />
             </li>
           ))}
         </ul>

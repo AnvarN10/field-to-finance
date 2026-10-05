@@ -21,6 +21,11 @@ describe("regulator registry", () => {
     expect(rows[0]).toMatchObject({ poolId: "9", symbol: "DWHT27", status: "Funded", issuerWallet: FARMER_WALLET, issuerLegalName: "Demo Farm LLP", issuerBin: "000000000000", couponBps: 1200, holders: 3 });
   });
 
+  it("a pool whose holders could not be read shows an unknown count, not zero", async () => {
+    const rows = await registryRows(db, [poolView({ terms: terms() })], new Map());
+    expect(rows[0]?.holders).toBeNull();
+  });
+
   it("holders carry category and IIN, never email or name", async () => {
     const rows = await holderRows(db, [{ poolId: "9", wallet: INVESTOR_WALLET, balance: "100000000" }, { poolId: "9", wallet: "Unlinked1111111111111111111111111111111111", balance: "5" }]);
     expect(rows).toEqual([

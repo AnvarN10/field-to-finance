@@ -211,7 +211,7 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
       }),
 
     holders: (mint) =>
-      cache.get(`holders:${mint}`, async () => {
+      lists.get(`holders:${mint}`, async () => {
         const key = parseKey(mint);
         if (!key) throw new RequestError("mint is not a valid public key", 400);
         let accounts: ReturnType<typeof unpackAccount>[];

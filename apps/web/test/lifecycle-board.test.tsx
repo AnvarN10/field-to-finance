@@ -33,6 +33,12 @@ describe("LifecycleBoard", () => {
     expect(screen.getByRole("button", { name: "Disburse the proceeds" })).toBeInTheDocument();
   });
 
+  it("in a list it names the arranger's step without a button", () => {
+    render(<LifecycleBoard poolId="9" phases={phases({ action: "disburse" })} compact />);
+    expect(screen.getByText("Disburse the proceeds")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("names the owner and shows no button when another role acts", () => {
     render(<LifecycleBoard poolId="9" phases={phases({ owner: "lab", next: "Record a passing lab protocol" })} />);
     expect(screen.getByText("Laboratory")).toBeInTheDocument();

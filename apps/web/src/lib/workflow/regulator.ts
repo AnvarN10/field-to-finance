@@ -19,7 +19,8 @@ export interface RegistryRow {
   couponBps: number | null;
   settlementMode: string | null;
   maturityTs: number;
-  holders: number;
+  /** null when the holders could not be read (RPC rate limit). */
+  holders: number | null;
 }
 
 export async function registryRows(db: Db, pools: PoolView[], holderCounts: Map<string, number>): Promise<RegistryRow[]> {
@@ -38,7 +39,7 @@ export async function registryRows(db: Db, pools: PoolView[], holderCounts: Map<
     couponBps: p.terms?.couponBpsAnnual ?? null,
     settlementMode: p.terms?.settlementMode ?? null,
     maturityTs: p.maturityTs,
-    holders: holderCounts.get(p.poolId) ?? 0,
+    holders: holderCounts.get(p.poolId) ?? null,
   }));
 }
 
