@@ -8,9 +8,9 @@ import { LogoMark } from "./logo-mark";
 
 const NAV = [
   { href: "/pools", label: "Pools" },
-  { href: "/portfolio", label: "Portfolio" },
+  { href: "/investor", label: "Investor" },
   { href: "/farmer", label: "Farmer" },
-  { href: "/admin", label: "Admin" },
+  { href: "/arranger", label: "Arranger" },
 ];
 
 const isActive = (path: string, href: string) => path === href || path.startsWith(`${href}/`);

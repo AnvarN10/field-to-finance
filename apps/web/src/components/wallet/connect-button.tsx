@@ -31,7 +31,10 @@ export function ConnectButton() {
 }
 
 /** Pages whose body already shows a Connect wallet call to action while no wallet is connected. */
-export const pageHasConnect = (pathname: string) => /^\/pools\/[^/]+$/.test(pathname) || pathname === "/portfolio";
+export const pageHasConnect = (pathname: string) => /^\/pools\/[^/]+$/.test(pathname) || pathname === "/investor/onboarding";
+
+/** Farmers and arrangers sign in by email and never need the investor wallet button. */
+const EMAIL_ONLY = /^\/(farmer|arranger|sign-in)(\/|$)/;
 
 /**
  * Header slot: farmers sign in by email on /farmer, so the investor wallet button stays out of their way there.
@@ -41,7 +44,7 @@ export const pageHasConnect = (pathname: string) => /^\/pools\/[^/]+$/.test(path
 export function HeaderWalletButton() {
   const pathname = usePathname() ?? "/";
   const { connected } = useWallet();
-  if (pathname.startsWith("/farmer")) return null;
+  if (EMAIL_ONLY.test(pathname)) return null;
   const duplicate = !connected && pageHasConnect(pathname);
   return (
     <span data-phone-hidden={duplicate || undefined} className={duplicate ? "max-sm:hidden" : "contents"}>

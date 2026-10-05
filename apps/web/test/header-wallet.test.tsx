@@ -15,8 +15,8 @@ describe("HeaderWalletButton", () => {
     expect(container).not.toBeEmptyDOMElement();
   });
 
-  it("hides it on the farmer page, where sign-in is by email", () => {
-    pathname = "/farmer";
+  it.each(["/farmer", "/farmer/applications/1", "/arranger", "/sign-in"])("hides it on %s, where sign-in is by email", (p) => {
+    pathname = p;
     const { container } = render(<HeaderWalletButton />);
     expect(container).toBeEmptyDOMElement();
   });
@@ -37,7 +37,7 @@ describe("one Connect wallet button at phone width", () => {
     expect(a.container.firstElementChild).not.toHaveClass("max-sm:hidden");
     a.unmount();
     connected = true;
-    pathname = "/portfolio";
+    pathname = "/investor/onboarding";
     const b = render(<HeaderWalletButton />);
     expect(b.container.firstElementChild).not.toHaveClass("max-sm:hidden");
     connected = false;
@@ -45,7 +45,8 @@ describe("one Connect wallet button at phone width", () => {
 
   it("knows which pages carry a connect button", () => {
     expect(pageHasConnect("/pools/7")).toBe(true);
-    expect(pageHasConnect("/portfolio")).toBe(true);
+    expect(pageHasConnect("/investor/onboarding")).toBe(true);
+    expect(pageHasConnect("/portfolio")).toBe(false);
     expect(pageHasConnect("/pools")).toBe(false);
     expect(pageHasConnect("/fields/abc")).toBe(false);
   });
