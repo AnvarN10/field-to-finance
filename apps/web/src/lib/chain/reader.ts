@@ -41,6 +41,8 @@ export interface ChainReader {
   projectsByProducer(producer: string): Promise<ProjectWithFields[]>;
   unpooledProjects(): Promise<ProjectWithFields[]>;
   investor(wallet: string): Promise<InvestorState>;
+  /** Owners of a non-zero balance of an Instrument mint (Token-2022 accounts), largest first. */
+  holders(mint: string): Promise<{ wallet: string; balance: string }[]>;
   /** Every Attestation on the pool's projects (season timeline), oldest first. */
   poolAttestations(poolId: string): Promise<AttestationView[]>;
   /** FeeConfig plus the treasury's USDC balance; null until fees are configured. */
@@ -206,6 +208,18 @@ export function createChainReader({ program, connection, usdcMint, ttlMs = 5_000
           solLamports: lamports,
           positions,
         };
+      }),
+
+    holders: (mint) =>
+      cache.get(`holders:${mint}`, async () => {
+        const key = parseKey(mint);
+        if (!key) throw new RequestError("mint is not a valid public key", 400);
+        const rows = await connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, { commitment: "confirmed", filters: [{ memcmp: { offset: 0, bytes: key.toBase58() } }] });
+        return rows
+          .map((r) => unpackAccount(r.pubkey, r.account, TOKEN_2022_PROGRAM_ID))
+          .filter((a) => a.amount > 0n)
+          .sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0))
+          .map((a) => ({ wallet: a.owner.toBase58(), balance: a.amount.toString() }));
       }),
 
     poolAttestations: (poolId) =>

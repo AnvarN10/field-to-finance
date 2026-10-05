@@ -183,4 +183,19 @@ describe("ChainReader", () => {
       treasuryUsdc: "3500000",
     });
   });
+
+  it("lists a mint's holders with a balance, owner wallet first, from Token-2022 accounts", async () => {
+    const { reader, connection } = await setup();
+    const mint = Keypair.generate().publicKey;
+    const a = Keypair.generate().publicKey;
+    const b = Keypair.generate().publicKey;
+    const spy = vi.spyOn(connection, "getProgramAccounts").mockResolvedValue([
+      { pubkey: Keypair.generate().publicKey, account: tokenAccount(mint, a, 300n, false, TOKEN_2022_PROGRAM_ID) },
+      { pubkey: Keypair.generate().publicKey, account: tokenAccount(mint, b, 0n, true, TOKEN_2022_PROGRAM_ID) },
+    ] as never);
+    expect(await reader.holders(mint.toBase58())).toEqual([{ wallet: a.toBase58(), balance: "300" }]);
+    const [programId, opts] = spy.mock.calls[0] as unknown as [PublicKey, { filters: { memcmp: { offset: number } }[] }];
+    expect(programId.equals(TOKEN_2022_PROGRAM_ID)).toBe(true);
+    expect(opts.filters[0]?.memcmp.offset).toBe(0);
+  });
 });
