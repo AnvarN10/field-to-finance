@@ -17,5 +17,7 @@ export default defineConfig({
     include: ["test/**/*.test.{ts,tsx}"],
     environment: "node",
     setupFiles: ["test/setup.ts"],
+    // PGlite workflow walks migrate a fresh database per test; under a full parallel run they can pass 5 s.
+    testTimeout: 15_000,
   },
 });
