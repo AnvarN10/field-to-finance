@@ -19,3 +19,4 @@ Only `Accepted` ADRs are current guidance. Decisions are human-owned; agents dra
 | [0013](0013-platform-fees-and-gas-sponsorship.md) | Accepted | Platform fees (arrangement, network, mint) and gas sponsorship |
 | [0014](0014-farmer-issuer-of-record-and-hybrid-instrument-terms.md) | Accepted | Farmer as issuer of record; InstrumentTerms with whole tokens, Act/360 coupon and hybrid buyback/delivery settlement |
 | [0015](0015-basic-auth-on-the-pilot-platform.md) | Accepted | HTTP Basic Auth on the whole pilot platform, only `/api/health` public |
+| [0016](0016-privy-role-login-and-postgres-for-off-chain-workflow.md) | Accepted | Privy email login with roles in Postgres; farmer, investor and arranger cabinets; off-chain workflow data in Postgres on Railway |

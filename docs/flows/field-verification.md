@@ -10,14 +10,14 @@ A Producer uploads GeoJSON in the farmer view.
 
 ## Participants
 
-Producer (Privy embedded wallet), web app (`/api/polygons`, `/api/tx/register-project`, admin console), bucket `f2f-evidence`, SCAS stub with the SCAS key, the Program.
+Producer (Privy embedded wallet), web app (`/api/polygons`, `/api/tx/register-project`, arranger cabinet), bucket `f2f-evidence`, SCAS stub with the SCAS key, the Program.
 
 ## Step-by-step flow
 
 1. The browser splits the file into one Polygon per field (MultiPolygon is rejected) and posts each to `/api/polygons`.
 2. The server normalizes the polygon with `@f2f/sdk` (unwrap Feature, drop altitude, round to 7 decimals, close rings), rejects self-crossing or out-of-range boundaries, computes the geodesic area, and stores `polygons/<polygonHash>.json`.
 3. The Producer confirms declared areas and the financing request; the server builds `register_project` plus one `register_field(polygonHash, area_ha_x100)` per field and simulates it; the Producer signs.
-4. In the admin console, "Verify all fields" runs the SCAS stub for every unverified field of every project not in a pool.
+4. In the arranger cabinet, "Verify fields with the SCAS stub" on the application (field verification step) runs the SCAS stub for the application's project; "Verify all fields" under Live pools, Manual pilot tools, covers every unverified field of every project not in a pool.
 5. For each field the stub reads `attestation_count`, writes the stub evidence to `evidence/<sha256>.json`, then signs `record_attestation(FieldVerified, Pass, hash, uri, 0, now)`. The Program sets the field verified.
 6. The field page shows the boundary over satellite imagery and the timeline with the evidence link and the stub badge.
 
@@ -52,7 +52,7 @@ Field boundaries become public through `/api/polygons/<hash>`. Use demo boundari
 
 ## Observability and debugging
 
-The admin console lists unverified fields; batch failures name the field. GlitchTip reports server errors.
+The arranger cabinet lists unverified fields; batch failures name the field. GlitchTip reports server errors.
 
 ## Testing notes
 
@@ -63,7 +63,7 @@ The admin console lists unverified fields; batch failures name the field. Glitch
 - [geojson-upload.tsx](../../apps/web/src/components/farmer/geojson-upload.tsx)
 - [polygons.ts](../../apps/web/src/lib/polygons.ts)
 - [scas-stub.ts](../../apps/web/src/lib/scas-stub.ts)
-- [admin/actions.ts](../../apps/web/src/app/admin/actions.ts)
+- [arranger/actions.ts](../../apps/web/src/app/arranger/actions.ts), [arranger/workflow-actions.ts](../../apps/web/src/app/arranger/workflow-actions.ts)
 
 ## Related docs
 

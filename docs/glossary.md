@@ -4,6 +4,10 @@
 
 Interest day count of the pilot term sheet: interest = principal × annual coupon × actual days / 360. Days are whole days from the interest start to maturity. The program floors the result to a USDC base unit.
 
+## Application
+
+A farmer's request to finance part of a harvest: crop, grade, volume, tokenized share, amount, proposed coupon, season, elevator and laboratory, with the term sheet documents and the registered Farm Project. It moves through the issuance pipeline to a published Pool; from `open` on its status follows the Pool on-chain. Stored in Postgres.
+
 ## Arrangement Fee
 
 Share of a Farm Project's requested amount, in basis points per Pool, that the Producer pays for arranging the financing. Withheld on-chain at disbursement and sent to the Treasury. Set by the Issuer while the Pool is Draft, capped by FeeConfig and by the Program at 10%.
@@ -19,6 +23,10 @@ A statement about a Field signed by the SCAS key: the field exists with given bo
 ## Buyback
 
 The issuer's right under a Hybrid Instrument to settle in cash: the issuer elects buyback no later than maturity and funds principal plus coupon, and holders redeem their tokens for USDC.
+
+## Cabinet
+
+A role's own area of the web app after sign-in: farmer issuer (`/farmer`), investor (`/investor`), arranger (`/arranger`).
 
 ## Clearing
 
@@ -63,6 +71,10 @@ The legal entity that issues the Instrument and carries the obligations under it
 ## Issuer of Record
 
 The party that issues a Pool's Instrument, stored as `Pool.issuer`. For pilot pools it is the farmer's wallet, which must have passed platform KYC; for older pools it is the platform key.
+
+## Key Features Document
+
+KFD. A one-page summary of a Pool's terms and main risks that an investor accepts once per Pool before the first subscription. Its SHA-256 is recorded with the acceptance; a change of terms needs a new acceptance.
 
 ## KYC Thaw
 
