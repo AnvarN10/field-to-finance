@@ -12,6 +12,8 @@ export interface StoredDocInput {
 export interface ArrangerChain {
   /** Platform KYC approval (compliance key). Null when the wallet was already approved: nothing was sent. */
   approveKyc(wallet: string): Promise<string | null>;
+  /** revoke_investor (compliance key) in every pool where the wallet holds an Instrument account, or one pool if none. */
+  revokeKyc(wallet: string): Promise<string[]>;
   project(address: string): Promise<ProjectWithFields | null>;
   /** SCAS-stub FieldVerified attestations for the project's unverified fields. */
   verifyFields(project: ProjectWithFields): Promise<string[]>;

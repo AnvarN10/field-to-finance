@@ -5,7 +5,9 @@ import { storeQualitySpec } from "../pilot-docs";
 import { verifyAllFields, type StubDeps } from "../scas-stub";
 import type { BlobStore } from "../store";
 import type { ArrangerChain } from "../workflow/ports";
-import { addProject, approveInvestor, createPool, nextPoolId, openPool, type OpsContext } from "./admin-ops";
+import { RequestError } from "../errors";
+import { addProject, approveInvestor, createPool, nextPoolId, openPool, revokeInvestor, type OpsContext } from "./admin-ops";
+import { instrumentAta } from "./ix";
 import { fieldsOfProject } from "./filters";
 import { toFieldView, toProjectView, type PoolDetail } from "./views";
 
@@ -37,6 +39,20 @@ export function makeArrangerChain(d: ArrangerChainDeps): ArrangerChain {
         // Approval is platform-level and permanent until revoked: a repeat costs nothing.
         if (await ctx.isKycApproved(key)) return null;
         return approveInvestor(ctx, key);
+      }),
+    revokeKyc: (wallet) =>
+      tx(async () => {
+        const ctx = d.ops();
+        const key = new PublicKey(wallet);
+        const pools = (await d.program.account.pool.all()).sort((a, b) => a.account.poolId.cmp(b.account.poolId));
+        if (!pools.length) throw new RequestError("No pool exists to record the revocation against.", 409);
+        const held: bigint[] = [];
+        for (const p of pools) if (await ctx.accountExists(instrumentAta(p.account.mint, key))) held.push(BigInt(p.account.poolId.toString()));
+        // revoke_investor takes a pool to freeze in; with no holdings any pool records the revocation.
+        const targets = held.length ? held : [BigInt((pools[0] as (typeof pools)[number]).account.poolId.toString())];
+        const signatures: string[] = [];
+        for (const id of targets) signatures.push(await revokeInvestor(ctx, id, key));
+        return signatures;
       }),
     project: async (address) => {
       const key = new PublicKey(address);

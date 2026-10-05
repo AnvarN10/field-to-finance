@@ -30,6 +30,8 @@ export const questionnaireInput = z
 export const investorKycInput = z.object({
   fullName: z.string().trim().min(2, "enter your full name").max(80),
   country: z.enum(COUNTRIES, { error: "choose a country" }),
+  /** Kazakhstan individual identification number; optional, kept in Postgres for compliance and the regulator. */
+  iin: z.string().trim().regex(/^\d{12}$/, "the IIN has 12 digits").optional(),
 });
 
 async function profileOf(db: Db, userId: string): Promise<InvestorProfileRow | undefined> {

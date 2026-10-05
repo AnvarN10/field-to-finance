@@ -24,13 +24,13 @@ const actions = await import("../src/app/arranger/workflow-actions");
 describe("arranger workflow actions", () => {
   it("refuse a signed-out caller", async () => {
     actor = null;
-    expect(await actions.decideInvestorKycAction(inv.id, "approved", null)).toMatchObject({ ok: false, error: { title: "Your session expired. Sign in again." } });
+    expect(await actions.grantRoleAction("x@example.com", "farmer")).toMatchObject({ ok: false, error: { title: "Your session expired. Sign in again." } });
     actor = ops;
   });
 
-  it("approve investor KYC and return the on-chain signatures written during the action", async () => {
-    const r = await actions.decideInvestorKycAction(inv.id, "approved", null);
-    expect(r).toMatchObject({ ok: true, message: "Investor KYC approved", signatures: [`sig-kyc-${INVESTOR_WALLET.slice(0, 4)}`] });
+  it("grant a service role and refuse an unknown one", async () => {
+    expect(await actions.grantRoleAction("co@example.com", "compliance")).toMatchObject({ ok: true, message: "Role granted to co@example.com" });
+    expect(await actions.grantRoleAction("co@example.com", "superuser")).toMatchObject({ ok: false, error: { title: "Unknown role" } });
   });
 
   it("grant a role by email and refuse revoking your own arranger role", async () => {

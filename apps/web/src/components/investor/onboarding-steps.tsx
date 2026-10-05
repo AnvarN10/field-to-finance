@@ -162,7 +162,7 @@ export function OnboardingSteps({ userId, state }: { userId: string; state: Inve
         ) : state.kycStatus === "approved" ? (
           <p className="text-sm text-muted-foreground">Approved. Your linked wallets carry the platform KYC record on-chain.</p>
         ) : state.kycStatus === "pending" ? (
-          <p className="text-sm text-muted-foreground">An arranger is reviewing your details. This is a demo check: no documents or provider are involved.</p>
+          <p className="text-sm text-muted-foreground">Compliance is reviewing your details. This is a demo check: no documents or provider are involved.</p>
         ) : (
           <form
             noValidate
@@ -171,7 +171,10 @@ export function OnboardingSteps({ userId, state }: { userId: string; state: Inve
               e.preventDefault();
               const f = new FormData(e.currentTarget);
               kyc.run(
-                () => submitKycAction({ fullName: String(f.get("fullName") ?? ""), country: String(f.get("country") ?? "") }),
+                () => {
+                  const iin = String(f.get("iin") ?? "").trim();
+                  return submitKycAction({ fullName: String(f.get("fullName") ?? ""), country: String(f.get("country") ?? ""), ...(iin ? { iin } : {}) });
+                },
                 (err) => {
                   const p = fieldErrors(err);
                   setKErrors(p.fields);
@@ -195,8 +198,9 @@ export function OnboardingSteps({ userId, state }: { userId: string; state: Inve
                 </select>
                 {kErrors.country ? <span className="text-xs font-normal text-destructive">{kErrors.country}</span> : null}
               </label>
+              <TextField label="IIN (optional)" name="iin" inputMode="numeric" maxLength={12} autoComplete="off" hint="Kazakhstan residents: 12 digits" error={kErrors.iin} />
             </div>
-            <p className="text-xs text-muted-foreground">Kept in the platform's private database for the arranger's review. Never on-chain, never in analytics.</p>
+            <p className="text-xs text-muted-foreground">Kept in the platform's private database for compliance and the regulator. Never on-chain, never in analytics.</p>
             {kyc.error ? (
               <p role="alert" className="text-sm text-destructive">
                 {kyc.error}

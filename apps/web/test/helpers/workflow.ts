@@ -48,6 +48,10 @@ export function fakeChain(over: Partial<ArrangerChain> = {}) {
       calls.push(`approveKyc:${wallet}`);
       return `sig-kyc-${wallet.slice(0, 4)}`;
     },
+    async revokeKyc(wallet) {
+      calls.push(`revokeKyc:${wallet}`);
+      return [`sig-revoke-${wallet.slice(0, 4)}`];
+    },
     async project(address) {
       calls.push(`project:${address}`);
       return project(verified ? { verifiedFieldCount: 2 } : {});

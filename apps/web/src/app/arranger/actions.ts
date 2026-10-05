@@ -51,7 +51,7 @@ import { audit } from "@/lib/workflow/audit";
 export type ActionResult = { ok: true; message: string; signatures: string[] } | { ok: false; error: ExplainedError; logs: string[] };
 
 /** What the audit log records for an action: the action name and what it acted on. */
-type AuditMeta = { action: string; targetType: string; targetId: string; payload?: Record<string, unknown> };
+type AuditMeta = { action: string; targetType: string; targetId: string; payload?: Record<string, unknown>; actingRole?: string };
 
 /**
  * Every arranger action: role guard first (Postgres-backed, per request), then the work, then an audit row with the
@@ -156,10 +156,10 @@ export const sweepAction = async (poolId: string) =>
   run(pool(poolId, "pool.sweep"), async () => ({ message: "Vault remainder returned to the Issuer", signatures: [await sweep(opsContext(), id(poolId))] }));
 
 export const approveInvestorAction = async (wallet: string) =>
-  run({ action: "investor_kyc.approve_wallet", targetType: "wallet", targetId: wallet }, async () => ({ message: "Investor approved for every pool; accounts thaw on first subscription", signatures: [await approveInvestor(opsContext(), new PublicKey(wallet))] }));
+  run({ action: "investor_kyc.approve_wallet", targetType: "wallet", targetId: wallet, actingRole: "compliance" }, async () => ({ message: "Investor approved for every pool; accounts thaw on first subscription", signatures: [await approveInvestor(opsContext(), new PublicKey(wallet))] }));
 
 export const revokeInvestorAction = async (poolId: string, wallet: string) =>
-  run({ action: "investor_kyc.revoke", targetType: "wallet", targetId: wallet, payload: { poolId } }, async () => ({ message: "Investor revoked; account frozen", signatures: [await revokeInvestor(opsContext(), id(poolId), new PublicKey(wallet))] }));
+  run({ action: "investor_kyc.revoke", targetType: "wallet", targetId: wallet, payload: { poolId }, actingRole: "compliance" }, async () => ({ message: "Investor revoked; account frozen", signatures: [await revokeInvestor(opsContext(), id(poolId), new PublicKey(wallet))] }));
 
 // ---- Term-sheet instruments (ADR 0014) ----
 

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionButton } from "@/components/admin/action-button";
 import { AuditTable } from "@/components/arranger/audit-table";
-import { Decision } from "@/components/arranger/decision";
 import { DocumentReview } from "@/components/arranger/document-review";
 import { RejectApplication } from "@/components/arranger/reject-application";
 import { ARRANGER_TABS } from "@/components/arranger/tabs";
@@ -26,7 +25,7 @@ import { getDb } from "@/lib/server/db";
 import { serverEnv } from "@/lib/server/env";
 import { termDefaults } from "@/lib/term-defaults";
 import { applicationDetail } from "@/lib/workflow/arranger";
-import { advanceAction, decideFarmerKycAction, publishAction, verifyFieldsAction } from "../../workflow-actions";
+import { advanceAction, publishAction } from "../../workflow-actions";
 
 export const metadata: Metadata = { title: "Application review", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -94,12 +93,12 @@ export default async function ArrangerApplication({ params }: { params: Promise<
                   <p className="text-sm text-muted-foreground">The farmer has not uploaded KYC documents yet.</p>
                 )}
                 {kyc === "pending" ? (
-                  <Decision
-                    approveLabel="Approve issuer KYC"
-                    approve={decideFarmerKycAction.bind(null, d.farmer.id, "approved", null)}
-                    reject={decideFarmerKycAction.bind(null, d.farmer.id, "rejected")}
-                    signedBy="Compliance"
-                  />
+                  <p className="text-sm text-muted-foreground">
+                    Compliance decides issuer KYC.{" "}
+                    <Link href="/compliance" className={textLink}>
+                      Open the compliance cabinet
+                    </Link>
+                  </p>
                 ) : null}
                 <ActionButton
                   label="Move to field verification"
@@ -129,7 +128,14 @@ export default async function ArrangerApplication({ params }: { params: Promise<
                 ) : (
                   <p className="text-sm text-destructive">The farm project was not found on-chain.</p>
                 )}
-                <ActionButton label="Verify fields with the SCAS stub" role="SCAS stub" action={verifyFieldsAction.bind(null, app.id)} disabled={verified || !project} disabledReason={verified ? "Every field is verified" : undefined} />
+                {!verified ? (
+                  <p className="text-sm text-muted-foreground">
+                    The SCAS partner verifies the fields.{" "}
+                    <Link href="/scas" className={textLink}>
+                      Open the SCAS cabinet
+                    </Link>
+                  </p>
+                ) : null}
                 <ActionButton
                   label="Move to structuring"
                   role="Arranger"

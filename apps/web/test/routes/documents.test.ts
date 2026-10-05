@@ -11,6 +11,8 @@ const db = await testDb();
 const owner = await makeUser(db, "farmer@example.com", ["farmer"]);
 const other = await makeUser(db, "other@example.com", ["farmer"]);
 const ops = await makeUser(db, "ops@example.com", ["arranger"]);
+const officer = await makeUser(db, "co@example.com", ["compliance"]);
+const regulator = await makeUser(db, "reg@example.com", ["regulator"]);
 let user: unknown = null;
 vi.mock("@/lib/server/context", () => ({ getStore: () => store }));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => db }));
@@ -45,6 +47,18 @@ describe("GET /api/documents/[hash]", () => {
   it("answers 404 to another farmer, as if the document did not exist", async () => {
     user = other;
     expect((await get()).status).toBe(404);
+  });
+
+  it("serves compliance the issuer KYC documents only; other service roles get 404", async () => {
+    const kycBytes = new TextEncoder().encode("%PDF-1.7 charter");
+    const kycHash = toHex(sha256(kycBytes));
+    await db.insert(documents).values({ ownerUserId: owner.id, kind: "kyc", sha256: kycHash, bucketKey: documentKey(kycHash), contentType: "application/pdf", size: kycBytes.length });
+    await store.put(documentKey(kycHash), kycBytes, "application/pdf");
+    user = officer;
+    expect((await get(kycHash)).status).toBe(200);
+    expect((await get()).status).toBe(404);
+    user = regulator;
+    expect((await get(kycHash)).status).toBe(404);
   });
 
   it("rejects a malformed hash", async () => {
