@@ -7,7 +7,7 @@ import { CabinetShell } from "@/components/cabinet/cabinet-shell";
 import { guardCabinet } from "@/components/cabinet/guard";
 import { Panel, Section } from "@/components/cabinet/section";
 import { ErrorState } from "@/components/state";
-import { consoleData } from "@/lib/server/console-data";
+import { treasuryData } from "@/lib/server/console-data";
 import { serverEnv } from "@/lib/server/env";
 
 export const metadata: Metadata = { title: "Fees and treasury", robots: { index: false } };
@@ -18,7 +18,7 @@ export default async function TreasuryPage() {
   if ("element" in g) return g.element;
   let data;
   try {
-    data = await consoleData();
+    data = await treasuryData();
   } catch {
     return <ErrorState level={1} title="Could not load devnet state" body="Solana devnet did not answer." retryHref="/arranger/treasury" />;
   }

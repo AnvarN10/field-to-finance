@@ -44,9 +44,8 @@ import { serverEnv } from "@/lib/server/env";
 import type { SessionUser } from "@/lib/auth/session";
 import type { Db } from "@/lib/db/client";
 import { requireActionRole } from "@/lib/server/auth";
-import { arrangerChain } from "@/lib/server/chain-port";
 import { getDb } from "@/lib/server/db";
-import { refreshChainStatuses } from "@/lib/workflow/arranger";
+import { refreshStatuses } from "@/lib/server/status-refresh";
 import { audit } from "@/lib/workflow/audit";
 
 export type ActionResult = { ok: true; message: string; signatures: string[] } | { ok: false; error: ExplainedError; logs: string[] };
@@ -75,7 +74,7 @@ async function run(meta: AuditMeta, fn: () => Promise<{ message: string; signatu
     return { ok: false, error: explainChainError({ error: e }), logs: [] };
   } finally {
     invalidateReads();
-    if (db) await refreshChainStatuses(db, arrangerChain(), Math.floor(Date.now() / 1000)).catch(() => 0);
+    if (db) await refreshStatuses(db, true);
   }
 }
 

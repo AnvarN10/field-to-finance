@@ -6,9 +6,9 @@ import { CabinetShell } from "@/components/cabinet/cabinet-shell";
 import { guardCabinet } from "@/components/cabinet/guard";
 import { ErrorState } from "@/components/state";
 import { APPLICATION_STATUSES, STATUS_INFO, type ApplicationStatus } from "@/lib/application-status";
-import { arrangerChain } from "@/lib/server/chain-port";
 import { getDb } from "@/lib/server/db";
-import { farmerKycQueue, investorQueue, pipeline, refreshChainStatuses } from "@/lib/workflow/arranger";
+import { refreshStatuses } from "@/lib/server/status-refresh";
+import { farmerKycQueue, investorQueue, pipeline } from "@/lib/workflow/arranger";
 
 export const metadata: Metadata = { title: "Arranger cabinet", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export default async function ArrangerHome({ searchParams }: { searchParams: Pro
   let rows, farmerKyc, investorKyc;
   try {
     const db = await getDb();
-    await refreshChainStatuses(db, arrangerChain(), Math.floor(Date.now() / 1000)).catch(() => 0);
+    await refreshStatuses(db);
     [rows, farmerKyc, investorKyc] = await Promise.all([pipeline(db), farmerKycQueue(db), investorQueue(db)]);
   } catch {
     return <ErrorState level={1} title="Your cabinet is unavailable" body="The pipeline could not be loaded. Try again in a minute." retryHref="/arranger" />;

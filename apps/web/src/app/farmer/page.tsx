@@ -11,11 +11,10 @@ import { Obligations, type ObligationItem } from "@/components/farmer/obligation
 import { FARMER_TABS } from "@/components/farmer/tabs";
 import { ErrorState } from "@/components/state";
 import { formatUsd } from "@/lib/format";
-import { arrangerChain } from "@/lib/server/chain-port";
 import { farmerHistory, poolObligation } from "@/lib/server/cabinet-data";
 import { getDb } from "@/lib/server/db";
+import { refreshStatuses } from "@/lib/server/status-refresh";
 import { serverEnv } from "@/lib/server/env";
-import { refreshChainStatuses } from "@/lib/workflow/arranger";
 import { farmerApplications, farmerProfile, isProfileComplete } from "@/lib/workflow/farmer";
 import { listNotifications } from "@/lib/workflow/notifications";
 
@@ -40,7 +39,7 @@ export default async function FarmerHome() {
   let data;
   try {
     const db = await getDb();
-    await refreshChainStatuses(db, arrangerChain(), now).catch(() => 0);
+    await refreshStatuses(db);
     const [profile, apps, updates] = await Promise.all([farmerProfile(db, user.id), farmerApplications(db, user.id), listNotifications(db, user.id, 5)]);
     const pooled = apps.filter((a) => a.poolId);
     const obligations = (await Promise.all(pooled.map((a) => poolObligation(a.poolId as string, now)))).map((o, i) => (o ? { ...o, app: pooled[i]! } : null)).filter((o) => o !== null);

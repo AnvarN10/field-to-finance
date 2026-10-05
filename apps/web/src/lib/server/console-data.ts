@@ -16,32 +16,48 @@ function safeKey(role: keyof typeof ROLE_VAR): string | undefined {
   }
 }
 
-/** Devnet state behind the live pools and treasury panels (moved from the old demo console). */
-export async function consoleData() {
-  const reader = getReader();
-  let sponsorKey;
-  try {
-    sponsorKey = sponsorPublicKey();
-  } catch {
-    sponsorKey = null; // malformed key: reported in the key problems
-  }
-  const [config, pools, unpooled, fees] = await Promise.all([reader.config(), reader.listPools(), reader.unpooledProjects(), reader.fees()]);
-  const details = (await Promise.all(pools.map((p) => reader.getPool(p.poolId)))).filter((d) => d !== null);
-  const sponsor = sponsorKey ? { address: sponsorKey.toBase58(), lamports: await getConnection().getBalance(sponsorKey, "confirmed") } : null;
-  const producers = [...new Set(unpooled.map((p) => p.producer))];
-  const farmers = (await reader.approvedWallets(producers)).map((wallet) => ({ wallet, label: `Farmer ${shortKey(wallet)}` }));
+function keyChecks(config: Awaited<ReturnType<ReturnType<typeof getReader>["config"]>>) {
   const keys = { issuer: safeKey("issuer"), compliance: safeKey("compliance"), scas: safeKey("scas") };
   const env = serverEnv();
   return {
-    config,
-    pools,
-    unpooled,
-    details,
-    fees,
-    sponsor,
-    farmers,
     mismatches: roleMismatches(config, keys),
     // Names a missing or malformed key by variable only, never its value.
     keyProblems: ALL_KEY_VARS.map((name) => roleKeyProblem(name, env[name])).filter((m): m is string => m !== null),
   };
+}
+
+async function sponsorState() {
+  let sponsorKey;
+  try {
+    sponsorKey = sponsorPublicKey();
+  } catch {
+    return null; // malformed key: reported in the key problems
+  }
+  return sponsorKey ? { address: sponsorKey.toBase58(), lamports: await getConnection().getBalance(sponsorKey, "confirmed") } : null;
+}
+
+/** Fees, treasury and server keys only: a few RPC calls, no program-account scans. */
+export async function treasuryData() {
+  const reader = getReader();
+  const [config, fees, sponsor] = await Promise.all([reader.config(), reader.fees(), sponsorState()]);
+  return { config, fees, sponsor, ...keyChecks(config) };
+}
+
+/** Devnet state behind the live pools panel (moved from the old demo console). */
+export async function consoleData() {
+  const reader = getReader();
+  // Sequential: the public devnet RPC rate-limits bursts of program-account scans.
+  const config = await reader.config();
+  const pools = await reader.listPools();
+  const unpooled = await reader.unpooledProjects();
+  const fees = await reader.fees();
+  const details = [];
+  for (const p of pools) {
+    const d = await reader.getPool(p.poolId);
+    if (d) details.push(d);
+  }
+  const sponsor = await sponsorState();
+  const producers = [...new Set(unpooled.map((p) => p.producer))];
+  const farmers = (await reader.approvedWallets(producers)).map((wallet) => ({ wallet, label: `Farmer ${shortKey(wallet)}` }));
+  return { config, pools, unpooled, details, fees, sponsor, farmers, ...keyChecks(config) };
 }
