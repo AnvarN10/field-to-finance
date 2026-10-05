@@ -44,15 +44,15 @@ Application, Key Features Document (KFD), Issuer of Record, KYC. See the [glossa
 | Table | Holds | Written by |
 | --- | --- | --- |
 | `users` | id, Privy DID (unique, null until first sign-in when granted by email), email (unique, lower case) | sign-in, role grant by email |
-| `user_roles` | (user, role) with who granted it; role in `farmer`, `investor`, `arranger`. Partial unique index `user_roles_one_self_cabinet`: at most one self-chosen (`granted_by = user_id`) farmer or investor role per account | role choice, `ARRANGER_EMAILS` bootstrap (at every sign-in that lacks it), arranger grant and revoke |
+| `user_roles` | (user, role) with who granted it; role in `farmer`, `investor`, `arranger`, `compliance`, `scas`, `elevator`, `lab`, `regulator` (service roles only by an arranger's grant, [ADR 0017](../architecture/decisions/0017-service-role-cabinets.md)). Partial unique index `user_roles_one_self_cabinet`: at most one self-chosen (`granted_by = user_id`) farmer or investor role per account | role choice, `ARRANGER_EMAILS` bootstrap (at every sign-in that lacks it), arranger grant and revoke |
 | `wallets` | address (primary key: one account per wallet), owner, kind (`privy-embedded`, `phantom`), verified time | sign-in (Privy embedded wallet from Privy), signed-message link (Phantom) |
 | `farmer_profiles` | legal name, BIN, region, contact, issuer KYC status, note, `kyc_wallet` (the issuer wallet KYC approved on-chain: only it may register the project and be the issuer of record), decider and time | farmer onboarding, arranger KYC decision |
-| `investor_profiles` | category, questionnaire answers and mock KYC (name, country) as JSON, KYC status, risk acknowledgement time, decider | investor onboarding, arranger KYC decision |
+| `investor_profiles` | category, questionnaire answers and mock KYC (name, country, optional IIN) as JSON, KYC status, risk acknowledgement time, decider | investor onboarding, arranger KYC decision |
 | `applications` | crop, grade, volume, tokenized share, requested USD, proposed coupon, season, elevator, laboratory, status, status note, on-chain project, field set hash, pool id and address | farmer, arranger steps, chain status refresh |
-| `documents` | owner, application (null for issuer KYC), kind, SHA-256, bucket key, type, size, review status and note, reviewer, `replaced_at` | farmer uploads, arranger review |
+| `documents` | owner, application (null for issuer KYC and service uploads), kind, SHA-256, bucket key, type, size, review status and note, reviewer, `replaced_at` | farmer uploads, arranger review, service uploads (SCAS evidence, elevator receipts, lab protocols as kind `other`, registered to the uploader) |
 | `kfd_acceptances` | (investor, pool address), KFD SHA-256, time | investor |
-| `audit_log` | actor (null for system), action, target, payload JSON, first transaction signature (all of them in the payload when several), error when the attempt failed | every decision and on-chain action |
-| `notifications` | user, kind, title, body, read time | workflow decisions and status changes |
+| `audit_log` | actor (null for system), `acting_role` (the service role acted as, also when an arranger acts for it), action, target, payload JSON, first transaction signature (all of them in the payload when several), error when the attempt failed | every decision and on-chain action |
+| `notifications` | user, kind, title, body, `link` (in-app path), `dedupe_key` (unique when set: at most one row per key, e.g. maturity reminders), read time | workflow decisions, status changes, sponsored transactions, maturity reminders |
 | `platform_settings` | key, value. `environment = production` marks the production database: trigger `users_no_dev_identity_in_production` then refuses `did:dev:*` identities from any process | set once by hand on the production database |
 
 Check constraints pin every enumerated column (roles, statuses, kinds). A replaced document keeps its row with `replaced_at` set, so the review history survives re-uploads.
@@ -90,8 +90,8 @@ Renaming a column or a status breaks the workflow modules, the check constraints
 ## Security and privacy notes
 
 - **Private identifiers live only here and in the bucket**: BIN, legal names, contacts, investor names and countries, emails, cadastral numbers (bucket field sets). They never go on-chain, into the repository, logs, PostHog or GlitchTip. Demo and seed data use obviously fake values (`Demo Farm LLP`, BIN `000000000000`, `demo+...@example.com`).
-- Only arrangers read other users' profiles; documents are served by hash to arrangers and to the uploader only (`/api/documents/[hash]`).
-- The audit log stores rejection notes and wallet addresses; it is shown only in the arranger cabinet.
+- Only arrangers and compliance read other users' profiles; the regulator sees issuer legal names, BIN and investor IIN with category, never emails, investor names, KYC answers or review notes (events export only whitelisted payload keys and blanks user targets). The SCAS partner, elevator and laboratory see no company identity. Documents are served by hash to arrangers, to compliance for issuer KYC files, and to the uploader only (`/api/documents/[hash]`).
+- The audit log stores rejection notes and wallet addresses; it is shown in full only in the arranger cabinet.
 - The database URL is a secret: Railway reference variable for `web`, Infisical for local work, never printed.
 - Retention: no automatic deletion in the pilot. Removing a user cascades to roles, wallets, profiles, KFD acceptances and notifications; audit rows keep the action with the actor set to null.
 
@@ -103,7 +103,7 @@ Renaming a column or a status breaks the workflow modules, the check constraints
 
 ## Testing notes
 
-`pnpm nx run web:test` runs the data layer, guards and workflows on PGlite with the committed migrations (`test/db-schema.test.ts`, `test/workflow-*.test.ts`, `test/auth-session.test.ts`). A schema change without a generated migration fails these tests.
+`pnpm nx run web:test` runs the data layer, guards and workflows on PGlite with the committed migrations (`test/db-schema.test.ts`, `test/workflow-*.test.ts`, `test/auth-session.test.ts`, `test/service-roles.test.ts`, `test/notifications.test.ts`). Migration `0002_service_roles` widens the role check and adds `audit_log.acting_role`, `notifications.link` and `notifications.dedupe_key` with a partial unique index: additive, no rewrite of existing rows. A schema change without a generated migration fails these tests.
 
 ## Common pitfalls
 

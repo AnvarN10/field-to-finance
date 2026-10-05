@@ -92,6 +92,7 @@ Each transaction has an explorer link; failures name the `F2fError` variant in l
 
 ## Related docs
 
+- Who does each step in the cabinets: [compliance review](compliance-review.md), [season and harvest](season-and-harvest.md), [settlement](settlement.md); the arranger follows each pool on its lifecycle board.
 - [Program](../systems/program.md)
 - [Web app](../systems/web.md)
 - [MVP design, section 5](../specs/2026-10-03-mvp-design.md#5-main-flow)

@@ -139,3 +139,27 @@ The part of a Farm Project's expected harvest that backs the Instrument. Fixed a
 ## Treasury
 
 The Field-to-Finance wallet named in FeeConfig; every fee goes to its USDC account.
+
+## Acting Role
+
+The service role a person acted as when doing a service step, recorded in `audit_log.acting_role`. An arranger acting for compliance is audited as compliance. See [ADR 0017](architecture/decisions/0017-service-role-cabinets.md).
+
+## Lab Protocol
+
+The laboratory's record of a delivered lot against the pool's 12-parameter quality spec: each parameter passes or fails, any fail gives the verdict Fail, any missing value Insufficient Data. Recorded on-chain as a LabQuality attestation; holders can claim grain only after a passing protocol.
+
+## Lifecycle Board
+
+The arranger's per-pool view of the phases (subscription, funding, season, harvest and delivery, settlement, closing) with who acts next and the arranger's button when the step is theirs.
+
+## Regulator Registry
+
+The regulator's read-only list of published pools with issuer, terms, status, money raised and holders, with holders, events and CSV export. BIN and IIN come from Postgres; nothing personal is on-chain.
+
+## Service Role
+
+A role for a party other than farmer, investor and arranger: compliance, SCAS partner, elevator, laboratory, regulator. Granted only by an arranger; each has its own cabinet. See [ADR 0017](architecture/decisions/0017-service-role-cabinets.md).
+
+## Yield Estimate
+
+The SCAS partner's pre-harvest estimate in tonnes per hectare, recorded as a Harvest attestation whose evidence carries the number.

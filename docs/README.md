@@ -27,11 +27,9 @@ Flow docs live in [flows/](flows/).
 - [farmer-onboarding.md](flows/farmer-onboarding.md) — farmer sign-up, profile, issuer KYC, application, documents, fields.
 - [investor-onboarding.md](flows/investor-onboarding.md) — category, KYC by an arranger, risk acknowledgement, wallet link, key features document.
 - [issuance-pipeline.md](flows/issuance-pipeline.md) — from a submitted application to a published pool, then statuses from the chain.
-
-Planned flows:
-
-- `season-monitoring.md` — attestations during the season.
-- `settlement.md` — harvest, shortfall handling and investor payout.
+- [compliance-review.md](flows/compliance-review.md) — issuer and investor KYC, revocations, retail limits in the compliance cabinet.
+- [season-and-harvest.md](flows/season-and-harvest.md) — SCAS verification and season attestations, elevator receipt, lab protocol.
+- [settlement.md](flows/settlement.md) — election, buyback funding, redemption or Grain Claim, closing and the regulator's export.
 
 ## Architecture
 
@@ -42,12 +40,14 @@ Planned flows:
 
 - [MVP design, 2026-10-03](specs/2026-10-03-mvp-design.md)
 - [Role cabinets, 2026-10-05](specs/2026-10-05-role-cabinets.md)
+- [Complete platform, 2026-10-05](specs/2026-10-05-platform-complete.md)
 
 ## Plans
 
 - [Program, 2026-10-03](plans/2026-10-03-program.md)
 - [Web app, 2026-10-03](plans/2026-10-03-web.md)
 - [Role cabinets, 2026-10-05](plans/2026-10-05-role-cabinets.md)
+- [Complete platform, 2026-10-05](plans/2026-10-05-platform-complete.md)
 
 ## Other
 
