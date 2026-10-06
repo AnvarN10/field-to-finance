@@ -19,3 +19,4 @@ for f in diagrams/structurizr-*.png; do mv "$f" "diagrams/${f#diagrams/structuri
 rm -rf .puml
 
 [ -f structures-aifc-f2f-ru.typ ] && typst compile structures-aifc-f2f-ru.typ structures-aifc-f2f-ru.pdf
+[ -f structures-cc-ru.typ ] && typst compile structures-cc-ru.typ structures-cc-ru.pdf
