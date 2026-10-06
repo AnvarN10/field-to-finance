@@ -83,7 +83,7 @@ Each party works in its own cabinet behind Privy email sign-in ([ADR 0016](../ar
 
 ## Legal structure
 
-Roles, AFSA licence names, placement options, custody and money flows: [legal-structure.md](legal-structure.md). Full research digest in Russian with a glossary of terms, AIFC rule footnotes and a crypto primer: [research-aifc-f2f-ru.md](research-aifc-f2f-ru.md) ([PDF](research-aifc-f2f-ru.pdf)). Placement scenarios with flows, responsibilities, licences and program roles: [scenarios-aifc-f2f-ru.md](scenarios-aifc-f2f-ru.md) ([PDF](scenarios-aifc-f2f-ru.pdf)).
+Roles, AFSA licence names, placement options, custody and money flows: [legal-structure.md](legal-structure.md). Full research digest in Russian with a glossary of terms, AIFC rule footnotes and a crypto primer: [research-aifc-f2f-ru.md](research-aifc-f2f-ru.md) ([PDF](research-aifc-f2f-ru.pdf)). Placement scenarios with flows, responsibilities, licences and program roles: [scenarios-aifc-f2f-ru.md](scenarios-aifc-f2f-ru.md) ([PDF](scenarios-aifc-f2f-ru.pdf)). CC's exchange and custodian scheme with Binance KZ as custodian, farmer or F2F Proto as issuer, KZT payout to the farmer: [custody-binance-kz-ru.md](custody-binance-kz-ru.md).
 
 ## Open questions
 
