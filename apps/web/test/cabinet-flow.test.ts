@@ -59,7 +59,7 @@ describe("runCabinetFlow", () => {
       "test",
     );
     expect(r.status).toBe("disbursed");
-    expect(steps.join("\n")).toMatch(/Farmer signs up/);
+    expect(steps.join("\n")).toMatch(/Farmer applies through \/apply/);
     expect(steps.join("\n")).toMatch(/https:\/\/explorer\/sig-subscribe/);
     expect(await db.select().from(kfdAcceptances)).toHaveLength(1);
     const actions = (await db.select().from(auditLog)).map((a) => a.action);
