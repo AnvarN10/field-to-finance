@@ -283,7 +283,7 @@ export async function publishApplication(db: Db, actor: SessionUser, id: string,
   const poolId = app.poolId;
   await audited(db, { actorUserId: actor.id, action: "pool.open", targetType: "application", targetId: id, payload: { poolId } }, () => chain.openPool(poolId), (s) => [s]);
   const row = await setStatus(db, app, "open");
-  await notifyApprovedInvestors(db, "pool", `New pool open: ${app.crop} ${app.season}`, "Read its key features and subscribe from your cabinet.", `/investor/pools/${poolId}`);
+  await notifyApprovedInvestors(db, "pool", `New pool open: ${app.crop} ${app.season}`, "Read its key features and subscribe in the investor app.", `/invest/pools/${poolId}`);
   return row;
 }
 

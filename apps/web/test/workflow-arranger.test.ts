@@ -91,7 +91,7 @@ describe("arranger pipeline", () => {
     await structureApplication(db, ops, app.id, TERMS, chain);
     await publishApplication(db, ops, app.id, chain);
     const mine = (await db.select().from(notifications)).filter((n) => n.userId === investor.id);
-    expect(mine).toEqual([expect.objectContaining({ kind: "pool", title: "New pool open: wheat 2027", link: "/investor/pools/9" })]);
+    expect(mine).toEqual([expect.objectContaining({ kind: "pool", title: "New pool open: wheat 2027", link: "/invest/pools/9" })]);
   });
 
   it("requires a note to reject a document and notifies the farmer", async () => {

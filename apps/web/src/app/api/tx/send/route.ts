@@ -35,9 +35,9 @@ async function subscribeAllowed(wallet: string, pool: string | null): Promise<vo
   } catch {
     throw new RequestError("Subscriptions are paused: investor accounts are unavailable right now. Try again in a minute.", 503);
   }
-  if (gate === "unlinked") throw new RequestError("Link this wallet in your investor cabinet before subscribing.", 403);
+  if (gate === "unlinked") throw new RequestError("Link this wallet in your investor account before subscribing.", 403);
   if (gate === "onboarding") throw new RequestError("Finish investor onboarding (KYC and the risk acknowledgement) before subscribing.", 403);
-  if (gate === "kfd") throw new RequestError("Accept this pool's key features document in your investor cabinet before subscribing.", 403);
+  if (gate === "kfd") throw new RequestError("Accept this pool's key features document in the investor app before subscribing.", 403);
 }
 
 /** Farmer settlement: the program checks the signer too, but the sponsor never co-signs for anyone but the pool's issuer of record. */

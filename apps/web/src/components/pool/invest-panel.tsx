@@ -65,8 +65,8 @@ export function InvestPanel({ pool, networkFee, signer: explicit }: { pool: Pool
   // Each transaction gets its own handler so "Try again" re-sends that transaction.
   const handlerFor = (tx: { retry: () => Promise<unknown> }) => (a: ErrorAction) => {
     // KYC and the key features document live in the investor cabinet (spec 2026-10-05).
-    if (a === "kyc" || a === "onboarding") router.push("/investor/onboarding");
-    if (a === "kfd") router.push(`/investor/pools/${pool.poolId}`);
+    if (a === "kyc" || a === "onboarding") router.push("/invest/account");
+    if (a === "kfd") router.push(`/invest/pools/${pool.poolId}`);
     if (a === "faucet") setShowFaucet(true);
     if (a === "retry") void tx.retry();
   };
@@ -115,9 +115,9 @@ export function InvestPanel({ pool, networkFee, signer: explicit }: { pool: Pool
 
       {mode === "subscribe" && investor.data && !kycDone ? (
         <div className="flex flex-col items-start gap-2 border-t border-border pt-4">
-          <p className="text-sm text-muted-foreground">KYC comes first: sign in to the investor cabinet, finish onboarding and link this wallet. One approval covers every pool.</p>
+          <p className="text-sm text-muted-foreground">Verification comes first: open an investor account, finish verification and link this wallet. One approval covers every pool.</p>
           <Link
-            href="/investor/onboarding"
+            href="/invest/account"
             className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-base font-medium text-primary-foreground transition-[background-color,scale] duration-150 ease-(--ease-out) active:scale-[0.98] motion-reduce:active:scale-100 [@media(hover:hover)]:hover:bg-primary-hover"
           >
             Complete KYC

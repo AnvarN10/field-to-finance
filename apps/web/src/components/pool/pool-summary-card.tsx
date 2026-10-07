@@ -13,11 +13,14 @@ export function PoolSummaryCard({
   headingLevel = "h3",
   countUp = false,
   className = "",
+  href,
 }: {
   pool: PoolView;
   headingLevel?: "h2" | "h3";
   countUp?: boolean;
   className?: string;
+  /** Where the card leads; the public pool page by default, the investor's invest page inside the app. */
+  href?: string;
 }) {
   const H = headingLevel;
   const symbol = pool.instrument?.symbol ?? `POOL-${pool.poolId}`;
@@ -26,7 +29,7 @@ export function PoolSummaryCard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <H className="text-xl font-semibold">
           {/* The link covers the whole card so the card is one target. */}
-          <Link href={`/pools/${pool.poolId}`} className="rounded-sm outline-none after:absolute after:inset-0 after:rounded-lg">
+          <Link href={href ?? `/pools/${pool.poolId}`} className="rounded-sm outline-none after:absolute after:inset-0 after:rounded-lg">
             {symbol}
           </Link>
         </H>

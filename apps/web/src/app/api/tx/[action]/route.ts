@@ -10,9 +10,9 @@ import { getBuildProgram, getConnection, getReader, getStore, getUsdcMint, spons
 export const dynamic = "force-dynamic";
 
 const GATE: Record<Exclude<KfdGate, null>, [code: string, title: string, detail: string, action: "onboarding" | "kfd"]> = {
-  unlinked: ["WalletNotLinked", "Link this wallet in your investor cabinet", "Sign in, finish onboarding and link this wallet before subscribing.", "onboarding"],
+  unlinked: ["WalletNotLinked", "Link this wallet in your investor account", "Sign in, finish onboarding and link this wallet before subscribing.", "onboarding"],
   onboarding: ["OnboardingIncomplete", "Finish investor onboarding first", "KYC approval and the risk acknowledgement come before any subscription.", "onboarding"],
-  kfd: ["KfdRequired", "Accept this pool's key features document", "Read the key features in your investor cabinet; accepting takes one click.", "kfd"],
+  kfd: ["KfdRequired", "Accept this pool's key features document", "Read the key features in the investor app; accepting takes one click.", "kfd"],
 };
 
 /** Spec 2026-10-05: an investor accepts the pool's key features document before the first subscription. */

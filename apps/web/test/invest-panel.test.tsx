@@ -53,7 +53,7 @@ describe("InvestPanel", () => {
     render(<InvestPanel pool={POOL} networkFee="500000" />);
     expect(await screen.findByText("Not completed")).toBeInTheDocument();
     const kyc = screen.getByRole("link", { name: "Complete KYC" });
-    expect(kyc).toHaveAttribute("href", "/investor/onboarding");
+    expect(kyc).toHaveAttribute("href", "/invest/account");
     const subscribe = screen.getByRole("button", { name: /^Subscribe/ });
     // The required first step comes before the subscribe form.
     expect(kyc.compareDocumentPosition(subscribe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -67,7 +67,7 @@ describe("InvestPanel", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("This wallet hasn't passed KYC");
     await userEvent.click(within(alert).getByRole("button", { name: "Complete KYC" }));
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/investor/onboarding"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/invest/account"));
   });
 
   it("sends an onboarded investor to the pool's key features document when it is not accepted yet", async () => {
@@ -79,7 +79,7 @@ describe("InvestPanel", () => {
       await userEvent.click(screen.getByRole("button", { name: /^Subscribe/ }));
       const alert = await screen.findByRole("alert");
       await userEvent.click(within(alert).getByRole("button", { name: "Read the key features" }));
-      await waitFor(() => expect(push).toHaveBeenCalledWith("/investor/pools/7"));
+      await waitFor(() => expect(push).toHaveBeenCalledWith("/invest/pools/7"));
     } finally {
       subscribeError = null;
     }

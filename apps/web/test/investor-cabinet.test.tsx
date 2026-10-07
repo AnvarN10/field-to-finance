@@ -36,7 +36,7 @@ describe("Positions", () => {
   it("offers the grain claim when delivery is open", () => {
     render(<Positions rows={[{ ...row, grainClaimKg: "60000", action: "Claim grain" }]} />);
     expect(screen.getByText("60 t")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Claim grain DWHT27" })).toHaveAttribute("href", "/investor/pools/7#invest");
+    expect(screen.getByRole("link", { name: "Claim grain DWHT27" })).toHaveAttribute("href", "/invest/pools/7#invest");
   });
 
   it("invites browsing pools when there are no positions", () => {

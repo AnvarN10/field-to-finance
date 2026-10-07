@@ -37,7 +37,7 @@ async function record(db: Db, actor: SessionUser, actingRole: string, d: PoolDet
   const symbol = d.pool.instrument?.symbol ?? `POOL-${d.pool.poolId}`;
   const body = evidence.kind === "ElevatorReceipt" ? `${Number(BigInt(evidence.kg ?? "0") / 1000n).toLocaleString("en-US")} t received at ${d.terms?.elevator}.` : `Lab result: ${evidence.verdict === "Pass" ? "passed" : evidence.verdict === "Fail" ? "did not pass" : "insufficient data"} the quality spec.`;
   const app = await db.query.applications.findFirst({ where: eq(applications.poolId, d.pool.poolId) });
-  if (app) await notify(db, app.farmerUserId, "delivery", `${label}: ${symbol}`, body, "/farmer");
+  if (app) await notify(db, app.farmerUserId, "delivery", `${label}: ${symbol}`, body, "/issuer");
   await notifyPoolInvestors(db, d.pool.address, "delivery", `${label}: ${symbol}`, body, `/pools/${d.pool.poolId}`);
   return r.signature;
 }

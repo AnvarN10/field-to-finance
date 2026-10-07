@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CabinetShell } from "@/components/cabinet/cabinet-shell";
-import { guardCabinet } from "@/components/cabinet/guard";
+import { PageHeader } from "@/components/shell/page-header";
+import { guardAccount } from "@/components/shell/account-guard";
 import { textLink } from "@/components/cabinet/section";
 import { CabinetInvest } from "@/components/investor/cabinet-invest";
 import { KfdAccept } from "@/components/investor/kfd-accept";
-import { INVESTOR_TABS } from "@/components/investor/tabs";
 import { ErrorState } from "@/components/state";
 import { formatDateUtc } from "@/lib/format";
 import { buildKfd, kfdHash } from "@/lib/kfd";
@@ -14,18 +13,18 @@ import { getReader } from "@/lib/server/context";
 import { getDb } from "@/lib/server/db";
 import { hasKfd, investorOnboarding } from "@/lib/workflow/investor";
 
-export const metadata: Metadata = { title: "Key features", robots: { index: false } };
+export const metadata: Metadata = { title: "Key features" };
 export const dynamic = "force-dynamic";
 
 export default async function KfdPage({ params }: { params: Promise<{ poolId: string }> }) {
   const { poolId } = await params;
-  const g = await guardCabinet("investor", `/investor/pools/${poolId}`);
+  const g = await guardAccount("investor", `/invest/pools/${poolId}`);
   if ("element" in g) return g.element;
   let detail, fees;
   try {
     [detail, fees] = await Promise.all([getReader().getPool(poolId), getReader().fees().catch(() => null)]);
   } catch {
-    return <ErrorState level={1} title="Could not load this pool" body="Solana devnet did not answer." retryHref={`/investor/pools/${poolId}`} />;
+    return <ErrorState level={1} title="Could not load this pool" body="Solana devnet did not answer." retryHref={`/invest/pools/${poolId}`} />;
   }
   if (!detail) notFound();
   const kfd = buildKfd(detail, fees?.networkFee ?? null);
@@ -35,11 +34,12 @@ export default async function KfdPage({ params }: { params: Promise<{ poolId: st
     const db = await getDb();
     [accepted, onboarding] = await Promise.all([hasKfd(db, g.user.id, detail.pool.address), investorOnboarding(db, g.user.id)]);
   } catch {
-    return <ErrorState level={1} title="Your cabinet is unavailable" body="Try again in a minute." retryHref={`/investor/pools/${poolId}`} />;
+    return <ErrorState level={1} title="Your account is unavailable" body="Try again in a minute." retryHref={`/invest/pools/${poolId}`} />;
   }
   const current = accepted?.documentHash === hash;
   return (
-    <CabinetShell role="Investor" title={kfd.title} email={g.user.email} tabs={INVESTOR_TABS}>
+    <div className="flex min-w-0 flex-col gap-8">
+      <PageHeader title={kfd.title} eyebrow="Key features document" />
       <article className="flex max-w-3xl flex-col gap-6 rounded-lg border border-border bg-card p-6">
         <p className="text-sm text-muted-foreground">Read this before your first subscription to the pool. It sums up the term sheet; the full terms are on the pool page.</p>
         <dl className="flex flex-col divide-y divide-border text-sm">
@@ -77,7 +77,7 @@ export default async function KfdPage({ params }: { params: Promise<{ poolId: st
           ) : (
             <p className="text-sm text-muted-foreground">
               Finish onboarding first: KYC approval and the risk acknowledgement.{" "}
-              <Link href="/investor/onboarding" className={textLink}>
+              <Link href="/invest/account" className={textLink}>
                 Go to onboarding
               </Link>
             </p>
@@ -90,6 +90,6 @@ export default async function KfdPage({ params }: { params: Promise<{ poolId: st
           <CabinetInvest pool={detail.pool} networkFee={fees?.networkFee ?? null} />
         </div>
       ) : null}
-    </CabinetShell>
+    </div>
   );
 }

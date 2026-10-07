@@ -5,7 +5,7 @@ export async function POST() {
   return Response.json(
     {
       ok: false,
-      error: { code: "KycMoved", title: "KYC moved to the investor cabinet", detail: "Sign in at /investor/onboarding; an arranger approves your KYC.", action: "onboarding" },
+      error: { code: "KycMoved", title: "KYC moved to the investor app", detail: "Open an investor account at /invest/signup; compliance reviews your KYC.", action: "onboarding" },
     },
     { status: 410 },
   );

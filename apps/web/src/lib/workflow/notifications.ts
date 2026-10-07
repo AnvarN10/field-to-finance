@@ -64,7 +64,7 @@ export async function maturityReminders(
         farmer
           ? `Maturity ${formatDateUtc(p.maturityTs)}. Elect buyback or delivery and fund the buyback before then.`
           : `Maturity ${formatDateUtc(p.maturityTs)}. Settlement follows: cash redemption or a grain claim.`,
-        farmer ? "/farmer" : `/investor/pools/${p.poolId}`,
+        farmer ? "/issuer" : `/invest/pools/${p.poolId}`,
       );
     }
   }

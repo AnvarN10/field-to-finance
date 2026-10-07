@@ -67,7 +67,7 @@ export function Positions({ rows }: { rows: PositionRow[] }) {
               <td className="max-w-72 px-3 py-3 whitespace-normal text-muted-foreground">{r.settlement}</td>
               <td className="px-3 py-3 text-right">{r.grainClaimKg ? formatTonnes(r.grainClaimKg) : "–"}</td>
               <td className="px-3 py-3 text-right">
-                <Link href={r.action === "View pool" ? `/pools/${r.poolId}` : `/investor/pools/${r.poolId}#invest`} className={textLink} aria-label={`${r.action} ${r.symbol}`}>
+                <Link href={r.action === "View pool" ? `/pools/${r.poolId}` : `/invest/pools/${r.poolId}#invest`} className={textLink} aria-label={`${r.action} ${r.symbol}`}>
                   {r.action}
                 </Link>
               </td>

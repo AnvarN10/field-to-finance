@@ -40,7 +40,7 @@ export async function recordSeasonAttestation(db: Db, actor: SessionUser, input:
   const title = `${SEASON_LABEL[input.kind]} attested: ${symbol}`;
   const body = input.kind === "Harvest" ? `The SCAS partner estimates ${input.yieldEstimateTPerHa} t/ha before harvest.` : `The SCAS partner recorded ${input.kind.toLowerCase()} for every field.`;
   const app = await db.query.applications.findFirst({ where: eq(applications.poolId, input.poolId) });
-  if (app) await notify(db, app.farmerUserId, "attestation", title, body, "/farmer");
+  if (app) await notify(db, app.farmerUserId, "attestation", title, body, "/issuer");
   await notifyPoolInvestors(db, detail.pool.address, "attestation", title, body, `/pools/${input.poolId}`);
   return signatures;
 }

@@ -27,10 +27,10 @@ describe("public routes that spend role keys", () => {
     expect(statuses.at(-1)).toBe(429);
   });
 
-  it("kyc: instant approval is gone; onboarding goes through the investor cabinet", async () => {
+  it("kyc: instant approval is gone; onboarding goes through the investor app", async () => {
     const r = await kyc.POST();
     expect(r.status).toBe(410);
-    expect((await r.json()).error.title).toBe("KYC moved to the investor cabinet");
+    expect((await r.json()).error.title).toBe("KYC moved to the investor app");
     expect(approveInvestor).not.toHaveBeenCalled();
   });
 });
