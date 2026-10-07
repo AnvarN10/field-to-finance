@@ -55,7 +55,7 @@ export function AccountMenu({ email, roles, current }: { email: string; roles: r
           aria-label="Account"
           className="popover-in absolute end-0 top-11 z-50 flex w-64 flex-col gap-1 rounded-lg border border-border bg-card p-2 text-sm shadow-[0_8px_24px_rgb(0_0_0/0.45)]"
         >
-          <p className="truncate px-2 py-1.5 text-muted-foreground" title={email}>
+          <p className="break-all px-2 py-1.5 text-muted-foreground">
             {email}
           </p>
           {others.length ? (

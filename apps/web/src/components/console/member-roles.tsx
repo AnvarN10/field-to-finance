@@ -14,6 +14,8 @@ export function MemberRoles({ userId, email, roles }: { userId: string; email: s
   const [value, setValue] = useState<ConsoleRole[]>(roles);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const removing = value.length === 0;
 
   if (!editing) {
     return (
@@ -27,8 +29,8 @@ export function MemberRoles({ userId, email, roles }: { userId: string; email: s
   }
   return (
     <div className="flex flex-col gap-3">
-      <RolePicker legend={`Roles for ${email}`} value={value} onChange={setValue} />
-      {value.length === 0 ? <p className="text-sm text-muted-foreground">No roles: saving removes this member from the console.</p> : null}
+      <RolePicker legend={`Roles for ${email}`} value={value} onChange={(v) => { setValue(v); setConfirmRemove(false); }} />
+      {removing ? <p className="text-sm text-muted-foreground">{confirmRemove ? `Remove ${email} from the console? They lose access at once.` : "No roles: this removes the member from the console."}</p> : null}
       {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -38,18 +40,21 @@ export function MemberRoles({ userId, email, roles }: { userId: string; email: s
         <Button
           type="button"
           size="sm"
+          variant={removing ? "destructive" : "outline"}
           disabled={pending}
-          onClick={() =>
+          onClick={() => {
+            if (removing && !confirmRemove) return setConfirmRemove(true);
             start(async () => {
               setError(null);
               const r = await setMemberRolesAction(userId, value);
               if (!r.ok) return setError(r.error.title);
               setEditing(false);
+              setConfirmRemove(false);
               router.refresh();
-            })
-          }
+            });
+          }}
         >
-          {pending ? "Saving" : "Save roles"}
+          {pending ? "Saving" : removing ? (confirmRemove ? "Yes, remove from console" : "Remove from console") : "Save roles"}
         </Button>
         <Button
           type="button"
@@ -57,6 +62,7 @@ export function MemberRoles({ userId, email, roles }: { userId: string; email: s
           variant="ghost"
           onClick={() => {
             setValue(roles);
+            setConfirmRemove(false);
             setEditing(false);
           }}
         >

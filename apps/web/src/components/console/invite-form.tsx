@@ -19,7 +19,7 @@ export function InviteForm() {
   const [roles, setRoles] = useState<ConsoleRole[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [made, setMade] = useState<{ link: string; expiresAt: string; email: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<boolean | "failed">(false);
   const [pending, start] = useTransition();
 
   if (made) {
@@ -36,14 +36,22 @@ export function InviteForm() {
             variant="outline"
             className="h-10"
             onClick={async () => {
-              await navigator.clipboard?.writeText(made.link).catch(() => {});
-              setCopied(true);
+              try {
+                if (!navigator.clipboard) throw new Error("no clipboard");
+                await navigator.clipboard.writeText(made.link);
+                setCopied(true);
+              } catch {
+                setCopied("failed");
+              }
             }}
           >
-            {copied ? <Check aria-hidden strokeWidth={1.5} /> : <Copy aria-hidden strokeWidth={1.5} />}
-            {copied ? "Copied" : "Copy link"}
+            {copied === true ? <Check aria-hidden strokeWidth={1.5} /> : <Copy aria-hidden strokeWidth={1.5} />}
+            {copied === true ? "Copied" : "Copy link"}
           </Button>
         </div>
+        <p role="status" className="text-sm text-muted-foreground">
+          {copied === true ? "Link copied." : copied === "failed" ? "Copy failed. Select the link and copy it." : ""}
+        </p>
         <p className="tabular text-xs text-muted-foreground">{`Expires ${formatDateUtc(Math.floor(new Date(made.expiresAt).getTime() / 1000))}.`}</p>
         <Button
           type="button"

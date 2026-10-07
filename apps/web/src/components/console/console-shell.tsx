@@ -66,7 +66,7 @@ export function ConsoleShell({ email, roles, children }: { email: string | null;
             ) : null}
           </div>
           {open && member ? (
-            <div id="console-mobile-nav" className="border-t border-border px-3 py-3 lg:hidden">
+            <div id="console-mobile-nav" className="max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain border-t border-border px-3 py-3 lg:hidden">
               <ConsoleNav items={items} onNavigate={() => setOpen(false)} />
             </div>
           ) : null}

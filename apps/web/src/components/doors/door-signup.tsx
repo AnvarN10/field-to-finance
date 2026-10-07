@@ -23,6 +23,7 @@ export function DoorSignup({ door }: { door: Door }) {
   const router = useRouter();
   const [failure, setFailure] = useState<{ error: string; home: string | null } | null>(null);
   const started = useRef(false);
+  const [attempt, setAttempt] = useState(0);
   const ready = auth.server.state === "ready";
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export function DoorSignup({ door }: { door: Door }) {
       await auth.resync();
       router.replace(r.home);
     })();
-  }, [ready, door, auth, router]);
+  }, [ready, door, auth, router, attempt]);
 
   if (auth.mode === "unconfigured") return <p className="text-sm text-muted-foreground">Sign-up is not configured on this server: NEXT_PUBLIC_PRIVY_APP_ID is missing.</p>;
   if (!auth.ready) return <div className="skeleton-shimmer h-24 rounded-lg" role="status" aria-label="Loading sign-up" />;
@@ -58,6 +59,19 @@ export function DoorSignup({ door }: { door: Door }) {
             <Link href={problem.home} className="inline-flex h-9 items-center rounded-md border border-input bg-card px-4 font-medium [@media(hover:hover)]:hover:border-muted-foreground">
               {`Go to your ${HOME_NAME[problem.home] ?? "app"}`}
             </Link>
+          ) : null}
+          {failure ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                started.current = false;
+                setFailure(null);
+                setAttempt((n) => n + 1);
+              }}
+            >
+              Try again
+            </Button>
           ) : null}
           <Button type="button" variant="ghost" onClick={() => void auth.logout()}>
             Use another email
