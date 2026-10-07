@@ -4,7 +4,7 @@ import { CONSOLE_ROLE_LABELS, CONSOLE_ROLES, PERMISSION_LABELS, PERMISSIONS, ROL
 /** What each console role may do (read-only; bundles are defined in code, ADR 0018). */
 export function PermissionMatrix() {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card">
+    <div className="relative overflow-x-auto rounded-lg border border-border bg-card">
       <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b border-border text-left">

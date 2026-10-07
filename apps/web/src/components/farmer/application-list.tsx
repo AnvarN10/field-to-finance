@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { STATUS_INFO, type ApplicationStatus } from "../../lib/application-status";
+import { farmerStatusLine } from "../../lib/issuer-next-action";
 import { formatUsd } from "../../lib/format";
 import { ApplicationStatusBadge } from "../cabinet/badges";
 import { EmptyState } from "../state";
 
 export type ApplicationSummary = { id: string; crop: string; season: number; requestedUsd: number; status: ApplicationStatus; statusNote: string | null };
 
-const OWNER = { farmer: "You", arranger: "Arranger", investors: "Investors", chain: "On-chain checks" } as const;
 const link = "rounded-sm font-medium text-foreground underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current";
 
 const usd = (whole: number) => formatUsd(BigInt(whole) * 1_000_000n);
@@ -37,7 +37,7 @@ export function ApplicationList({ applications, canCreate }: { applications: App
                 <span className="tabular text-sm text-muted-foreground">{usd(a.requestedUsd)}</span>
                 <ApplicationStatusBadge status={a.status} />
               </div>
-              <p className="text-sm text-muted-foreground">{`${a.statusNote ?? info.next}${info.owner ? ` · ${OWNER[info.owner]}` : ""}`}</p>
+              <p className="text-sm text-muted-foreground">{`${a.statusNote ?? farmerStatusLine(a.status)}${info.owner === "farmer" ? " · Your step" : ""}`}</p>
             </div>
             <Link href={`/issuer/applications/${a.id}`} className={link} aria-label={`Open ${a.crop} ${a.season}`}>
               Open

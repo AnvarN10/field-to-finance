@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextAction } from "../src/lib/issuer-next-action";
+import { farmerStatusLine, nextAction } from "../src/lib/issuer-next-action";
 
 describe("nextAction", () => {
   it("starts with the company profile, then issuer KYC", () => {
@@ -19,5 +19,14 @@ describe("nextAction", () => {
     expect(nextAction(true, "approved", { id: "a1", status: "kyc" })).toMatchObject({ owner: "Compliance" });
     expect(nextAction(true, "approved", { id: "a1", status: "settlement" })).toMatchObject({ owner: "you", href: "/issuer/obligations" });
     expect(nextAction(true, "approved", { id: "a1", status: "open" })).toMatchObject({ owner: "Investors" });
+  });
+});
+
+describe("farmer-voiced status lines", () => {
+  it("never tells the farmer to do the platform's step", () => {
+    expect(nextAction(true, "approved", { id: "a1", status: "documents_review" }).title).toBe("F2F is reviewing your documents");
+    expect(farmerStatusLine("field_verification")).toBe("The SCAS partner is verifying your fields by satellite");
+    expect(farmerStatusLine("draft")).toMatch(/submit/i);
+    for (const s of ["submitted", "documents_review", "kyc", "field_verification", "structuring", "ready", "funded", "harvest"] as const) expect(farmerStatusLine(s)).not.toMatch(/^(Accept|Verify|Decide|Build|Publish|Disburse|Record|Start)/);
   });
 });

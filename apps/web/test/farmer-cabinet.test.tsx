@@ -19,13 +19,13 @@ describe("ApplicationList", () => {
   it("shows status, next action and who owns it", () => {
     render(<ApplicationList applications={[app]} canCreate />);
     expect(screen.getByText("Document review")).toBeInTheDocument();
-    expect(screen.getByText(/Accept or reject each document · Arranger/)).toBeInTheDocument();
+    expect(screen.getByText("F2F is reviewing your documents")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open wheat 2027/ })).toHaveAttribute("href", "/issuer/applications/a1");
   });
 
-  it("says You when the next step is the farmer's", () => {
+  it("marks the farmer's own step", () => {
     render(<ApplicationList applications={[{ ...app, status: "draft" }]} canCreate />);
-    expect(screen.getByText(/· You/)).toBeInTheDocument();
+    expect(screen.getByText(/· Your step/)).toBeInTheDocument();
   });
 });
 
