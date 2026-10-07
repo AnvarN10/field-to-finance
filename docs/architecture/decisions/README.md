@@ -19,5 +19,6 @@ Only `Accepted` ADRs are current guidance. Decisions are human-owned; agents dra
 | [0013](0013-platform-fees-and-gas-sponsorship.md) | Accepted | Platform fees (arrangement, network, mint) and gas sponsorship |
 | [0014](0014-farmer-issuer-of-record-and-hybrid-instrument-terms.md) | Accepted | Farmer as issuer of record; InstrumentTerms with whole tokens, Act/360 coupon and hybrid buyback/delivery settlement |
 | [0015](0015-basic-auth-on-the-pilot-platform.md) | Accepted | HTTP Basic Auth on the whole pilot platform, only `/api/health` public |
-| [0016](0016-privy-role-login-and-postgres-for-off-chain-workflow.md) | Accepted | Privy email login with roles in Postgres; farmer, investor and arranger cabinets; off-chain workflow data in Postgres on Railway |
-| [0017](0017-service-role-cabinets.md) | Accepted | Service roles (compliance, SCAS partner, elevator, laboratory, regulator) with their own cabinets, granted by arrangers; arrangers may act for them with the acting role audited |
+| [0016](0016-privy-role-login-and-postgres-for-off-chain-workflow.md) | Accepted (entry and role choice superseded by 0018) | Privy email login with roles in Postgres; farmer, investor and arranger cabinets; off-chain workflow data in Postgres on Railway |
+| [0017](0017-service-role-cabinets.md) | Accepted (separate cabinets superseded by 0018) | Service roles (compliance, SCAS partner, elevator, laboratory, regulator) with their own cabinets, granted by arrangers; arrangers may act for them with the acting role audited |
+| [0018](0018-separate-doors-and-permission-based-console.md) | Accepted | Separate doors (investor sign-up, farmer apply, console by invitation) and one permission-based console replacing the service cabinets |
