@@ -5,7 +5,7 @@ import { applications, type ApplicationRow } from "../db/schema";
 import { RequestError } from "../errors";
 import { seasonAttestationBlocker } from "../pool-math";
 import { audited } from "./audit";
-import { assertServiceRole } from "./guards";
+import { assertPermission } from "./guards";
 import { notify, notifyPoolInvestors } from "./notifications";
 import { SEASON_KINDS, type ArrangerChain, type SeasonAttestInput } from "./ports";
 
@@ -16,7 +16,8 @@ const SEASON_LABEL: Record<SeasonAttestInput["kind"], string> = { Sowing: "Sowin
  * with the note, the optional evidence file hash and, for Harvest, the pre-harvest yield estimate in the evidence JSON.
  */
 export async function recordSeasonAttestation(db: Db, actor: SessionUser, input: SeasonAttestInput, chain: Pick<ArrangerChain, "pool" | "attest">): Promise<string[]> {
-  const actingRole = assertServiceRole(actor, "scas").role;
+  assertPermission(actor, "verification.attest");
+  const actingRole = "scas";
   if (!/^\d{1,20}$/.test(input.poolId)) throw new RequestError("Invalid pool id", 400);
   if (!(SEASON_KINDS as readonly string[]).includes(input.kind)) throw new RequestError("Unknown season stage", 400);
   if (input.note !== null && input.note.length > 500) throw new RequestError("Keep the note under 500 characters", 400);

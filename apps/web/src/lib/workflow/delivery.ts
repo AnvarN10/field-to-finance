@@ -8,7 +8,7 @@ import { RequestError } from "../errors";
 import { evaluateLab } from "../lab-quality";
 import type { DeliveryEvidence } from "../pilot-docs";
 import { audited } from "./audit";
-import { assertServiceRole } from "./guards";
+import { assertPermission } from "./guards";
 import { notify, notifyPoolInvestors } from "./notifications";
 import type { ArrangerChain } from "./ports";
 
@@ -53,7 +53,8 @@ export interface ReceiptInput {
 
 /** Elevator receipt (elevator role): tonnes received, the receipt number as a hash only, the date and the receipt file hash. */
 export async function recordElevatorReceipt(db: Db, actor: SessionUser, input: ReceiptInput, chain: Chain): Promise<string> {
-  const actingRole = assertServiceRole(actor, "elevator").role;
+  assertPermission(actor, "delivery.receipt");
+  const actingRole = "elevator";
   if (!Number.isInteger(input.tonnes) || input.tonnes < 1 || input.tonnes > 10_000_000) throw new RequestError("Enter the tonnes received as a whole number", 400);
   const number = input.receiptNumber.trim();
   if (number.length < 1 || number.length > 64) throw new RequestError("Enter the receipt number", 400);
@@ -84,7 +85,8 @@ export async function recordElevatorReceipt(db: Db, actor: SessionUser, input: R
 
 /** Lab protocol (lab role): the twelve measurements, pass/fail per parameter against the pool's spec, protocol file hash. */
 export async function recordLabProtocol(db: Db, actor: SessionUser, input: { poolId: string; measured: Record<string, string>; documentSha256: string }, chain: Chain, spec: QualitySpec): Promise<string> {
-  const actingRole = assertServiceRole(actor, "lab").role;
+  assertPermission(actor, "delivery.lab");
+  const actingRole = "lab";
   if (!/^[0-9a-f]{64}$/.test(input.documentSha256)) throw new RequestError("Attach the lab protocol file", 400);
   const measured = Object.fromEntries(spec.parameters.map((p) => [p.key, String(input.measured[p.key] ?? "").trim().slice(0, 40)]));
   const { results, verdict } = evaluateLab(spec, measured);

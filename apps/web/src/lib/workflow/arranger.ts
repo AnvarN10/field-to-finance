@@ -21,7 +21,7 @@ import {
 import { RequestError } from "../errors";
 import { audit, audited, listAudit } from "./audit";
 import { checklist, DOCUMENT_LABELS, type ChecklistRow } from "./documents";
-import { assertRole, assertServiceRole, assertUuid, parseOr400 } from "./guards";
+import { assertPermission, assertUuid, parseOr400 } from "./guards";
 import { notify, notifyApprovedInvestors } from "./notifications";
 import { issuerWalletOf } from "./farmer";
 import type { ArrangerChain } from "./ports";
@@ -89,7 +89,7 @@ export async function applicationDetail(db: Db, id: string): Promise<Application
 }
 
 export async function reviewDocument(db: Db, actor: SessionUser, documentId: string, decision: "accepted" | "rejected", note: string | null): Promise<void> {
-  assertRole(actor, "arranger");
+  assertPermission(actor, "applications.review");
   assertUuid(documentId, "Document");
   if (decision !== "accepted" && decision !== "rejected") throw new RequestError("Unknown decision", 400);
   const reason = note?.trim() ?? "";
@@ -117,7 +117,7 @@ export async function reviewDocument(db: Db, actor: SessionUser, documentId: str
 
 /** Pre-open moves with their gates. `open` happens only through publishApplication; reject through rejectApplication. */
 export async function advanceApplication(db: Db, actor: SessionUser, id: string, to: ApplicationStatus, chain: ArrangerChain): Promise<ApplicationRow> {
-  assertRole(actor, "arranger");
+  assertPermission(actor, "applications.review");
   const app = await loadApplication(db, id);
   if (to === "open") throw new RequestError("Publish the pool to open it.", 409);
   if (to === "rejected" || to === "withdrawn" || !canTransition(app.status, to)) throw new RequestError(`Cannot move from ${STATUS_INFO[app.status].label} to ${STATUS_INFO[to].label}.`, 409);
@@ -140,7 +140,7 @@ export async function advanceApplication(db: Db, actor: SessionUser, id: string,
 }
 
 export async function rejectApplication(db: Db, actor: SessionUser, id: string, reason: string): Promise<ApplicationRow> {
-  assertRole(actor, "arranger");
+  assertPermission(actor, "applications.review");
   const app = await loadApplication(db, id);
   const r = reason.trim();
   if (r.length < 3) throw new RequestError("Give the farmer a reason.", 400);
@@ -152,7 +152,8 @@ export async function rejectApplication(db: Db, actor: SessionUser, id: string, 
 
 /** Issuer KYC decision. Approval writes the platform KYC record on-chain for the farmer's wallet first. */
 export async function decideFarmerKyc(db: Db, actor: SessionUser, farmerUserId: string, decision: "approved" | "rejected", note: string | null, chain: ArrangerChain): Promise<void> {
-  const actingRole = assertServiceRole(actor, "compliance").role;
+  assertPermission(actor, "kyc.decide");
+  const actingRole = "compliance";
   assertUuid(farmerUserId, "Farmer");
   const profile = await db.query.farmerProfiles.findFirst({ where: eq(farmerProfiles.userId, farmerUserId) });
   if (!profile) throw new RequestError("Farmer not found", 404);
@@ -175,7 +176,8 @@ export async function decideFarmerKyc(db: Db, actor: SessionUser, farmerUserId: 
 
 /** Investor KYC decision. Approval writes the platform KYC record for every linked wallet; later links are approved when linked. */
 export async function decideInvestorKyc(db: Db, actor: SessionUser, investorUserId: string, decision: "approved" | "rejected", note: string | null, chain: ArrangerChain): Promise<void> {
-  const actingRole = assertServiceRole(actor, "compliance").role;
+  assertPermission(actor, "kyc.decide");
+  const actingRole = "compliance";
   assertUuid(investorUserId, "Investor");
   const profile = await db.query.investorProfiles.findFirst({ where: eq(investorProfiles.userId, investorUserId) });
   if (!profile) throw new RequestError("Investor not found", 404);
@@ -198,7 +200,8 @@ export async function decideInvestorKyc(db: Db, actor: SessionUser, investorUser
 }
 
 export async function verifyApplicationFields(db: Db, actor: SessionUser, id: string, chain: ArrangerChain): Promise<string[]> {
-  const actingRole = assertServiceRole(actor, "scas").role;
+  assertPermission(actor, "verification.attest");
+  const actingRole = "scas";
   const app = await loadApplication(db, id);
   if (app.status !== "field_verification") throw new RequestError("Fields are verified during the field verification step.", 409);
   const project = app.projectAddress ? await chain.project(app.projectAddress) : null;
@@ -226,7 +229,7 @@ export type TermsInput = z.input<typeof termsInput>;
  * farm project. A retry after a failed add reuses the pool already created.
  */
 export async function structureApplication(db: Db, actor: SessionUser, id: string, input: TermsInput, chain: ArrangerChain): Promise<ApplicationRow> {
-  assertRole(actor, "arranger");
+  assertPermission(actor, "pools.structure");
   let app = await loadApplication(db, id);
   if (app.status !== "structuring") throw new RequestError("Terms are built during the structuring step.", 409);
   const t = parseOr400(termsInput, input);
@@ -274,7 +277,7 @@ export async function structureApplication(db: Db, actor: SessionUser, id: strin
 }
 
 export async function publishApplication(db: Db, actor: SessionUser, id: string, chain: ArrangerChain): Promise<ApplicationRow> {
-  assertRole(actor, "arranger");
+  assertPermission(actor, "pools.structure");
   const app = await loadApplication(db, id);
   if (app.status !== "ready" || !app.poolId) throw new RequestError("Only a ready application with a pool can be published.", 409);
   const poolId = app.poolId;

@@ -8,7 +8,7 @@ import { applications, documents, farmerProfiles, wallets, type ApplicationRow, 
 import { RequestError } from "../errors";
 import { audit } from "./audit";
 import { checklist, currentDocuments, REQUIRED_KINDS, type ChecklistRow } from "./documents";
-import { assertRole, assertUuid, parseOr400 } from "./guards";
+import { assertAccount, assertUuid, parseOr400 } from "./guards";
 import type { StoredDocInput } from "./ports";
 
 const WALLET = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -41,7 +41,7 @@ export async function farmerProfile(db: Db, userId: string): Promise<FarmerProfi
 }
 
 export async function saveFarmerProfile(db: Db, user: SessionUser, input: unknown): Promise<FarmerProfileRow> {
-  assertRole(user, "farmer");
+  assertAccount(user, "farmer");
   const v = parseOr400(farmerProfileInput, input);
   const [row] = await db
     .insert(farmerProfiles)
@@ -53,7 +53,7 @@ export async function saveFarmerProfile(db: Db, user: SessionUser, input: unknow
 
 /** Issuer KYC: the farmer uploads the charter and director ID; the arranger decides and writes the on-chain KYC record. */
 export async function submitFarmerKyc(db: Db, user: SessionUser, doc: StoredDocInput): Promise<FarmerProfileRow> {
-  assertRole(user, "farmer");
+  assertAccount(user, "farmer");
   const profile = await farmerProfile(db, user.id);
   if (!profileComplete(profile)) throw new RequestError("Fill in the company profile first.", 409);
   if (profile?.kycStatus === "approved") throw new RequestError("Issuer KYC is already approved.", 409);
@@ -79,7 +79,7 @@ async function replaceCurrent(db: Db, ownerUserId: string, applicationId: string
 }
 
 export async function createApplication(db: Db, user: SessionUser, input: unknown): Promise<ApplicationRow> {
-  assertRole(user, "farmer");
+  assertAccount(user, "farmer");
   const v = parseOr400(applicationInput, input);
   const [row] = await db.insert(applications).values({ farmerUserId: user.id, ...v }).returning();
   await audit(db, { actorUserId: user.id, action: "application.create", targetType: "application", targetId: (row as ApplicationRow).id });
@@ -87,7 +87,7 @@ export async function createApplication(db: Db, user: SessionUser, input: unknow
 }
 
 export async function getOwnApplication(db: Db, user: SessionUser, id: string): Promise<ApplicationRow> {
-  assertRole(user, "farmer");
+  assertAccount(user, "farmer");
   assertUuid(id, "Application");
   const row = await db.query.applications.findFirst({ where: and(eq(applications.id, id), eq(applications.farmerUserId, user.id)) });
   if (!row) throw new RequestError("Application not found", 404);

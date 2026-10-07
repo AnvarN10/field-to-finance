@@ -5,7 +5,7 @@ import { auditLog, documents, investorProfiles, users, wallets } from "../db/sch
 import { RequestError } from "../errors";
 import { farmerKycQueue, investorQueue, type InvestorQueueRow } from "./arranger";
 import { audit, audited } from "./audit";
-import { assertServiceRole, assertUuid } from "./guards";
+import { assertPermission, assertUuid } from "./guards";
 import { notify } from "./notifications";
 import type { ArrangerChain } from "./ports";
 
@@ -30,7 +30,8 @@ export async function complianceQueues(db: Db): Promise<{ farmers: FarmerKycRow[
  * the profile is marked rejected with the reason. New subscriptions stop at once; holdings stay frozen until approved again.
  */
 export async function revokeInvestor(db: Db, actor: SessionUser, investorUserId: string, reason: string, chain: Pick<ArrangerChain, "revokeKyc">): Promise<void> {
-  const actingRole = assertServiceRole(actor, "compliance").role;
+  assertPermission(actor, "kyc.revoke");
+  const actingRole = "compliance";
   assertUuid(investorUserId, "Investor");
   const r = reason.trim();
   if (r.length < 3) throw new RequestError("Say why the KYC is revoked.", 400);

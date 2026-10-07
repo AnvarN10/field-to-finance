@@ -6,7 +6,7 @@ import { INVESTOR_CATEGORIES, investorProfiles, kfdAcceptances, wallets, type In
 import { RequestError } from "../errors";
 import { COUNTRIES } from "../kyc";
 import { audit, audited } from "./audit";
-import { assertRole, parseOr400 } from "./guards";
+import { assertAccount, parseOr400 } from "./guards";
 import type { ArrangerChain } from "./ports";
 
 const WALLET = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -48,7 +48,7 @@ async function upsertProfile(db: Db, userId: string, set: Partial<typeof investo
 }
 
 export async function saveQuestionnaire(db: Db, user: SessionUser, input: unknown): Promise<InvestorProfileRow> {
-  assertRole(user, "investor");
+  assertAccount(user, "investor");
   const v = parseOr400(questionnaireInput, input);
   const current = await profileOf(db, user.id);
   if (current?.kycStatus === "approved" && current.category !== v.category) throw new RequestError("Your category was approved. Ask an arranger to change it.", 409);
@@ -58,7 +58,7 @@ export async function saveQuestionnaire(db: Db, user: SessionUser, input: unknow
 
 /** Mock KYC: name and country are kept in Postgres for the arranger's review; no provider is called. */
 export async function submitInvestorKyc(db: Db, user: SessionUser, input: unknown): Promise<InvestorProfileRow> {
-  assertRole(user, "investor");
+  assertAccount(user, "investor");
   const v = parseOr400(investorKycInput, input);
   const current = await profileOf(db, user.id);
   if (!current?.category) throw new RequestError("Answer the categorization questionnaire first.", 409);
@@ -69,7 +69,7 @@ export async function submitInvestorKyc(db: Db, user: SessionUser, input: unknow
 }
 
 export async function acknowledgeRisk(db: Db, user: SessionUser): Promise<InvestorProfileRow> {
-  assertRole(user, "investor");
+  assertAccount(user, "investor");
   const current = await profileOf(db, user.id);
   if (!current?.category) throw new RequestError("Answer the categorization questionnaire first.", 409);
   return upsertProfile(db, user.id, { riskAckAt: new Date() });
@@ -94,7 +94,7 @@ export async function linkWallet(db: Db, user: SessionUser, w: { address: string
 }
 
 export async function acceptKfd(db: Db, user: SessionUser, poolAddress: string, documentHash: string): Promise<void> {
-  assertRole(user, "investor");
+  assertAccount(user, "investor");
   if (!WALLET.test(poolAddress)) throw new RequestError("Invalid pool", 400);
   if (!/^[0-9a-f]{64}$/.test(documentHash)) throw new RequestError("Invalid document hash", 400);
   const p = await profileOf(db, user.id);

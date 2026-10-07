@@ -6,7 +6,7 @@ import { isUniqueViolation } from "../db/errors";
 import { farmerProfiles, investorProfiles, ROLES, userRoles, users, type Role } from "../db/schema";
 import { RequestError } from "../errors";
 import { audit } from "./audit";
-import { assertRole, assertUuid } from "./guards";
+import { assertPermission, assertUuid } from "./guards";
 import { notify } from "./notifications";
 
 async function ensureProfile(db: Db, userId: string, role: Role): Promise<void> {
@@ -36,7 +36,7 @@ const grantInput = z.object({ email: z.email({ error: "enter a valid email" }), 
 
 /** Arranger grants a role by email; an account that never signed in is created and attached on its first sign-in. */
 export async function grantRoleByEmail(db: Db, actor: SessionUser, email: string, role: Role): Promise<void> {
-  assertRole(actor, "arranger");
+  assertPermission(actor, "team.manage");
   const parsed = grantInput.safeParse({ email: normalizeEmail(email), role });
   if (!parsed.success) throw new RequestError(parsed.error.issues[0]?.message ?? "Check the email and role", 400);
   const e = parsed.data.email;
@@ -55,7 +55,7 @@ export async function grantRoleByEmail(db: Db, actor: SessionUser, email: string
  * would grant the role back on the next sign-in, so those addresses are refused here.
  */
 export async function revokeRole(db: Db, actor: SessionUser, userId: string, role: Role, arrangerEmails: string[] = []): Promise<void> {
-  assertRole(actor, "arranger");
+  assertPermission(actor, "team.manage");
   assertUuid(userId, "User");
   await db.transaction(async (tx) => {
     if (role === "arranger") {
