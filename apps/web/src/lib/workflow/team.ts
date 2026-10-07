@@ -4,6 +4,7 @@ import { z } from "zod";
 import { normalizeEmail, type SessionUser } from "../auth/session";
 import type { Db } from "../db/client";
 import { consoleInvitations, userRoles, users } from "../db/schema";
+import { isUniqueViolation } from "../db/errors";
 import { RequestError } from "../errors";
 import { CONSOLE_ROLE_LABELS, CONSOLE_ROLES, isConsoleRole, type ConsoleRole } from "../permissions";
 import { audit } from "./audit";
@@ -47,16 +48,25 @@ export async function createInvitation(db: Db, actor: SessionUser, input: { emai
   const roles = parseRoles(input.roles, false);
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(now.getTime() + INVITATION_TTL_MS);
-  const id = await db.transaction(async (tx) => {
-    await tx
-      .update(consoleInvitations)
-      .set({ revokedAt: now, revokedBy: actor.id })
-      .where(and(eq(consoleInvitations.email, email.data), isNull(consoleInvitations.acceptedAt), isNull(consoleInvitations.revokedAt)));
-    const [row] = await tx.insert(consoleInvitations).values({ email: email.data, roles, tokenHash: hashToken(token), invitedBy: actor.id, createdAt: now, expiresAt }).returning({ id: consoleInvitations.id });
-    if (!row) throw new Error("invitation insert returned no row");
-    await audit(tx as unknown as Db, { actorUserId: actor.id, action: "team.invite", targetType: "invitation", targetId: row.id, payload: { roles } });
-    return row.id;
-  });
+  const insert = () =>
+    db.transaction(async (tx) => {
+      await tx
+        .update(consoleInvitations)
+        .set({ revokedAt: now, revokedBy: actor.id })
+        .where(and(eq(consoleInvitations.email, email.data), isNull(consoleInvitations.acceptedAt), isNull(consoleInvitations.revokedAt)));
+      const [row] = await tx.insert(consoleInvitations).values({ email: email.data, roles, tokenHash: hashToken(token), invitedBy: actor.id, createdAt: now, expiresAt }).returning({ id: consoleInvitations.id });
+      if (!row) throw new Error("invitation insert returned no row");
+      await audit(tx as unknown as Db, { actorUserId: actor.id, action: "team.invite", targetType: "invitation", targetId: row.id, payload: { roles } });
+      return row.id;
+    });
+  let id: string;
+  try {
+    id = await insert();
+  } catch (e) {
+    // Someone else invited this email at the same moment (one open invitation per email).
+    if (isUniqueViolation(e)) throw new RequestError("An invitation for this email was just created. Refresh the page.", 409);
+    throw e;
+  }
   return { id, token, expiresAt };
 }
 

@@ -25,6 +25,15 @@ describe("safeNext", () => {
     expect(safeNext("https://evil.example")).toBeNull();
     expect(safeNext(null)).toBeNull();
   });
+
+  it("never sends a signed-in user back to sign-in, an invitation or an API route", () => {
+    expect(safeNext("/sign-in")).toBeNull();
+    expect(safeNext("/sign-in?next=/sign-in")).toBeNull();
+    expect(safeNext("/invite/abc")).toBeNull();
+    expect(safeNext("/api/documents/1")).toBeNull();
+    expect(safeNext("/sign-in-help")).toBe("/sign-in-help");
+    expect(safeNext("/invest/signup")).toBe("/invest/signup");
+  });
 });
 
 describe("SignInPanel", () => {

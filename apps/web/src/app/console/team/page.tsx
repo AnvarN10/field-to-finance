@@ -60,9 +60,12 @@ export default async function TeamPage() {
         <Section title={`Expired invitations (${expired.length})`} description="These links no longer work. Invite the email again to send a new link.">
           <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
             {expired.map((i) => (
-              <li key={i.id} className="flex flex-col gap-0.5 p-4 text-sm">
-                <span className="break-all font-medium">{i.email}</span>
-                <span className="tabular text-muted-foreground">{`${i.roles.map((r) => CONSOLE_ROLE_LABELS[r].name).join(", ")} · expired ${formatDateUtc(secs(i.expiresAt))}`}</span>
+              <li key={i.id} className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="break-all font-medium">{i.email}</span>
+                  <span className="tabular text-muted-foreground">{`${i.roles.map((r) => CONSOLE_ROLE_LABELS[r].name).join(", ")} · expired ${formatDateUtc(secs(i.expiresAt))}`}</span>
+                </div>
+                <ActionButton label="Remove" role="Platform" hideRole variant="outline" action={revokeInvitationAction.bind(null, i.id)} confirmText={`Remove the expired invitation for ${i.email} from this list?`} />
               </li>
             ))}
           </ul>

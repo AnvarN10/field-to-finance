@@ -31,8 +31,11 @@ export async function openAccount(db: Db, user: SessionUser, door: Door): Promis
       await audit(tx as unknown as Db, { actorUserId: user.id, action: "account.open", targetType: "user", targetId: user.id, payload: { door } });
     });
   } catch (e) {
-    if (isUniqueViolation(e)) throw taken();
-    throw e;
+    if (!isUniqueViolation(e)) throw e;
+    // A second tab or a retry may have opened this very account a moment ago: that is success, not a conflict.
+    const now = await rolesOf(db, user.id);
+    if (now.includes(kind)) return now;
+    throw taken();
   }
   return rolesOf(db, user.id);
 }

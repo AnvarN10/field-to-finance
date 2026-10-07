@@ -16,6 +16,13 @@ describe("openAccount", () => {
     expect((await db.select().from(auditLog)).filter((a) => a.action === "account.open" && a.actorUserId === u.id)).toHaveLength(1);
   });
 
+  it("treats a second tab opening the same door at once as success, not a conflict", async () => {
+    const u = await makeUser(db, "twotabs@example.com", []);
+    const results = await Promise.allSettled([openAccount(db, u, "investor"), openAccount(db, u, "investor")]);
+    expect(results.map((r) => r.status)).toEqual(["fulfilled", "fulfilled"]);
+    expect((await db.select().from(investorProfiles)).filter((p) => p.userId === u.id)).toHaveLength(1);
+  });
+
   it("opens an issuer account as the farmer account kind", async () => {
     const u = await makeUser(db, "farm@example.com", []);
     expect(await openAccount(db, u, "issuer")).toEqual(["farmer"]);
