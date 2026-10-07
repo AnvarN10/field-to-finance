@@ -5,7 +5,7 @@ import { advanceApplication, decideFarmerKyc, decideInvestorKyc, publishApplicat
 import { revokeInvestor } from "../src/lib/workflow/compliance";
 import { recordElevatorReceipt, recordLabProtocol } from "../src/lib/workflow/delivery";
 import { recordSeasonAttestation } from "../src/lib/workflow/scas";
-import { revokeRole } from "../src/lib/workflow/users";
+import { createInvitation, setMemberRoles } from "../src/lib/workflow/team";
 import { saveFarmerProfile } from "../src/lib/workflow/farmer";
 import { saveQuestionnaire } from "../src/lib/workflow/investor";
 import { testDb } from "./helpers/db";
@@ -30,7 +30,8 @@ const CASES: [string, string, (u: SessionUser) => Promise<unknown>][] = [
   ["recordSeasonAttestation", "record verification attestations", (u) => recordSeasonAttestation(db, u, { poolId: "1", kind: "Sowing", note: null, documentSha256: null, yieldEstimateTPerHa: null }, chain)],
   ["recordElevatorReceipt", "record elevator receipts", (u) => recordElevatorReceipt(db, u, { poolId: "1", tonnes: 1, receiptNumber: "1", receivedOn: "2026-10-01", documentSha256: "0".repeat(64) }, chain)],
   ["recordLabProtocol", "record lab protocols", (u) => recordLabProtocol(db, u, { poolId: "1", measured: {}, documentSha256: "0".repeat(64) }, chain, PILOT_QUALITY_SPEC)],
-  ["revokeRole", "manage the team", (u) => revokeRole(db, u, id, "scas")],
+  ["setMemberRoles", "manage the team", (u) => setMemberRoles(db, u, id, ["scas"])],
+  ["createInvitation", "manage the team", (u) => createInvitation(db, u, { email: "x@example.com", roles: ["scas"] })],
 ];
 
 describe("workflows authorize by permission", () => {

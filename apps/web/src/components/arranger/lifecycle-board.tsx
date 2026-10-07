@@ -33,11 +33,12 @@ function stepAction(poolId: string, step: ArrangerStep) {
 }
 
 /** A pool's phases with the current step, who owns it, and the arranger's button when the step is theirs. */
-export function LifecycleBoard({ poolId, phases, compact = false }: { poolId: string; phases: Phase[]; compact?: boolean }) {
+/** `canAct` false (no `pools.operate`): the step is named, never offered as a button. */
+export function LifecycleBoard({ poolId, phases, compact = false, canAct = true }: { poolId: string; phases: Phase[]; compact?: boolean; canAct?: boolean }) {
   const current = phases.find((p) => p.state === "current");
   // In a list of pools the step is only named; its button lives on the pool's page (one primary action per screen).
-  const a = current?.action && !compact ? stepAction(poolId, current.action) : null;
-  const yours = Boolean(current?.action);
+  const a = current?.action && !compact && canAct ? stepAction(poolId, current.action) : null;
+  const yours = Boolean(current?.action) && canAct;
   return (
     <div className="flex flex-col gap-4">
       <ol aria-label="Pool lifecycle" className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -56,7 +57,7 @@ export function LifecycleBoard({ poolId, phases, compact = false }: { poolId: st
         <div className="flex flex-col gap-3 border-t border-border pt-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <p className="text-sm font-medium">{a ? "Your step" : current.next}</p>
-            {current.owner && !a ? <span className={`text-xs ${yours ? "font-medium text-foreground" : "text-muted-foreground"}`}>{yours ? "Your step on the pool page" : OWNER[current.owner]}</span> : null}
+            {current.owner && !a ? <span className={`text-xs ${yours ? "font-medium text-foreground" : "text-muted-foreground"}`}>{yours ? "Your step on the pool page" : current.owner === "arranger" && !canAct ? "Arranger" : OWNER[current.owner]}</span> : null}
           </div>
           {a ? <ActionButton label={current.next} role={a.role} action={a.action} confirmText={"confirmText" in a ? a.confirmText : undefined} /> : null}
         </div>

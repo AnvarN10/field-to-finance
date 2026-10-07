@@ -4,7 +4,6 @@ import { cabinetFor } from "../src/lib/auth/redirects";
 import { auditLog, notifications } from "../src/lib/db/schema";
 import { audit } from "../src/lib/workflow/audit";
 import { assertPermission } from "../src/lib/workflow/guards";
-import { grantRoleByEmail, listUsersWithRoles } from "../src/lib/workflow/users";
 import { testDb } from "./helpers/db";
 import { makeUser } from "./helpers/workflow";
 
@@ -13,15 +12,7 @@ const ops = await makeUser(db, "ops@example.com", ["arranger"]);
 const scas = await makeUser(db, "scas@example.com", ["scas"]);
 
 describe("service roles", () => {
-  it("an arranger grants every service role by email; one user may hold several", async () => {
-    for (const r of ["compliance", "scas", "elevator", "lab", "regulator"] as const) await grantRoleByEmail(db, ops, "svc@example.com", r);
-    const svc = (await listUsersWithRoles(db)).find((u) => u.email === "svc@example.com");
-    expect(svc?.roles).toEqual(["compliance", "elevator", "lab", "regulator", "scas"]);
-  });
 
-  it("a service user cannot grant roles", async () => {
-    await expect(grantRoleByEmail(db, scas, "x@example.com", "compliance")).rejects.toMatchObject({ status: 403 });
-  });
 
   it("assertPermission: own role, arranger holds every service permission, other roles refused", () => {
     expect(assertPermission(scas, "verification.attest")).toMatchObject({ actingRole: "scas" });

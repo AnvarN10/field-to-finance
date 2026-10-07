@@ -29,7 +29,7 @@ import { eventRows, holderRows, registryRows } from "../workflow/regulator";
 import { recordSeasonAttestation } from "../workflow/scas";
 import { recordUserTransaction } from "../workflow/tx-history";
 import { openAccount } from "../workflow/accounts";
-import { grantRoleByEmail } from "../workflow/users";
+import { acceptInvitation, createInvitation } from "../workflow/team";
 
 /** The outside world of the walk: the devnet script wires real keys and the bucket, the test wires an in-memory chain. */
 export interface LifecycleFlowDeps {
@@ -93,10 +93,11 @@ export async function runLifecycleFlow(d: LifecycleFlowDeps, log: (line: string)
   const arranger = await signIn(email("arranger"), [email("arranger")]);
   const service: Record<"compliance" | "scas" | "elevator" | "lab" | "regulator", SessionUser> = {} as never;
   for (const role of ["compliance", "scas", "elevator", "lab", "regulator"] as const) {
-    await grantRoleByEmail(db, arranger, email(role), role);
-    service[role] = await signIn(email(role));
+    const invitation = await createInvitation(db, arranger, { email: email(role), roles: [role] });
+    const member = await signIn(email(role));
+    service[role] = { ...member, roles: [...member.roles, ...(await acceptInvitation(db, member, invitation.token))] };
   }
-  step(`Arranger ${arranger.email} signs in and grants the service roles: compliance, SCAS partner, elevator, laboratory, regulator`);
+  step(`Arranger ${arranger.email} signs in and invites the service parties into the console: compliance, SCAS partner, elevator, laboratory, regulator`);
 
   let farmer = await signIn(email("farmer"));
   farmer = { ...farmer, roles: await openAccount(db, farmer, "issuer") };

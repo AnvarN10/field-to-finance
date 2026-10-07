@@ -33,7 +33,7 @@ export function PipelineBoard({ rows, filter }: { rows: PipelineCard[]; filter: 
               {cards.map((c) => (
                 <Link
                   key={c.id}
-                  href={`/arranger/applications/${c.id}`}
+                  href={`/console/applications/${c.id}`}
                   className="flex flex-col items-start gap-2 rounded-lg border border-border bg-card p-3 transition-colors duration-150 [@media(hover:hover)]:hover:border-input"
                 >
                   <span className="line-clamp-2 text-sm font-medium break-words">{`${c.legalName ?? c.farmerEmail} · ${c.crop} ${c.season}`}</span>

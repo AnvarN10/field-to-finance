@@ -106,6 +106,16 @@ describe("members", () => {
     await expect(setMemberRoles(db, ops, both.id, ["farmer" as never])).rejects.toMatchObject({ status: 400 });
   });
 
+  it("keeps an arranger when two arrangers remove each other at the same time", async () => {
+    const db2 = await testDb();
+    const a = await makeUser(db2, "a@example.com", ["arranger"]);
+    const b = await makeUser(db2, "b@example.com", ["arranger"]);
+    const results = await Promise.allSettled([setMemberRoles(db2, a, b.id, []), setMemberRoles(db2, b, a.id, [])]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.find((r) => r.status === "rejected")).toMatchObject({ reason: { message: "Keep at least one arranger." } });
+    expect((await listMembers(db2)).filter((m) => m.roles.includes("arranger"))).toHaveLength(1);
+  });
+
   it("refuses to strip an ARRANGER_EMAILS address of the arranger role", async () => {
     const boot = await makeUser(db, "boot@example.com", ["arranger"]);
     await expect(setMemberRoles(db, ops, boot.id, [], ["boot@example.com"])).rejects.toMatchObject({ status: 409 });

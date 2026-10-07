@@ -16,20 +16,10 @@ vi.mock("@/lib/server/chain-port", () => ({ arrangerChain: () => chain }));
 vi.mock("@/lib/server/context", () => ({ invalidateReads: () => {} }));
 const actions = await import("../src/app/console/_actions/applications");
 
-describe("arranger workflow actions", () => {
+describe("application actions", () => {
   it("refuse a signed-out caller", async () => {
     actor = null;
-    expect(await actions.grantRoleAction("x@example.com", "farmer")).toMatchObject({ ok: false, error: { title: "Your session expired. Sign in again." } });
+    expect(await actions.rejectAction("00000000-0000-4000-8000-000000000000", "no")).toMatchObject({ ok: false, error: { title: "Your session expired. Sign in again." } });
     actor = ops;
-  });
-
-  it("grant a service role and refuse an unknown one", async () => {
-    expect(await actions.grantRoleAction("co@example.com", "compliance")).toMatchObject({ ok: true, message: "Role granted to co@example.com" });
-    expect(await actions.grantRoleAction("co@example.com", "superuser")).toMatchObject({ ok: false, error: { title: "Unknown role" } });
-  });
-
-  it("grant a role by email and refuse revoking your own arranger role", async () => {
-    expect(await actions.grantRoleAction("new@example.com", "farmer")).toMatchObject({ ok: true });
-    expect(await actions.revokeRoleAction(ops.id, "arranger")).toMatchObject({ ok: false, error: { title: "You cannot remove your own arranger role." } });
   });
 });

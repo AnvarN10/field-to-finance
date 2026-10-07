@@ -2,12 +2,8 @@
 
 import type { ActionResult } from "@/lib/action-result";
 import type { ApplicationStatus } from "@/lib/application-status";
-import { parseArrangerEmails } from "@/lib/auth/session";
-import { ROLES, type Role } from "@/lib/db/schema";
-import { RequestError } from "@/lib/errors";
 import { arrangerChain } from "@/lib/server/chain-port";
 import { consoleAction } from "@/lib/server/console-action";
-import { serverEnv } from "@/lib/server/env";
 import {
   advanceApplication,
   publishApplication,
@@ -16,7 +12,6 @@ import {
   structureApplication,
   type TermsInput,
 } from "@/lib/workflow/arranger";
-import { grantRoleByEmail, revokeRole } from "@/lib/workflow/users";
 
 export const reviewDocumentAction = async (documentId: string, d: "accepted" | "rejected", note: string | null): Promise<ActionResult> =>
   consoleAction("applications.review", d === "accepted" ? "Document accepted" : "Document rejected; the farmer was notified", (a, db) => reviewDocument(db, a, documentId, d, note));
@@ -32,15 +27,3 @@ export const structureAction = async (applicationId: string, terms: TermsInput):
 
 export const publishAction = async (applicationId: string): Promise<ActionResult> =>
   consoleAction("pools.structure", "Pool is open for subscription", (a, db) => publishApplication(db, a, applicationId, arrangerChain()));
-
-export const grantRoleAction = async (email: string, role: string): Promise<ActionResult> =>
-  consoleAction("team.manage", `Role granted to ${email.trim().toLowerCase()}`, (a, db) => {
-    if (!(ROLES as readonly string[]).includes(role)) throw new RequestError("Unknown role", 400);
-    return grantRoleByEmail(db, a, email, role as Role);
-  });
-
-export const revokeRoleAction = async (userId: string, role: string): Promise<ActionResult> =>
-  consoleAction("team.manage", "Role removed", (a, db) => {
-    if (!(ROLES as readonly string[]).includes(role)) throw new RequestError("Unknown role", 400);
-    return revokeRole(db, a, userId, role as Role, parseArrangerEmails(serverEnv().ARRANGER_EMAILS));
-  });

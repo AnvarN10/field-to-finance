@@ -5,11 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }));
 const structureAction = vi.fn(async () => ({ ok: true as const, message: "Pool 9 created", signatures: ["s1", "s2"] }));
-const grantRoleAction = vi.fn(async () => ({ ok: false as const, error: { code: "BadRequest", title: "enter a valid email", detail: "", action: "none" as const }, logs: [] }));
-vi.mock("../src/app/console/_actions/applications", () => ({ structureAction: (...a: unknown[]) => structureAction(...(a as [])), grantRoleAction: (...a: unknown[]) => grantRoleAction(...(a as [])) }));
+vi.mock("../src/app/console/_actions/applications", () => ({ structureAction: (...a: unknown[]) => structureAction(...(a as [])) }));
 const { PipelineBoard } = await import("../src/components/arranger/pipeline-board");
 const { TermBuilder } = await import("../src/components/arranger/term-builder");
-const { RoleForm } = await import("../src/components/arranger/role-form");
 const { AuditTable } = await import("../src/components/arranger/audit-table");
 
 const row = (id: string, status: string) => ({ id, crop: "wheat", season: 2027, requestedUsd: 1000000, status, farmerEmail: `${id}@example.com`, legalName: "Demo Farm LLP", updatedAt: new Date("2026-10-05T10:00:00Z") });
@@ -44,15 +42,6 @@ describe("TermBuilder", () => {
     render(<TermBuilder applicationId="app1" requestedUsd={1000000} defaults={{ name: "D", symbol: "D", unitNominalUsd: 300000, couponBps: 1200, settlementMode: "Hybrid", closeInMinutes: 60, maturityInMinutes: 600, arrangementFeeBps: 200 }} maxArrangementBps={500} />);
     expect(screen.getByText(/must divide/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create the pool and add the project" })).toBeDisabled();
-  });
-});
-
-describe("RoleForm", () => {
-  it("shows the server's refusal", async () => {
-    render(<RoleForm />);
-    await userEvent.type(screen.getByLabelText("Email"), "nope");
-    await userEvent.click(screen.getByRole("button", { name: "Grant role" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("enter a valid email");
   });
 });
 

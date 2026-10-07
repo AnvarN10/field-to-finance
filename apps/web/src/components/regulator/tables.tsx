@@ -40,7 +40,7 @@ export function RegistryTable({ rows }: { rows: RegistryRow[] }) {
           {rows.map((r) => (
             <tr key={r.poolId} className="border-t border-border first:border-t-0">
               <td className={td}>
-                <Link href={`/regulator/pools/${r.poolId}`} className="font-medium underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current">
+                <Link href={`/console/registry/pools/${r.poolId}`} className="font-medium underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current">
                   {r.symbol}
                 </Link>
                 <span className="block text-xs text-muted-foreground">{`Pool ${r.poolId}${r.settlementMode ? ` · ${r.settlementMode}` : ""}`}</span>
