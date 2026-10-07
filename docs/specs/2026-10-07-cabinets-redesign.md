@@ -115,7 +115,7 @@ Notification rows already stored with old `link` values keep working through the
 - **Account kinds** (self-service): `investor`, `farmer` (issuer). Stored in `user_roles` as today. They gate the investor app and the issuer workspace.
 - **Console roles**: `arranger`, `compliance`, `scas`, `elevator`, `lab`, `regulator`. Stored in `user_roles` as today (no data migration). Granted only by accepting an invitation, by a team manager changing a member's roles, or by the `ARRANGER_EMAILS` bootstrap.
 - **Permissions**: code constants in `src/lib/permissions.ts`. Every console page, server action, route handler and workflow checks a permission (`can(user, permission)`, `assertPermission(user, permission)`), never a role name. A role is a named bundle: `ROLE_PERMISSIONS[role]`. A user's permissions are the union over their console roles.
-- **Acting role**: `assertPermission` returns the role that grants the permission, preferring the user's narrowest role (any role other than `arranger`) and falling back to `arranger`; workflows keep writing it to `audit_log.acting_role` as before (ADR 0017's audit contract holds).
+- **Acting role**: `audit_log.acting_role` keeps ADR 0017's meaning: the service role whose step was performed (`compliance`, `scas`, `elevator`, `lab`), whether the actor holds that role or is an arranger acting for it. `assertPermission` also reports the user's narrowest granting role for display.
 
 Bundles live in code, not in the database: they change with the code that checks them, are reviewed in pull requests and are covered by a test that pins the matrix. Custom roles are deferred (section 12).
 
