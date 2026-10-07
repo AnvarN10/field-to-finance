@@ -60,28 +60,4 @@ describe("requireAccount", () => {
   });
 });
 
-describe("requireRole", () => {
-  it("redirects a signed-out visitor to sign-in with the page to return to", async () => {
-    cookie = undefined;
-    await expect(auth.requireRole("arranger", "/arranger/roles")).rejects.toThrow("NEXT_REDIRECT /sign-in?next=%2Farranger%2Froles");
-  });
 
-  it("returns a forbidden marker instead of redirecting when the role is missing", async () => {
-    cookie = "inv";
-    expect(await auth.requireRole("arranger", "/arranger")).toMatchObject({ forbidden: true, user: { email: "inv@example.com" } });
-  });
-
-  it("returns the user when the role is held", async () => {
-    cookie = "ops";
-    expect(await auth.requireRole("arranger", "/arranger")).toMatchObject({ forbidden: false, user: { email: "ops@example.com" } });
-  });
-});
-
-describe("requireAnyRole", () => {
-  it("returns the service roles the user may act as on a page; an arranger gets all of them", async () => {
-    cookie = "ops";
-    expect(await auth.requireAnyRole(["elevator", "lab"], "/elevator")).toMatchObject({ forbidden: false, roles: ["elevator", "lab"] });
-    cookie = "inv";
-    expect(await auth.requireAnyRole(["elevator", "lab"], "/elevator")).toMatchObject({ forbidden: true, roles: [] });
-  });
-});

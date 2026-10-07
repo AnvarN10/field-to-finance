@@ -1,29 +1,30 @@
 "use client";
 
-import { Sprout, TrendingUp } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { Button } from "@/components/ui/button";
-import { cabinetFor, safeNext } from "@/lib/auth/redirects";
-import { chooseRoleAction } from "./actions";
+import { homeFor } from "@/lib/auth/home";
+import { safeNext } from "@/lib/auth/redirects";
 
-const CHOICES = [
-  { role: "farmer", label: "I am a farmer", body: "Raise working capital against part of next season's harvest.", Icon: Sprout },
-  { role: "investor", label: "I am an investor", body: "Buy fixed-coupon harvest instruments with USDC.", Icon: TrendingUp },
-] as const;
+const doorLink = "font-medium text-foreground underline decoration-muted-foreground underline-offset-4 [@media(hover:hover)]:hover:decoration-current";
+const outlineLink =
+  "inline-flex h-9 items-center rounded-md border border-input bg-card px-4 text-sm font-medium transition-colors duration-150 [@media(hover:hover)]:hover:border-muted-foreground [@media(hover:hover)]:hover:bg-raised";
 
+/**
+ * One sign-in for everyone (ADR 0018). After the server session exists the account goes home (console, issuer workspace
+ * or investor app, or `next`); an email without an account sees the two doors. There is no role choice here.
+ */
 export function SignInPanel({ next }: { next: string | null }) {
   const auth = useAuth();
   const router = useRouter();
-  const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const roles = auth.server.state === "ready" ? auth.server.roles : null;
+  const home = roles ? homeFor(roles) : null;
 
   useEffect(() => {
-    if (!roles || roles.length === 0) return;
-    router.replace(safeNext(next) ?? cabinetFor(roles) ?? "/");
-  }, [roles, next, router]);
+    if (home) router.replace(safeNext(next) ?? home);
+  }, [home, next, router]);
 
   if (auth.mode === "unconfigured") {
     return <p className="text-sm text-muted-foreground">Sign-in is not configured on this server: NEXT_PUBLIC_PRIVY_APP_ID is missing.</p>;
@@ -36,7 +37,18 @@ export function SignInPanel({ next }: { next: string | null }) {
         <Button type="button" size="lg" onClick={auth.login} className="h-11 px-5 text-base">
           Continue with email
         </Button>
-        <p className="text-sm text-muted-foreground">We email you a one-time code. Farmers get a secure wallet with no seed phrase.</p>
+        <p className="text-sm text-muted-foreground">We email you a one-time code.</p>
+        <p className="border-t border-border pt-4 text-sm text-muted-foreground">
+          New here?{" "}
+          <Link href="/invest/signup" className={doorLink}>
+            Start investing
+          </Link>{" "}
+          or{" "}
+          <Link href="/apply" className={doorLink}>
+            Apply for financing
+          </Link>
+          .
+        </p>
       </div>
     );
   }
@@ -57,40 +69,23 @@ export function SignInPanel({ next }: { next: string | null }) {
     );
   }
 
-  if (!roles || roles.length > 0) return <p role="status" className="text-sm text-muted-foreground">{roles ? "Opening your cabinet" : "Signing you in"}</p>;
+  if (!roles || home) return <p role="status" className="text-sm text-muted-foreground">{roles ? "Opening your account" : "Signing you in"}</p>;
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted-foreground">{`Signed in as ${auth.email ?? "your email"}. How will you use Field-to-Finance?`}</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {CHOICES.map(({ role, label, body, Icon }) => (
-          <button
-            key={role}
-            type="button"
-            disabled={pending}
-            onClick={() =>
-              start(async () => {
-                setError(null);
-                const r = await chooseRoleAction(role);
-                if (!r.ok) return setError(r.error);
-                await auth.resync();
-                router.replace(cabinetFor(r.roles) ?? "/");
-              })
-            }
-            className="flex min-h-28 flex-col items-start gap-2 rounded-lg border border-input bg-card p-4 text-left transition-[border-color,background-color,scale] duration-150 ease-(--ease-out) active:scale-[0.98] disabled:opacity-60 motion-reduce:active:scale-100 [@media(hover:hover)]:hover:border-muted-foreground [@media(hover:hover)]:hover:bg-raised"
-          >
-            <Icon aria-hidden strokeWidth={1.5} className="size-5 text-primary" />
-            <span className="text-base font-semibold">{label}</span>
-            <span className="text-sm text-muted-foreground">{body}</span>
-          </button>
-        ))}
+    <div className="flex flex-col items-start gap-4">
+      <h2 className="text-base font-semibold">No account for this email yet</h2>
+      <p className="text-sm text-muted-foreground">{`${auth.email ?? "This email"} has no Field-to-Finance account. Open one, or sign in with the email you used before. Team members join the console through their invitation link.`}</p>
+      <div className="flex flex-wrap gap-3">
+        <Link href="/invest/signup" className={outlineLink}>
+          Open an investor account
+        </Link>
+        <Link href="/apply" className={outlineLink}>
+          Apply for financing
+        </Link>
       </div>
-      <p className="text-xs text-muted-foreground">Arrangers are added by the F2F team. Ask an arranger if you need that access.</p>
-      {error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
+      <Button type="button" variant="ghost" onClick={() => void auth.logout()}>
+        Use another email
+      </Button>
     </div>
   );
 }

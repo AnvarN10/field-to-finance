@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { checkRole, parseArrangerEmails, resolveSession, signInWithToken, type PrivyPort } from "../src/lib/auth/session";
+import { parseArrangerEmails, resolveSession, signInWithToken, type PrivyPort } from "../src/lib/auth/session";
 import { platformSettings, userRoles, users, wallets } from "../src/lib/db/schema";
 import { testDb } from "./helpers/db";
 
@@ -114,11 +114,3 @@ describe("resolveSession", () => {
   });
 });
 
-describe("checkRole", () => {
-  const u = { id: "1", email: "a@example.com", roles: ["investor" as const] };
-  it("asks to sign in without a user, forbids a missing role, allows a held role", () => {
-    expect(checkRole(null, "investor")).toBe("signin");
-    expect(checkRole(u, "arranger")).toBe("forbidden");
-    expect(checkRole(u, "investor")).toBe("ok");
-  });
-});

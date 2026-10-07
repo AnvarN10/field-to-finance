@@ -30,6 +30,13 @@ describe("openAccount", () => {
     await expect(openAccount(db, f, "investor")).rejects.toMatchObject({ status: 409, message: "This email already has an issuer account. Use another email for an investor account." });
   });
 
+  it("gives one account kind even when both doors race (unique index)", async () => {
+    const u = await makeUser(db, "race@example.com", []);
+    const results = await Promise.allSettled([openAccount(db, u, "issuer"), openAccount(db, u, "investor")]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.find((r) => r.status === "rejected")).toMatchObject({ reason: { status: 409 } });
+  });
+
   it("refuses an unknown door", async () => {
     const u = await makeUser(db, "x@example.com", []);
     await expect(openAccount(db, u, "arranger" as never)).rejects.toMatchObject({ status: 400 });

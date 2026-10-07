@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { cabinetFor } from "../src/lib/auth/redirects";
 import { auditLog, notifications } from "../src/lib/db/schema";
 import { audit } from "../src/lib/workflow/audit";
 import { assertPermission } from "../src/lib/workflow/guards";
@@ -34,12 +33,4 @@ describe("service roles", () => {
     await db.insert(notifications).values({ userId: ops.id, kind: "k", title: "t", body: "b" });
   });
 
-  it("service users land in their own cabinet", () => {
-    expect(cabinetFor(["lab"])).toBe("/elevator");
-    expect(cabinetFor(["elevator"])).toBe("/elevator");
-    expect(cabinetFor(["compliance"])).toBe("/compliance");
-    expect(cabinetFor(["scas"])).toBe("/scas");
-    expect(cabinetFor(["regulator"])).toBe("/regulator");
-    expect(cabinetFor(["arranger", "regulator"])).toBe("/arranger");
-  });
 });

@@ -3,27 +3,13 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AuthContext, type AuthSession } from "../src/components/auth/auth-context";
-import { cabinetFor, safeNext } from "../src/lib/auth/redirects";
+import { safeNext } from "../src/lib/auth/redirects";
+import { authSession as session } from "./helpers/auth-session";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh: vi.fn() }) }));
-const chooseRoleAction = vi.fn(async () => ({ ok: true as const, roles: ["investor"] as const }));
-vi.mock("../src/app/(site)/sign-in/actions", () => ({ chooseRoleAction: (...a: unknown[]) => chooseRoleAction(...(a as [])) }));
 const { SignInPanel } = await import("../src/app/(site)/sign-in/sign-in-panel");
 
-const session = (over: Partial<AuthSession>): AuthSession => ({
-  mode: "privy",
-  ready: true,
-  authenticated: false,
-  email: null,
-  signer: null,
-  embeddedWallet: null,
-  server: { state: "idle" },
-  login: vi.fn(),
-  logout: vi.fn(async () => {}),
-  resync: vi.fn(async () => {}),
-  ...over,
-});
 const mount = (s: AuthSession, next: string | null = null) =>
   render(
     <AuthContext.Provider value={s}>
@@ -31,44 +17,52 @@ const mount = (s: AuthSession, next: string | null = null) =>
     </AuthContext.Provider>,
   );
 
-describe("safeNext and cabinetFor", () => {
+describe("safeNext", () => {
   it("keeps same-origin paths only", () => {
-    expect(safeNext("/arranger/roles")).toBe("/arranger/roles");
+    expect(safeNext("/console/team")).toBe("/console/team");
     expect(safeNext("//evil.example")).toBeNull();
     expect(safeNext("/\\evil.example")).toBeNull();
     expect(safeNext("https://evil.example")).toBeNull();
     expect(safeNext(null)).toBeNull();
   });
-  it("sends arrangers to the arranger cabinet first", () => {
-    expect(cabinetFor(["farmer", "arranger"])).toBe("/arranger");
-    expect(cabinetFor(["investor"])).toBe("/investor");
-    expect(cabinetFor([])).toBeNull();
-  });
 });
 
 describe("SignInPanel", () => {
-  it("offers one email sign-in button when signed out", async () => {
+  it("offers one email sign-in button when signed out, plus the two doors", async () => {
     const login = vi.fn();
     mount(session({ login }));
     await userEvent.click(screen.getByRole("button", { name: "Continue with email" }));
     expect(login).toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: "Start investing" })).toHaveAttribute("href", "/invest/signup");
+    expect(screen.getByRole("link", { name: "Apply for financing" })).toHaveAttribute("href", "/apply");
   });
 
-  it("asks a new account to choose farmer or investor, then opens that cabinet", async () => {
-    mount(session({ authenticated: true, email: "a@example.com", server: { state: "ready", roles: [] } }));
-    expect(screen.getByRole("button", { name: /I am a farmer/ })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /I am an investor/ }));
-    expect(chooseRoleAction).toHaveBeenCalledWith("investor");
-    expect(replace).toHaveBeenCalledWith("/investor");
+  it("never asks a signed-in account to pick a role: no account means the two doors", () => {
+    mount(session({ authenticated: true, email: "new@example.com", server: { state: "ready", roles: [] } }));
+    expect(screen.queryByText(/I am a/)).toBeNull();
+    expect(screen.getByRole("heading", { name: "No account for this email yet" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open an investor account" })).toHaveAttribute("href", "/invest/signup");
+    expect(screen.getByRole("link", { name: "Apply for financing" })).toHaveAttribute("href", "/apply");
+    expect(screen.getByRole("button", { name: "Use another email" })).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
   });
 
-  it("goes to a safe next path once the server session has roles, and ignores an unsafe one", () => {
+  it("sends each account home: console, issuer workspace, investor app", () => {
+    for (const [roles, home] of [[["regulator", "investor"], "/console"], [["farmer"], "/issuer"], [["investor"], "/invest"]] as const) {
+      replace.mockClear();
+      const v = mount(session({ authenticated: true, server: { state: "ready", roles: [...roles] } }));
+      expect(replace).toHaveBeenCalledWith(home);
+      v.unmount();
+    }
+  });
+
+  it("goes to a safe next path, and ignores an unsafe one", () => {
     replace.mockClear();
-    const a = mount(session({ authenticated: true, server: { state: "ready", roles: ["arranger"] } }), "/arranger/roles");
-    expect(replace).toHaveBeenCalledWith("/arranger/roles");
+    const a = mount(session({ authenticated: true, server: { state: "ready", roles: ["arranger"] } }), "/console/team");
+    expect(replace).toHaveBeenCalledWith("/console/team");
     a.unmount();
     mount(session({ authenticated: true, server: { state: "ready", roles: ["arranger"] } }), "//evil.example");
-    expect(replace).toHaveBeenLastCalledWith("/arranger");
+    expect(replace).toHaveBeenLastCalledWith("/console");
   });
 
   it("shows the server error with a way to retry", async () => {

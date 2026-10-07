@@ -2,8 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { checkRole, resolveSession, SESSION_COOKIE, type SessionUser } from "../auth/session";
-import type { Role, ServiceRole } from "../db/schema";
+import { resolveSession, SESSION_COOKIE, type SessionUser } from "../auth/session";
 import { RequestError } from "../errors";
 import type { Permission } from "../permissions";
 import { assertAccount, assertPermission, type ConsoleActor } from "../workflow/guards";
@@ -40,24 +39,4 @@ export async function signedInUser(nextPath: string): Promise<SessionUser> {
   const user = await currentUser();
   if (!user) redirect(`/sign-in?next=${encodeURIComponent(nextPath)}`);
   return user;
-}
-
-// ---- Page guards of the old cabinets; removed when their pages move (Tasks 8–11). ----
-
-export type PageAccess = { forbidden: false; user: SessionUser } | { forbidden: true; user: SessionUser };
-
-export async function requireRole(role: Role, nextPath: string): Promise<PageAccess> {
-  const user = await currentUser();
-  const check = checkRole(user, role);
-  if (check === "signin" || !user) redirect(`/sign-in?next=${encodeURIComponent(nextPath)}`);
-  return { forbidden: check === "forbidden", user };
-}
-
-export type ServicePageAccess = { forbidden: boolean; user: SessionUser; roles: ServiceRole[] };
-
-export async function requireAnyRole(roles: ServiceRole[], nextPath: string): Promise<ServicePageAccess> {
-  const user = await currentUser();
-  if (!user) redirect(`/sign-in?next=${encodeURIComponent(nextPath)}`);
-  const allowed = user.roles.includes("arranger") ? roles : roles.filter((r) => user.roles.includes(r));
-  return { forbidden: allowed.length === 0, user, roles: allowed };
 }

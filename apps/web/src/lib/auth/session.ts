@@ -91,6 +91,3 @@ export async function resolveSession(db: Db, privy: PrivyPort, token: string | u
   const user = await db.query.users.findFirst({ where: eq(users.privyDid, did) });
   return user ? { id: user.id, email: user.email, roles: await rolesOf(db, user.id) } : null;
 }
-
-export type RoleCheck = "ok" | "signin" | "forbidden";
-export const checkRole = (user: SessionUser | null, role: Role): RoleCheck => (!user ? "signin" : user.roles.includes(role) ? "ok" : "forbidden");
