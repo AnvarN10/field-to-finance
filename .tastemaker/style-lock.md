@@ -63,7 +63,7 @@ Rules: wheat is the one brand colour; use it for the primary action, the key num
 
 ## Structure
 - Landing: Long-Scroll Narrative. Arc: hook (farmer needs money before harvest) → problem (no grain to pledge yet) → solution (verified fields become an instrument) → how it works (seven-step deal path as a visual rail) → proof (live devnet pool card, explorer links, pilot partners) → close (open the pool).
-- App screens: top bar app shell (no sidebar): logo, Pools, Portfolio, Farmer, Admin, wallet button.
+- App screens: top bar app shell for the investor app and the issuer workspace (logo, the app's own tabs, notifications, account menu); the public header has Pools, Get financing, Sign in and one wheat Start investing. Revised 2026-10-07 (ADR 0018, user decision): the console uses a left navigation (240px, background with a hairline end border; active item raised fill, foreground text, 2px wheat inline-start bar; Lucide 16px icons) from 1024px, a menu panel below. No header wallet button; pages that need a wallet show their own Connect wallet.
 - Build stamp / log: `.tastemaker/log.json` and the stamp at the top of `apps/web/src/app/globals.css`.
 
 ## Reference intelligence

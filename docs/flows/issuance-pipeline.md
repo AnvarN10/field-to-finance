@@ -10,7 +10,7 @@ A farmer submits an application ([farmer onboarding](farmer-onboarding.md)).
 
 ## Participants
 
-Arranger (`/arranger` cabinet, `app/arranger/workflow-actions.ts`), compliance (`/compliance`), SCAS partner (`/scas`), server role keys (compliance, SCAS, Issuer), Postgres, the bucket, the Program, investors.
+Arranger (`/console`, `app/console/_actions/applications.ts`), compliance (`/console/issuers`), SCAS partner (`/console/verification`), server role keys (compliance, SCAS, Issuer), Postgres, the bucket, the Program, investors.
 
 ## Step-by-step flow
 
@@ -19,13 +19,13 @@ Arranger (`/arranger` cabinet, `app/arranger/workflow-actions.ts`), compliance (
 | `draft` | farmer | application, documents, fields | submit: profile, every document, project linked |
 | `submitted` | arranger | "Start document review" | none |
 | `documents_review` | arranger | accept or reject each document (a rejection needs a reason; the farmer re-uploads) | every required document accepted |
-| `kyc` | compliance | in `/compliance`: download the KYC file, approve (compliance signs `approve_investor` for the farmer's wallet) or reject ([compliance review](compliance-review.md)) | issuer KYC approved |
-| `field_verification` | SCAS partner | in `/scas`: "Verify fields" ([season and harvest](season-and-harvest.md)) | every field verified on-chain |
+| `kyc` | compliance | in `/console/issuers`: download the KYC file, approve (compliance signs `approve_investor` for the farmer's wallet) or reject ([compliance review](compliance-review.md)) | issuer KYC approved |
+| `field_verification` | SCAS partner | in `/console/verification`: "Verify fields" ([season and harvest](season-and-harvest.md)) | every field verified on-chain |
 | `structuring` | arranger | term builder: name, symbol, nominal (must divide the amount into whole tokens), coupon, settlement mode, close and maturity, arrangement fee; creates the pool with InstrumentTerms (farmer's wallet as issuer of record, volume, share, elevator and lab from the application) and adds the project | pool created and project added (automatic) |
 | `ready` | arranger | "Publish the pool": Issuer signs `open_pool` | open |
 | `open` … `closed` | chain | derived from the pool, see below | none by hand |
 
-Derived statuses (`deriveFromChain`): Open → `open`; Funded → `funded` until every project is disbursed, then `disbursed`, `in_season` once any field has an attestation beyond FieldVerified, `harvest` once harvest is attested, `settlement` from maturity; Redeeming → `settlement`, or `closed` when no tokens remain; Refunding → `closed`. The refresh runs after every arranger action and on cabinet page loads (at most every 30 seconds) and caches changes in the row with a notification to the farmer.
+Derived statuses (`deriveFromChain`): Open → `open`; Funded → `funded` until every project is disbursed, then `disbursed`, `in_season` once any field has an attestation beyond FieldVerified, `harvest` once harvest is attested, `settlement` from maturity; Redeeming → `settlement`, or `closed` when no tokens remain; Refunding → `closed`. The refresh runs after every arranger action and on page loads (at most every 30 seconds) and caches changes in the row with a notification to the farmer.
 
 A pre-open application can be rejected with a reason or withdrawn by the farmer. After publication each pool's lifecycle board in "Live pools" shows the phase, who acts next and the arranger's own steps (close subscription, disburse, record settlement, open redemption, sweep); season attestations, delivery documents, election and buyback funding belong to the SCAS partner, elevator, laboratory and farmer ([settlement](settlement.md)). The old console stays on the pool page under manual pilot tools.
 
@@ -59,7 +59,7 @@ Arranger actions sign with server keys; the role guard runs first. Private data 
 
 ## Observability and debugging
 
-`/arranger` board and status filters, the application's Activity table, `/arranger/audit`, Solana Explorer links.
+`/console/applications` board and status filters, the application's Activity table, `/console/audit`, Solana Explorer links.
 
 ## Testing notes
 
@@ -70,7 +70,7 @@ Arranger actions sign with server keys; the role guard runs first. Private data 
 - [src/lib/workflow/arranger.ts](../../apps/web/src/lib/workflow/arranger.ts)
 - [src/lib/application-status.ts](../../apps/web/src/lib/application-status.ts)
 - [src/lib/chain/arranger-chain.ts](../../apps/web/src/lib/chain/arranger-chain.ts)
-- [src/app/arranger/applications/[id]/page.tsx](../../apps/web/src/app/arranger/applications/[id]/page.tsx)
+- [src/app/arranger/applications/[id]/page.tsx](../../apps/web/src/app/console/applications/[id]/page.tsx)
 - [src/lib/demo/cabinet-flow.ts](../../apps/web/src/lib/demo/cabinet-flow.ts)
 
 ## Related docs

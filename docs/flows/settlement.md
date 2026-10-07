@@ -10,14 +10,14 @@ A term-sheet pool is Funded and disbursed; on a Hybrid pool the issuer may elect
 
 ## Participants
 
-Farmer issuer (`/farmer`, Privy wallet), investors (`/investor`), arranger (`/arranger/pools/<id>` lifecycle board), regulator (`/regulator`), the gas sponsor, the Program.
+Farmer issuer (`/issuer`, Privy wallet), investors (`/invest`), arranger (`/console/pools/<id>` lifecycle board), regulator (`/console/registry`), the gas sponsor, the Program.
 
 ## Step-by-step flow
 
 1. **Election** (Hybrid only, before maturity): the obligations card offers "Elect buyback" and "Elect delivery" (confirmed). The farmer's wallet signs `elect_settlement` as a sponsored transaction; `/api/tx/elect-settlement` builds it only for the pool's issuer of record and the sponsor co-signs only for that wallet. An arranger can still elect from the manual tools. Without a buyback election delivery applies after maturity.
 2. **Buyback funding**: once buyback is elected the card shows the shortfall (principal plus Act/360 coupon minus the vault), the funding deadline (maturity) and the lapse date (7 days after maturity). "Fund buyback" signs `fund_redemption` from the farmer's own USDC account (sponsored).
-3. **After maturity, buyback path**: the lifecycle board gives the arranger "Record the settlement of each project" (CashRepaidWithPremium on the buyback path) and then "Open redemption" (`fund_redemption` with what is still missing, normally 0, which moves the pool to Redeeming). Investors redeem from `/investor/pools/<id>`; when no tokens remain the board offers the sweep.
-4. **After maturity, delivery path**: with the elevator receipt and a passing lab protocol recorded, investors burn tokens for a Grain Claim (`redeem_delivery`, sponsored). The investor cabinet lists Grain Claim certificates (tonnes, elevator, laboratory result, transaction).
+3. **After maturity, buyback path**: the lifecycle board gives the arranger "Record the settlement of each project" (CashRepaidWithPremium on the buyback path) and then "Open redemption" (`fund_redemption` with what is still missing, normally 0, which moves the pool to Redeeming). Investors redeem from `/invest/pools/<id>`; when no tokens remain the board offers the sweep.
+4. **After maturity, delivery path**: with the elevator receipt and a passing lab protocol recorded, investors burn tokens for a Grain Claim (`redeem_delivery`, sponsored). The investor app lists Grain Claim certificates (tonnes, elevator, laboratory result, transaction).
 5. **Closing and oversight**: the arranger downloads the pool's final report (CSV). The regulator sees the registry, holders and events and exports them as CSV.
 
 ## Data and state changes
@@ -47,7 +47,7 @@ Devnet RPC, the sponsor's SOL, test USDC for the farmer (the coupon exceeds the 
 
 ## Observability
 
-Lifecycle board, audit log, `/regulator/events`.
+Lifecycle board, audit log, `/console/registry/events`.
 
 ## Related docs
 

@@ -6,21 +6,21 @@ An investor is categorized, passes a KYC check decided by an arranger, acknowled
 
 ## Trigger
 
-An investor signs in at `/sign-in` and chooses "I am an investor", or follows "Complete KYC" from a pool page.
+An investor opens `/invest/signup` ("Start investing"), or follows "Complete KYC" from a pool page; the door opens the investor account right after email sign-in (`openAccount`, no role choice).
 
 ## Participants
 
-Investor (Privy email login; Phantom or another Wallet Standard wallet optional), web app (`/investor` cabinet, `app/investor/actions.ts`, `/api/tx/subscribe`), Postgres, an arranger (KYC queue), the compliance key, the Program.
+Investor (Privy email login; Phantom or another Wallet Standard wallet optional), web app (`/invest` app, `app/(app)/invest/actions.ts`, `/api/tx/subscribe`), Postgres, an arranger (KYC queue), the compliance key, the Program.
 
 ## Step-by-step flow
 
 1. Sign-in creates the account and records the Privy embedded wallet. Role choice: investor.
-2. Category (`/investor/onboarding`): professional, retail or institutional, net assets range, experience, and why the investor qualifies (not needed for retail). Retail investors see the exempt-offer limits: fewer than 50 retail investors in 12 months, USD 100,000 minimum per investor, up to USD 5M from retail investors in 12 months.
+2. Category (`/invest/account`): professional, retail or institutional, net assets range, experience, and why the investor qualifies (not needed for retail). Retail investors see the exempt-offer limits: fewer than 50 retail investors in 12 months, USD 100,000 minimum per investor, up to USD 5M from retail investors in 12 months.
 3. Identity check (mock KYC): full name and country, kept in `investor_profiles.questionnaire`; status `pending`.
 4. Risk acknowledgement.
 5. Wallet: the Privy email wallet is linked automatically. A Phantom wallet is linked by signing a message that names the wallet, the account and the time (valid for 10 minutes; no transaction, no fee). A wallet can belong to one account only.
-6. The arranger reviews the queue (`/arranger/investors`) and approves: compliance signs `approve_investor` for every linked wallet; wallets linked later are approved when linked.
-7. KFD: on `/investor/pools/<poolId>` the investor reads the key features (issuer of record, instrument type, nominal, issue size, coupon, grain behind the token, dates, settlement, fees, main risks) and accepts. The server computes the KFD's SHA-256 from the pool's on-chain terms and stores it in `kfd_acceptances`. Only fixed terms go into the document, so the hash changes only when the terms change.
+6. The arranger reviews the queue (`/console/investors`) and approves: compliance signs `approve_investor` for every linked wallet; wallets linked later are approved when linked.
+7. KFD: on `/invest/pools/<poolId>` the investor reads the key features (issuer of record, instrument type, nominal, issue size, coupon, grain behind the token, dates, settlement, fees, main risks) and accepts. The server computes the KFD's SHA-256 from the pool's on-chain terms and stores it in `kfd_acceptances`. Only fixed terms go into the document, so the hash changes only when the terms change.
 8. Subscribe on the same page (email wallet or connected Phantom) or on the public pool page (Phantom). `/api/tx/subscribe` checks, before building: the wallet is linked (`WalletNotLinked`), the owner is onboarded (`OnboardingIncomplete`), the KFD for this pool is accepted (`KfdRequired`). Then the [primary subscription](primary-subscription.md) runs.
 
 ## Data and state changes
@@ -29,7 +29,7 @@ Investor (Privy email login; Phantom or another Wallet Standard wallet optional)
 
 ## Success behavior
 
-The cabinet shows "Onboarding complete"; the portfolio lists positions with accrued coupon, maturity schedule, settlement path, grain claims, history and a CSV statement.
+The investor app shows "Onboarding complete"; the portfolio lists positions with accrued coupon, maturity schedule, settlement path, grain claims, history and a CSV statement.
 
 ## Failure behavior
 
@@ -64,7 +64,7 @@ Arranger KYC queue, audit log, the investor's onboarding page (step states).
 
 - [src/lib/workflow/investor.ts](../../apps/web/src/lib/workflow/investor.ts)
 - [src/lib/kfd.ts](../../apps/web/src/lib/kfd.ts)
-- [src/app/investor/](../../apps/web/src/app/investor/)
+- [src/app/investor/](../../apps/web/src/app/(app)/invest/)
 - [src/app/api/tx/[action]/route.ts](../../apps/web/src/app/api/tx/[action]/route.ts) — subscribe gate
 
 ## Related docs

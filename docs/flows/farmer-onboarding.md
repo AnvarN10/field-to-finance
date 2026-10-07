@@ -6,18 +6,18 @@ A farmer company becomes the issuer of record of its own pool ([ADR 0014](../arc
 
 ## Trigger
 
-A farmer opens `/sign-in`, signs in with email and chooses "I am a farmer".
+A farmer opens `/apply` ("Get financing"), reads the requirements and starts at `/apply/start`.
 
 ## Participants
 
-Farmer (browser, Privy email login and embedded Solana wallet), web app (`/farmer` cabinet, `app/farmer/actions.ts`, `/api/tx/register-project`), Postgres, the bucket, the gas sponsor, an arranger (KYC decision, compliance key on the server), the Program.
+Farmer (browser, Privy email login and embedded Solana wallet), web app (`/issuer` workspace, `app/(app)/issuer/actions.ts`, `/api/tx/register-project`), Postgres, the bucket, the gas sponsor, an arranger (KYC decision, compliance key on the server), the Program.
 
 ## Step-by-step flow
 
-1. Sign-in: Privy verifies the email with a one-time code and creates the embedded Solana wallet. `POST /api/session` verifies the token, creates the account and records the embedded wallet. The farmer chooses "I am a farmer" (`chooseRole`).
-2. Company profile (`/farmer/onboarding`): legal name, BIN (12 digits), region, contact. Stored in `farmer_profiles`.
+1. Sign-in: Privy verifies the email with a one-time code and creates the embedded Solana wallet. `POST /api/session` verifies the token, creates the account and records the embedded wallet. The door opens the issuer account at once (`openAccount(db, user, "issuer")`, no role choice) and the workspace starts on the company file (`/issuer/company`).
+2. Company profile (`/issuer/company`): legal name, BIN (12 digits), region, contact. Stored in `farmer_profiles`.
 3. Issuer KYC: the farmer uploads the charter and director ID; the file goes to the bucket under its SHA-256 and a `documents` row of kind `kyc`; KYC becomes `pending`.
-4. Application (`/farmer/applications/new`): crop, grade, season, volume, tokenized share (at most 30%), requested amount, proposed coupon, elevator and laboratory (at most 32 characters each, the program's limits).
+4. Application (`/issuer/applications/new`): crop, grade, season, volume, tokenized share (at most 30%), requested amount, proposed coupon, elevator and laboratory (at most 32 characters each, the program's limits).
 5. Documents: one per requirement (insurance; land-use act and cadastral numbers; financial statements; encumbrance certificate; historical yields; field imagery), each with status Missing, In review, Accepted or Rejected.
 6. Fields: the farmer uploads a GeoJSON or KML export (MultiPolygons split into fields), checks the declared area and may add the cadastral number per field, and signs the sponsored `register_project` with the Privy wallet (mint fee in test USDC, faucet offered). The server reads the project's producer from the chain, checks it is one of the farmer's wallets and links the project to the application; names and cadastral numbers go to a field set in the bucket.
 7. Submit: allowed with a complete profile, every required document uploaded (none rejected) and the project linked. Status `submitted`.
@@ -63,8 +63,8 @@ The farmer's application page shows the timeline with the next action and who ow
 ## Source map
 
 - [src/lib/workflow/farmer.ts](../../apps/web/src/lib/workflow/farmer.ts)
-- [src/app/farmer/actions.ts](../../apps/web/src/app/farmer/actions.ts)
-- [src/app/farmer/](../../apps/web/src/app/farmer/) — cabinet pages
+- [src/app/(app)/issuer/actions.ts](../../apps/web/src/app/(app)/issuer/actions.ts)
+- [src/app/(app)/issuer/](../../apps/web/src/app/(app)/issuer/) — issuer workspace pages
 - [src/components/farmer/register-fields.tsx](../../apps/web/src/components/farmer/register-fields.tsx)
 
 ## Related docs

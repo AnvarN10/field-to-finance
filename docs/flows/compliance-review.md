@@ -10,16 +10,16 @@ A farmer submits issuer KYC ([farmer onboarding](farmer-onboarding.md)) or an in
 
 ## Participants
 
-Compliance (`/compliance`, or an arranger acting as compliance), the compliance key, Postgres, the Program.
+Compliance (`/console/issuers`, or an arranger acting as compliance), the compliance key, Postgres, the Program.
 
 ## Step-by-step flow
 
-1. **Issuer KYC** (`/compliance`): legal name, BIN, region, contact and the KYC file (`/api/documents/<hash>`, served to compliance for `kyc` documents only). Approve: the compliance key signs `approve_investor` for the farmer's issuer wallet (`kyc_wallet`). Reject: a reason the farmer sees.
-2. **Investor KYC** (`/compliance/investors`): category and questionnaire, name, country, optional IIN, risk acknowledgement, wallets. Approve: `approve_investor` for every linked wallet (later links are approved when linked). Reject with a reason.
+1. **Issuer KYC** (`/console/issuers`): legal name, BIN, region, contact and the KYC file (`/api/documents/<hash>`, served to compliance for `kyc` documents only). Approve: the compliance key signs `approve_investor` for the farmer's issuer wallet (`kyc_wallet`). Reject: a reason the farmer sees.
+2. **Investor KYC** (`/console/investors`): category and questionnaire, name, country, optional IIN, risk acknowledgement, wallets. Approve: `approve_investor` for every linked wallet (later links are approved when linked). Reject with a reason.
 3. **Revocation**: an approved investor can be revoked with a reason. `revoke_investor` runs for every linked wallet in each pool where it holds the Instrument (or one pool when it holds none), freezing those accounts; the profile becomes rejected with "Revoked: <reason>" and the investor is notified.
-4. **Retail limits** (`/compliance/limits`): per pool, distinct retail subscribers against fewer than 50, amounts against the USD 100,000 minimum and retail total against USD 5M, from confirmed subscriptions (`tx.subscribe` audit rows). It is a monitor; it does not block subscriptions.
+4. **Retail limits** (`/console/investors/limits`): per pool, distinct retail subscribers against fewer than 50, amounts against the USD 100,000 minimum and retail total against USD 5M, from confirmed subscriptions (`tx.subscribe` audit rows). It is a monitor; it does not block subscriptions.
 
-The arranger cabinet keeps a read view of investor KYC; the application page links to the compliance cabinet while issuer KYC is pending.
+Arrangers hold the compliance permissions in the console (Investors and Issuers sections); the application page links to Issuers while issuer KYC is pending.
 
 ## Data and state changes
 
@@ -49,8 +49,8 @@ Devnet RPC, the compliance key's SOL, Postgres.
 
 ## Observability
 
-`/arranger/audit` and `/regulator/events` (the latter without notes).
+`/console/audit` and `/console/registry/events` (the latter without notes).
 
 ## Related docs
 
-[ADR 0017](../architecture/decisions/0017-service-role-cabinets.md), [ADR 0011](../architecture/decisions/0011-platform-level-kyc.md), [Data](../systems/data.md)
+[ADR 0018](../architecture/decisions/0018-separate-doors-and-permission-based-console.md), [ADR 0017](../architecture/decisions/0017-service-role-cabinets.md), [ADR 0011](../architecture/decisions/0011-platform-level-kyc.md), [Data](../systems/data.md)

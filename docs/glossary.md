@@ -26,7 +26,11 @@ The issuer's right under a Hybrid Instrument to settle in cash: the issuer elect
 
 ## Cabinet
 
-A role's own area of the web app after sign-in: farmer issuer (`/farmer`), investor (`/investor`), arranger (`/arranger`).
+Historical (ADR 0016, ADR 0017): a role's own area of the web app. Replaced by the investor app, the issuer workspace and the console (ADR 0018); old cabinet URLs redirect.
+
+## Console
+
+The back office at `/console` for the arranger, compliance, the SCAS partner, the elevator, the laboratory and the regulator. Members join by invitation; what each sees and does depends on the permissions of their console roles.
 
 ## Clearing
 
@@ -163,3 +167,15 @@ A role for a party other than farmer, investor and arranger: compliance, SCAS pa
 ## Yield Estimate
 
 The SCAS partner's pre-harvest estimate in tonnes per hectare, recorded as a Harvest attestation whose evidence carries the number.
+
+## Door
+
+A sign-up entry for one audience: `/invest/signup` opens an investor account, `/apply` and `/apply/start` open an issuer workspace for a farmer company, an invitation link opens the console. The account kind comes from the door; nobody picks a role after sign-in.
+
+## Invitation
+
+A single-use, 7-day link that grants console roles to one email. Only the hash of its token is stored; accepting needs the invited email's sign-in.
+
+## Permission
+
+One capability in the console, such as `kyc.decide` or `registry.export`. Pages, actions, routes and workflows check permissions; a console role is a named bundle of them (`src/lib/permissions.ts`).

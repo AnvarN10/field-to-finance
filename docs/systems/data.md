@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Postgres holds the off-chain workflow of the role cabinets ([ADR 0016](../architecture/decisions/0016-privy-role-login-and-postgres-for-off-chain-workflow.md)): accounts and roles, wallets, farmer and investor profiles, applications, document metadata, key features document acceptances, the audit log and in-app notifications. The chain keeps money, rights, hashes and attestations; the bucket keeps files.
+Postgres holds the off-chain workflow of the apps and the console ([ADR 0016](../architecture/decisions/0016-privy-role-login-and-postgres-for-off-chain-workflow.md)): accounts and roles, wallets, farmer and investor profiles, applications, document metadata, key features document acceptances, the audit log and in-app notifications. The chain keeps money, rights, hashes and attestations; the bucket keeps files.
 
 ## Questions this doc answers
 
@@ -44,7 +44,8 @@ Application, Key Features Document (KFD), Issuer of Record, KYC. See the [glossa
 | Table | Holds | Written by |
 | --- | --- | --- |
 | `users` | id, Privy DID (unique, null until first sign-in when granted by email), email (unique, lower case) | sign-in, role grant by email |
-| `user_roles` | (user, role) with who granted it; role in `farmer`, `investor`, `arranger`, `compliance`, `scas`, `elevator`, `lab`, `regulator` (service roles only by an arranger's grant, [ADR 0017](../architecture/decisions/0017-service-role-cabinets.md)). Partial unique index `user_roles_one_self_cabinet`: at most one self-chosen (`granted_by = user_id`) farmer or investor role per account | role choice, `ARRANGER_EMAILS` bootstrap (at every sign-in that lacks it), arranger grant and revoke |
+| `user_roles` | (user, role) with who granted it; role in `farmer`, `investor` (self-service account kinds opened through a door) and the console roles `arranger`, `compliance`, `scas`, `elevator`, `lab`, `regulator` (permission bundles in `src/lib/permissions.ts`, [ADR 0018](../architecture/decisions/0018-separate-doors-and-permission-based-console.md)). Partial unique index `user_roles_one_self_cabinet`: at most one self-opened (`granted_by = user_id`) farmer or investor account kind per email | sign-up doors (`openAccount`), `ARRANGER_EMAILS` bootstrap (at every sign-in that lacks it), invitation acceptance (granted by the inviter), team managers changing a member's console roles |
+| `console_invitations` | email (lower case), console roles (non-empty, console roles only), SHA-256 of the 256-bit token (unique; the token itself is never stored), inviter, created and expiry time (7 days), accepted time and user, revoked time and user. Partial unique index `console_invitations_one_open`: one open invitation per email | team managers (create, revoke), the invitee (accept) |
 | `wallets` | address (primary key: one account per wallet), owner, kind (`privy-embedded`, `phantom`), verified time | sign-in (Privy embedded wallet from Privy), signed-message link (Phantom) |
 | `farmer_profiles` | legal name, BIN, region, contact, issuer KYC status, note, `kyc_wallet` (the issuer wallet KYC approved on-chain: only it may register the project and be the issuer of record), decider and time | farmer onboarding, arranger KYC decision |
 | `investor_profiles` | category, questionnaire answers and mock KYC (name, country, optional IIN) as JSON, KYC status, risk acknowledgement time, decider | investor onboarding, arranger KYC decision |
@@ -52,7 +53,7 @@ Application, Key Features Document (KFD), Issuer of Record, KYC. See the [glossa
 | `documents` | owner, application (null for issuer KYC and service uploads), kind, SHA-256, bucket key, type, size, review status and note, reviewer, `replaced_at` | farmer uploads, arranger review, service uploads (SCAS evidence, elevator receipts, lab protocols as kind `other`, registered to the uploader) |
 | `kfd_acceptances` | (investor, pool address), KFD SHA-256, time | investor |
 | `audit_log` | actor (null for system), `acting_role` (the service role acted as, also when an arranger acts for it), action, target, payload JSON, first transaction signature (all of them in the payload when several), error when the attempt failed | every decision and on-chain action |
-| `notifications` | user, kind, title, body, `link` (in-app path), `dedupe_key` (unique when set: at most one row per key, e.g. maturity reminders), read time | workflow decisions, status changes, sponsored transactions, maturity reminders |
+| `notifications` | user, kind, title, body, `link` (in-app path; rows written before ADR 0018 point at old cabinet paths, which redirect), `dedupe_key` (unique when set: at most one row per key, e.g. maturity reminders), read time | workflow decisions, status changes, sponsored transactions, maturity reminders |
 | `platform_settings` | key, value. `environment = production` marks the production database: trigger `users_no_dev_identity_in_production` then refuses `did:dev:*` identities from any process | set once by hand on the production database |
 
 Check constraints pin every enumerated column (roles, statuses, kinds). A replaced document keeps its row with `replaced_at` set, so the review history survives re-uploads.
@@ -74,7 +75,7 @@ Renaming a column or a status breaks the workflow modules, the check constraints
 ## Invariants and assumptions
 
 - One wallet belongs to at most one account (primary key), so KYC and KFD gates cannot be borrowed across accounts.
-- A self-service account has one cabinet; the unique index enforces it under concurrent requests. Removing an arranger role locks every arranger row in one transaction, so the platform always keeps one arranger.
+- A self-service account has one account kind; the unique index enforces it under concurrent requests (both doors racing). Removing an arranger role locks every arranger row in one transaction, so the platform always keeps one arranger.
 - The issuer of record of a pool is the farmer's KYC-approved wallet (`kyc_wallet`); structuring refuses any other producer.
 - No dev or demo identity lives in the production database: the devnet walk keeps its workflow data in an in-process database (or `DEMO_DATABASE_URL`), and the trigger refuses `did:dev:*` once `platform_settings.environment = production`.
 - Statuses from `open` on are only written by the chain refresh (`refreshChainStatuses`), never by hand.
@@ -90,8 +91,8 @@ Renaming a column or a status breaks the workflow modules, the check constraints
 ## Security and privacy notes
 
 - **Private identifiers live only here and in the bucket**: BIN, legal names, contacts, investor names and countries, emails, cadastral numbers (bucket field sets). They never go on-chain, into the repository, logs, PostHog or GlitchTip. Demo and seed data use obviously fake values (`Demo Farm LLP`, BIN `000000000000`, `demo+...@example.com`).
-- Only arrangers and compliance read other users' profiles; the regulator sees issuer legal names, BIN and investor IIN with category, never emails, investor names, KYC answers or review notes (events export only whitelisted payload keys and blanks user targets). The SCAS partner, elevator and laboratory see no company identity. Documents are served by hash to arrangers, to compliance for issuer KYC files, and to the uploader only (`/api/documents/[hash]`).
-- The audit log stores rejection notes and wallet addresses; it is shown in full only in the arranger cabinet.
+- Only console members with `issuers.view` / `investors.view` (arrangers, compliance) read other users' profiles; the regulator sees issuer legal names, BIN and investor IIN with category, never emails, investor names, KYC answers or review notes (events export only whitelisted payload keys and blanks user targets). The SCAS partner, elevator and laboratory see no company identity. Documents are served by hash with `documents.view` (arrangers), with `issuers.view` for issuer KYC files (compliance), and to the uploader (`/api/documents/[hash]`).
+- The audit log stores rejection notes and wallet addresses; it is shown in full only in the console's Audit section (`audit.view`).
 - The database URL is a secret: Railway reference variable for `web`, Infisical for local work, never printed.
 - Retention: no automatic deletion in the pilot. Removing a user cascades to roles, wallets, profiles, KFD acceptances and notifications; audit rows keep the action with the actor set to null.
 
@@ -99,11 +100,11 @@ Renaming a column or a status breaks the workflow modules, the check constraints
 
 - `scripts/inf.sh node apps/web/dist/migrate.mjs` prints "Migrations applied" or the failure.
 - Railway deploy logs show the pre-deploy step before the container starts.
-- The arranger's audit log (`/arranger/audit`) is the first place to look for what happened to an application.
+- The console's audit log (`/console/audit`) is the first place to look for what happened to an application.
 
 ## Testing notes
 
-`pnpm nx run web:test` runs the data layer, guards and workflows on PGlite with the committed migrations (`test/db-schema.test.ts`, `test/workflow-*.test.ts`, `test/auth-session.test.ts`, `test/service-roles.test.ts`, `test/notifications.test.ts`). Migration `0002_service_roles` widens the role check and adds `audit_log.acting_role`, `notifications.link` and `notifications.dedupe_key` with a partial unique index: additive, no rewrite of existing rows. A schema change without a generated migration fails these tests.
+`pnpm nx run web:test` runs the data layer, guards and workflows on PGlite with the committed migrations (`test/db-schema.test.ts`, `test/workflow-*.test.ts`, `test/auth-session.test.ts`, `test/service-roles.test.ts`, `test/notifications.test.ts`). Migration `0002_service_roles` widens the role check and adds `audit_log.acting_role`, `notifications.link` and `notifications.dedupe_key` with a partial unique index; migration `0003_console_invitations` adds `console_invitations`. Both additive, no rewrite of existing rows (no backfill: existing `user_roles` rows map to permission bundles in code). `test/team.test.ts` covers invitations. A schema change without a generated migration fails these tests.
 
 ## Common pitfalls
 

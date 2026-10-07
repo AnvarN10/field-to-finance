@@ -10,7 +10,7 @@ The investor presses Subscribe on an Open pool's page.
 
 ## Participants
 
-Investor wallet (Phantom, or the Privy email wallet inside the investor cabinet), web app (`/api/tx/subscribe`, `/api/tx/send`, `/api/tx/confirm`, `/api/faucet`, the investor cabinet), compliance and gas-sponsor keys on the server, the Program, Token-2022, devnet.
+Investor wallet (Phantom, or the Privy email wallet inside the investor app), web app (`/api/tx/subscribe`, `/api/tx/send`, `/api/tx/confirm`, `/api/faucet`, the investor app), compliance and gas-sponsor keys on the server, the Program, Token-2022, devnet.
 
 ## Step-by-step flow
 
@@ -18,9 +18,9 @@ Investor wallet (Phantom, or the Privy email wallet inside the investor cabinet)
 2. Optional: "Get 1,000 test USDC" posts to `/api/faucet`; the deployer mints test USDC. No SOL is needed ([ADR 0013](../architecture/decisions/0013-platform-fees-and-gas-sponsorship.md)).
 3. The investor enters an amount up to the pool's remaining capacity. The panel shows amount, the network fee (0.50 USDC on devnet) and the total, and checks the wallet's USDC covers the total. The button reads "Subscribe · <total>".
 4. The server builds `subscribe(amount)` with the gas sponsor as fee payer and rent payer and the FeeConfig/treasury accounts, and simulates it.
-   - Before building, the subscribe gate ([ADR 0016](../architecture/decisions/0016-privy-role-login-and-postgres-for-off-chain-workflow.md)) needs the wallet linked to an onboarded investor account with this pool's key features document accepted; otherwise the panel shows "Finish onboarding" or "Read the key features", which open the investor cabinet.
+   - Before building, the subscribe gate ([ADR 0016](../architecture/decisions/0016-privy-role-login-and-postgres-for-off-chain-workflow.md)) needs the wallet linked to an onboarded investor account with this pool's key features document accepted; otherwise the panel shows "Finish onboarding" or "Read the key features", which open the investor app.
    - No InvestorRecord: simulation fails with `AccountNotInitialized` on `investor_record`. The panel shows "This wallet hasn't passed KYC" with "Complete KYC". The wallet never opens.
-5. KYC: [investor onboarding](investor-onboarding.md) in the cabinet; an arranger approves and the compliance key signs `approve_investor` for each linked wallet. One approval covers every pool ([ADR 0011](../architecture/decisions/0011-platform-level-kyc.md)). `/api/kyc` answers 410.
+5. KYC: [investor onboarding](investor-onboarding.md) in the investor app; an arranger approves and the compliance key signs `approve_investor` for each linked wallet. One approval covers every pool ([ADR 0011](../architecture/decisions/0011-platform-level-kyc.md)). `/api/kyc` answers 410.
 6. Subscribe again. Simulation passes; the wallet signs only. The browser posts the signed transaction to `/api/tx/send`; the server validates it (sponsor validator), adds the sponsor's fee-payer signature and submits. In one transaction the Program creates the investor's Token-2022 Instrument account if needed (rent paid by the sponsor), thaws it because the record is approved, moves USDC to the vault, moves the network fee to the treasury and mints Instrument equal to the amount.
 7. The browser posts the signature to `/api/tx/confirm`; the server confirms, clears its read cache, and the panel shows the explorer link.
 
