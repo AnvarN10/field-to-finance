@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import { LEGACY_REDIRECTS } from "./src/lib/redirects";
 
 // Nx runs next from apps/web, so the monorepo root is two levels up.
 const root = path.resolve(process.cwd(), "../..");
@@ -13,6 +14,8 @@ const nextConfig: NextConfig = {
   // Anchor is CommonJS and server-only; load it with Node's require at runtime.
   serverExternalPackages: ["@anchor-lang/core"],
   poweredByHeader: false,
+  // Old cabinet URLs (ADR 0018): temporary, so browsers do not cache them while the pilot may still rename.
+  redirects: async () => LEGACY_REDIRECTS.map((r) => ({ ...r, permanent: false })),
   experimental: {
     // Farmer documents and delivery papers (up to 10 MB) are uploaded through admin server actions; the
     // basic-auth proxy buffers bodies, so its limit is raised to match.

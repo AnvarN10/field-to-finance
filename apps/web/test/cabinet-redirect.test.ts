@@ -6,26 +6,32 @@ const req = (path: string, cookie?: string) => new NextRequest(`https://f2f.exam
 
 describe("cabinetRedirect", () => {
   it("sends a visitor without a session cookie from a cabinet to sign-in with the path", () => {
-    const r = cabinetRedirect(req("/arranger/roles?x=1"));
+    const r = cabinetRedirect(req("/console/team?x=1"));
     expect(r?.status).toBe(307);
-    expect(r?.headers.get("location")).toBe("https://f2f.example/sign-in?next=%2Farranger%2Froles%3Fx%3D1");
+    expect(r?.headers.get("location")).toBe("https://f2f.example/sign-in?next=%2Fconsole%2Fteam%3Fx%3D1");
   });
 
   it("lets cabinet requests with a session cookie through (the page verifies it)", () => {
-    expect(cabinetRedirect(req("/farmer", "f2f_session=tok"))).toBeNull();
+    expect(cabinetRedirect(req("/issuer", "f2f_session=tok"))).toBeNull();
   });
 
   it("ignores other paths and look-alike prefixes", () => {
     expect(cabinetRedirect(req("/pools/7"))).toBeNull();
-    expect(cabinetRedirect(req("/farmers-market"))).toBeNull();
-    expect(cabinetRedirect(req("/investor"))?.status).toBe(307);
+    expect(cabinetRedirect(req("/issuers-club"))).toBeNull();
+    expect(cabinetRedirect(req("/investments"))).toBeNull();
+    expect(cabinetRedirect(req("/invest"))?.status).toBe(307);
+    expect(cabinetRedirect(req("/invest/portfolio"))?.status).toBe(307);
+  });
+
+  it("leaves the doors and the invitation page open", () => {
+    for (const p of ["/invest/signup", "/apply", "/apply/start", "/invite/abc", "/sign-in"]) expect(cabinetRedirect(req(p))).toBeNull();
   });
 
   it("lets a server action POST without a cookie reach the action, which answers \"Sign in again\"", () => {
-    const post = new NextRequest("https://f2f.example/farmer/applications/1", { method: "POST", headers: { "next-action": "abc123" } });
+    const post = new NextRequest("https://f2f.example/issuer/applications/1", { method: "POST", headers: { "next-action": "abc123" } });
     expect(cabinetRedirect(post)).toBeNull();
-    const plainPost = new NextRequest("https://f2f.example/arranger", { method: "POST" });
+    const plainPost = new NextRequest("https://f2f.example/console", { method: "POST" });
     expect(cabinetRedirect(plainPost)).toBeNull();
-    expect(cabinetRedirect(req("/arranger"))?.status).toBe(307);
+    expect(cabinetRedirect(req("/console"))?.status).toBe(307);
   });
 });
