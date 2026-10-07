@@ -8,8 +8,8 @@ import { cabinetFor, safeNext } from "../src/lib/auth/redirects";
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh: vi.fn() }) }));
 const chooseRoleAction = vi.fn(async () => ({ ok: true as const, roles: ["investor"] as const }));
-vi.mock("../src/app/sign-in/actions", () => ({ chooseRoleAction: (...a: unknown[]) => chooseRoleAction(...(a as [])) }));
-const { SignInPanel } = await import("../src/app/sign-in/sign-in-panel");
+vi.mock("../src/app/(site)/sign-in/actions", () => ({ chooseRoleAction: (...a: unknown[]) => chooseRoleAction(...(a as [])) }));
+const { SignInPanel } = await import("../src/app/(site)/sign-in/sign-in-panel");
 
 const session = (over: Partial<AuthSession>): AuthSession => ({
   mode: "privy",

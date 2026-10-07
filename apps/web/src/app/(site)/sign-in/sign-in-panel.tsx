@@ -3,9 +3,9 @@
 import { Sprout, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { useAuth } from "../../components/auth/auth-context";
-import { Button } from "../../components/ui/button";
-import { cabinetFor, safeNext } from "../../lib/auth/redirects";
+import { useAuth } from "@/components/auth/auth-context";
+import { Button } from "@/components/ui/button";
+import { cabinetFor, safeNext } from "@/lib/auth/redirects";
 import { chooseRoleAction } from "./actions";
 
 const CHOICES = [

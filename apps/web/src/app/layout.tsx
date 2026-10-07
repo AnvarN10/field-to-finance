@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
-import { MAIN_ID, SkipLink } from "@/components/skip-link";
-import { HeaderWalletButton } from "@/components/wallet/connect-button";
+import { SkipLink } from "@/components/skip-link";
 import { WalletProviders } from "@/components/wallet/wallet-providers";
 import { introSeenScript } from "@/lib/intro-seen";
 import "./globals.css";
@@ -25,11 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="flex min-h-dvh flex-col font-sans">
         <SkipLink />
-        <WalletProviders>
-          <SiteHeader walletSlot={<HeaderWalletButton />} />
-          <main id={MAIN_ID} tabIndex={-1} className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-10 focus:outline-none">{children}</main>
-          <SiteFooter />
-        </WalletProviders>
+        {/* Each route group brings its own shell: (site) the public header, (app) the app top bar, console the left nav. */}
+        <WalletProviders>{children}</WalletProviders>
       </body>
     </html>
   );

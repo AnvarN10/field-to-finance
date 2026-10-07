@@ -1,8 +1,6 @@
 "use client";
 
-import { useWallet } from "@solana/wallet-adapter-react";
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
 
 /** Sentence-case labels for the adapter button (its defaults say "Select Wallet" and "Connect"). */
 export const WALLET_LABELS = {
@@ -23,7 +21,7 @@ const WalletMultiButton = dynamic(() => import("@solana/wallet-adapter-react-ui"
 
 const BASE = { height: 36, borderRadius: 6, fontFamily: "inherit", fontSize: 14, fontWeight: 600 } as const;
 const STYLES = {
-  // Wheat: the primary action of the page (pool page, header).
+  // Wheat: the primary action of the page (pool page invest panel).
   default: { ...BASE, background: "var(--primary)", color: "var(--primary-foreground)" },
   // Optional or secondary (linking Phantom in onboarding): wheat stays on the page's one primary action.
   outline: { ...BASE, background: "var(--card)", color: "var(--foreground)", border: "1px solid var(--input)" },
@@ -31,27 +29,4 @@ const STYLES = {
 
 export function ConnectButton({ variant = "default" }: { variant?: keyof typeof STYLES }) {
   return <WalletMultiButton labels={WALLET_LABELS} style={STYLES[variant]} />;
-}
-
-/** Pages whose body already shows a Connect wallet call to action while no wallet is connected. */
-export const pageHasConnect = (pathname: string) => /^\/pools\/[^/]+$/.test(pathname) || pathname === "/investor/onboarding";
-
-/** The cabinets sign in by email; the investor cabinet offers Phantom where it is used (wallet link, invest panel). */
-const EMAIL_ONLY = /^\/(farmer|arranger|investor|compliance|scas|elevator|regulator|sign-in)(\/|$)/;
-
-/**
- * Header slot: farmers sign in by email on /farmer, so the investor wallet button stays out of their way there.
- * On phones, a page that shows its own Connect wallet button hides the header one until a wallet connects,
- * so only one Connect wallet button is visible at 390px.
- */
-export function HeaderWalletButton() {
-  const pathname = usePathname() ?? "/";
-  const { connected } = useWallet();
-  if (EMAIL_ONLY.test(pathname)) return null;
-  const duplicate = !connected && pageHasConnect(pathname);
-  return (
-    <span data-phone-hidden={duplicate || undefined} className={duplicate ? "max-sm:hidden" : "contents"}>
-      <ConnectButton />
-    </span>
-  );
 }
