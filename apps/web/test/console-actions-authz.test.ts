@@ -35,6 +35,7 @@ const MODULES = {
   kyc: await import("../src/app/console/_actions/kyc"),
   verification: await import("../src/app/console/_actions/verification"),
   delivery: await import("../src/app/console/_actions/delivery"),
+  team: await import("../src/app/console/_actions/team"),
 };
 
 const form = () => {
