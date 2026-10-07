@@ -1,7 +1,8 @@
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { parseArrangerEmails, SESSION_COOKIE, signInWithToken } from "@/lib/auth/session";
+import { homeFor } from "@/lib/auth/home";
+import { parseArrangerEmails, resolveSession, SESSION_COOKIE, signInWithToken } from "@/lib/auth/session";
 import { RequestError } from "@/lib/errors";
 import { isCrossSite } from "@/lib/same-origin";
 import { getDb } from "@/lib/server/db";
@@ -49,4 +50,25 @@ export async function DELETE(req: Request) {
   const res = NextResponse.json({ ok: true }, { headers: { "cache-control": "no-store" } });
   res.cookies.set(SESSION_COOKIE, "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 0 });
   return res;
+}
+
+const cookieValue = (req: Request, name: string): string | undefined => {
+  for (const part of (req.headers.get("cookie") ?? "").split(";")) {
+    const [k, ...v] = part.trim().split("=");
+    if (k === name) return decodeURIComponent(v.join("="));
+  }
+  return undefined;
+};
+
+/** For the public header: whether the cookie is a live session and which app it opens. No user data. */
+export async function GET(req: Request) {
+  const out = (signedIn: boolean, home: string | null) => NextResponse.json({ signedIn, home }, { headers: { "cache-control": "no-store" } });
+  const token = cookieValue(req, SESSION_COOKIE);
+  if (!token) return out(false, null);
+  try {
+    const user = await resolveSession(await getDb(), getPrivy(), token);
+    return user ? out(true, homeFor(user.roles)) : out(false, null);
+  } catch {
+    return out(false, null);
+  }
 }

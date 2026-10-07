@@ -22,7 +22,7 @@ import { REQUIRED_KINDS } from "../workflow/documents";
 import { addApplicationDocument, attachProject, createApplication, saveFarmerProfile, submitApplication, submitFarmerKyc } from "../workflow/farmer";
 import { acceptKfd, acknowledgeRisk, kfdGate, linkWallet, saveQuestionnaire, submitInvestorKyc } from "../workflow/investor";
 import type { ArrangerChain, StoredDocInput } from "../workflow/ports";
-import { chooseRole } from "../workflow/users";
+import { openAccount } from "../workflow/accounts";
 
 /** Everything the walk needs from the outside world; the devnet script wires real keys, the test wires fakes. */
 export interface CabinetFlowDeps {
@@ -73,9 +73,9 @@ export async function runCabinetFlow(d: CabinetFlowDeps, log: (line: string) => 
   // Farmer
   const farmerEmail = `demo+farmer-${stamp}@example.com`;
   let farmer = await signIn(farmerEmail);
-  farmer = { ...farmer, roles: await chooseRole(db, farmer, "farmer") };
+  farmer = { ...farmer, roles: await openAccount(db, farmer, "issuer") };
   await linkWallet(db, farmer, { address: d.wallets.farmer, kind: "privy-embedded" });
-  step(`Farmer signs up as ${farmerEmail} and chooses "I am a farmer"; issuer wallet ${d.wallets.farmer}`);
+  step(`Farmer applies through /apply as ${farmerEmail}; issuer wallet ${d.wallets.farmer}`);
   step("Deployer sends test USDC: the farmer's mint fee and the investor's subscription", [await d.fund(d.wallets.farmer, d.wallets.investor, REQUESTED_USD + 10)]);
 
   await saveFarmerProfile(db, farmer, { legalName: "Demo Farm LLP", bin: "000000000000", region: "Demo region", contact: "Demo contact" });
@@ -133,7 +133,7 @@ export async function runCabinetFlow(d: CabinetFlowDeps, log: (line: string) => 
   // Investor
   const investorEmail = `demo+investor-${stamp}@example.com`;
   let investor = await signIn(investorEmail);
-  investor = { ...investor, roles: await chooseRole(db, investor, "investor") };
+  investor = { ...investor, roles: await openAccount(db, investor, "investor") };
   await saveQuestionnaire(db, investor, { category: "professional", netAssets: "1m-10m", experience: "extensive", basis: "Demo professional investor" });
   await submitInvestorKyc(db, investor, { fullName: "Demo Investor", country: "Other" });
   await acknowledgeRisk(db, investor);

@@ -89,4 +89,14 @@ describe("/api/session", () => {
       expect(out.headers.get("set-cookie")).toBeNull();
     });
   });
+
+  it("GET says whether the cookie is a live session and where home is", async () => {
+    const none = await route.GET(new Request("http://x/api/session"));
+    expect(await none.json()).toEqual({ signedIn: false, home: null });
+    expect(none.headers.get("cache-control")).toBe("no-store");
+    const yes = await route.GET(new Request("http://x/api/session", { headers: { cookie: "a=1; f2f_session=good" } }));
+    expect(await yes.json()).toEqual({ signedIn: true, home: "/console" });
+    const bad = await route.GET(new Request("http://x/api/session", { headers: { cookie: "f2f_session=forged" } }));
+    expect(await bad.json()).toEqual({ signedIn: false, home: null });
+  });
 });

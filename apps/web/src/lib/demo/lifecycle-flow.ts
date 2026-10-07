@@ -28,7 +28,8 @@ import type { ArrangerChain, StoredDocInput } from "../workflow/ports";
 import { eventRows, holderRows, registryRows } from "../workflow/regulator";
 import { recordSeasonAttestation } from "../workflow/scas";
 import { recordUserTransaction } from "../workflow/tx-history";
-import { chooseRole, grantRoleByEmail } from "../workflow/users";
+import { openAccount } from "../workflow/accounts";
+import { grantRoleByEmail } from "../workflow/users";
 
 /** The outside world of the walk: the devnet script wires real keys and the bucket, the test wires an in-memory chain. */
 export interface LifecycleFlowDeps {
@@ -98,14 +99,14 @@ export async function runLifecycleFlow(d: LifecycleFlowDeps, log: (line: string)
   step(`Arranger ${arranger.email} signs in and grants the service roles: compliance, SCAS partner, elevator, laboratory, regulator`);
 
   let farmer = await signIn(email("farmer"));
-  farmer = { ...farmer, roles: await chooseRole(db, farmer, "farmer") };
+  farmer = { ...farmer, roles: await openAccount(db, farmer, "issuer") };
   await linkWallet(db, farmer, { address: d.wallets.farmer, kind: "privy-embedded" });
   await saveFarmerProfile(db, farmer, { legalName: "Demo Farm LLP", bin: "000000000000", region: "Demo region", contact: "Demo contact" });
   await submitFarmerKyc(db, farmer, await d.storeDocument(pdf("charter and director ID")));
   step(`Farmer signs up (${farmer.email}, fake company Demo Farm LLP) and submits issuer KYC; wallet ${d.wallets.farmer}`, [await d.fund(d.wallets.farmer, d.wallets.investor, 2 * REQUESTED_USD + 10)]);
 
   let investor = await signIn(email("investor"));
-  investor = { ...investor, roles: await chooseRole(db, investor, "investor") };
+  investor = { ...investor, roles: await openAccount(db, investor, "investor") };
   await saveQuestionnaire(db, investor, { category: "professional", netAssets: "1m-10m", experience: "extensive", basis: "Demo professional investor" });
   await submitInvestorKyc(db, investor, { fullName: "Demo Investor", country: "Other", iin: "000000000000" });
   await acknowledgeRisk(db, investor);
