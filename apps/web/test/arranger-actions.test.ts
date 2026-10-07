@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { auditLog } from "../src/lib/db/schema";
-import { RequestError } from "../src/lib/errors";
 import { testDb } from "./helpers/db";
 import { makeUser } from "./helpers/workflow";
 
@@ -8,31 +7,25 @@ const db = await testDb();
 const ops = await makeUser(db, "ops@example.com", ["arranger"]);
 let actor: unknown = null;
 const openPool = vi.fn(async () => "sig-open-1");
-vi.mock("@/lib/server/auth", () => ({
-  requireActionRole: async () => {
-    if (actor === "signed-out") throw new RequestError("Your session expired. Sign in again.", 401);
-    if (actor === "investor") throw new RequestError("Your account does not have the arranger role.", 403);
-    return actor;
-  },
-}));
+vi.mock("@/lib/server/auth", async () => (await import("./helpers/auth-mock")).guardsFor(() => actor as never));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => db }));
 vi.mock("@/lib/server/chain-port", () => ({ arrangerChain: () => ({ pool: async () => null }) }));
 vi.mock("@/lib/chain/admin-ops", async (orig) => ({ ...(await orig<typeof import("../src/lib/chain/admin-ops")>()), openPool: (...a: unknown[]) => openPool(...(a as [])) }));
 vi.mock("@/lib/server/context", () => ({ opsContext: () => ({}), invalidateReads: () => {}, getReader: () => ({}), getStore: () => ({}), stubDeps: () => ({}) }));
 vi.mock("@/lib/server/env", () => ({ serverEnv: () => ({ PUBLIC_BASE_URL: "http://localhost:3000" }) }));
-const actions = await import("../src/app/arranger/actions");
+const actions = await import("../src/app/console/_actions/pools");
 
 describe("arranger actions", () => {
   it("refuse a signed-out caller with a plain message and send nothing", async () => {
-    actor = "signed-out";
+    actor = null;
     const r = await actions.openPoolAction("7");
     expect(r).toMatchObject({ ok: false, error: { title: "Your session expired. Sign in again." } });
     expect(openPool).not.toHaveBeenCalled();
   });
 
-  it("refuse a user without the arranger role", async () => {
-    actor = "investor";
-    expect(await actions.openPoolAction("7")).toMatchObject({ ok: false, error: { title: "Your account does not have the arranger role." } });
+  it("refuse a user without the permission", async () => {
+    actor = { id: "i", email: "i@example.com", roles: ["investor"] };
+    expect(await actions.openPoolAction("7")).toMatchObject({ ok: false, error: { title: "You do not have permission to structure pools." } });
     expect(openPool).not.toHaveBeenCalled();
   });
 

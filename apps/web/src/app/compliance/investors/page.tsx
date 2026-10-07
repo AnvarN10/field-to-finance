@@ -9,7 +9,7 @@ import { COMPLIANCE_TABS } from "@/components/compliance/tabs";
 import { ErrorState } from "@/components/state";
 import { getDb } from "@/lib/server/db";
 import { complianceQueues } from "@/lib/workflow/compliance";
-import { decideInvestorKycAction, revokeInvestorKycAction } from "../actions";
+import { decideInvestorKycAction, revokeInvestorKycAction } from "@/app/console/_actions/kyc";
 
 export const metadata: Metadata = { title: "Investor KYC", robots: { index: false } };
 export const dynamic = "force-dynamic";

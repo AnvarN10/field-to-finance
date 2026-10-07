@@ -4,7 +4,7 @@ import { CircleCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
-import { acknowledgeRiskAction, saveQuestionnaireAction, submitKycAction } from "../../app/investor/actions";
+import { acknowledgeRiskAction, saveQuestionnaireAction, submitKycAction } from "../../app/(app)/invest/actions";
 import { fieldErrors } from "../../lib/form-errors";
 import { shortKey } from "../../lib/format";
 import { COUNTRIES } from "../../lib/kyc";

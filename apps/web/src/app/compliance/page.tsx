@@ -7,7 +7,7 @@ import { COMPLIANCE_TABS } from "@/components/compliance/tabs";
 import { ErrorState } from "@/components/state";
 import { getDb } from "@/lib/server/db";
 import { complianceQueues } from "@/lib/workflow/compliance";
-import { decideFarmerKycAction } from "./actions";
+import { decideFarmerKycAction } from "@/app/console/_actions/kyc";
 
 export const metadata: Metadata = { title: "Compliance cabinet", robots: { index: false } };
 export const dynamic = "force-dynamic";

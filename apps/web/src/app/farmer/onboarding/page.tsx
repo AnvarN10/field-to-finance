@@ -14,7 +14,7 @@ import { getDb } from "@/lib/server/db";
 import { serverEnv } from "@/lib/server/env";
 import { DOCUMENT_LABELS, REQUIRED_KINDS } from "@/lib/workflow/documents";
 import { farmerKycDocument, farmerProfile, isProfileComplete } from "@/lib/workflow/farmer";
-import { uploadKycAction } from "../actions";
+import { uploadKycAction } from "@/app/(app)/issuer/actions";
 
 export const metadata: Metadata = { title: "Company and KYC", robots: { index: false } };
 export const dynamic = "force-dynamic";

@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleCheck } from "lucide-react";
-import type { ActionResult } from "../../app/arranger/actions";
+import type { ActionResult } from "../../app/console/_actions/pools";
 import { ExplorerLink } from "../explorer-link";
 import { TxStatus } from "../tx/tx-status";
 

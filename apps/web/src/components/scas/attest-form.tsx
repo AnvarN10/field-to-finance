@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { attestAction } from "../../app/scas/actions";
+import { attestAction } from "../../app/console/_actions/verification";
 import { ActionButton } from "../admin/action-button";
 import { fileInputClass } from "../elevator/receipt-form";
 import { Input } from "../ui/input";

@@ -3,7 +3,7 @@
 import { CircleCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { saveProfileAction } from "../../app/farmer/actions";
+import { saveProfileAction } from "../../app/(app)/issuer/actions";
 import { fieldErrors } from "../../lib/form-errors";
 import { TextField } from "../cabinet/text-field";
 import { Button } from "../ui/button";

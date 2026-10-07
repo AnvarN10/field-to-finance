@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { toCsv } from "@/lib/csv";
 import { RequestError } from "@/lib/errors";
-import { requireServiceAction } from "@/lib/server/auth";
+import { requirePermission } from "@/lib/server/auth";
 import { getDb } from "@/lib/server/db";
 import { regulatorData, regulatorEvents } from "@/lib/server/regulator-data";
 
@@ -14,7 +14,7 @@ const fail = (status: number, error: string) => Response.json({ error }, { statu
 /** CSV export for the regulator (and arrangers): registry, holders or events, with the same filters as the cabinet. */
 export async function GET(req: Request) {
   try {
-    await requireServiceAction("regulator");
+    await requirePermission("registry.export");
   } catch (e) {
     return fail(e instanceof RequestError ? e.status : 503, e instanceof Error ? e.message : "unavailable");
   }

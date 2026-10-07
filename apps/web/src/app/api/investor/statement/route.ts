@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { RequestError } from "@/lib/errors";
 import { formatUsd } from "@/lib/format";
-import { requireActionRole } from "@/lib/server/auth";
+import { requireAccount } from "@/lib/server/auth";
 import { getDb } from "@/lib/server/db";
 import { investorPortfolio } from "@/lib/server/investor-data";
 import { statementCsv, type StatementRow } from "@/lib/statement";
@@ -14,7 +14,7 @@ const plain = (base: string) => formatUsd(base).replace(/[$,]/g, "");
 export async function GET() {
   let user;
   try {
-    user = await requireActionRole("investor");
+    user = await requireAccount("investor");
   } catch (e) {
     const status = e instanceof RequestError ? e.status : 503;
     return Response.json({ error: e instanceof Error ? e.message : "unavailable" }, { status, headers: { "cache-control": "private, no-store" } });

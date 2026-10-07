@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { ActionResult } from "../../app/arranger/actions";
-import { grantRoleAction } from "../../app/arranger/workflow-actions";
+import type { ActionResult } from "../../app/console/_actions/pools";
+import { grantRoleAction } from "../../app/console/_actions/applications";
 import type { Role } from "../../lib/db/schema";
 import { ROLE_LABELS } from "../../lib/roles";
 

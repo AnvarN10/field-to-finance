@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { createPoolAction } from "../../app/arranger/actions";
+import { createPoolAction } from "../../app/console/_actions/pools";
 import { Input } from "../ui/input";
 import { ActionButton } from "./action-button";
 

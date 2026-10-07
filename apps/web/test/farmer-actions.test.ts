@@ -10,16 +10,11 @@ const store = new MemoryStore();
 const farmer = await makeUser(db, "demo+farmer@example.com", ["farmer"], FARMER_WALLET);
 let actor: unknown = farmer;
 let onChainProducer = FARMER_WALLET;
-vi.mock("@/lib/server/auth", () => ({
-  requireActionRole: async () => {
-    if (!actor) throw new RequestError("Your session expired. Sign in again.", 401);
-    return actor;
-  },
-}));
+vi.mock("@/lib/server/auth", async () => (await import("./helpers/auth-mock")).guardsFor(() => actor as never));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => db }));
 vi.mock("@/lib/server/context", () => ({ getStore: () => store }));
 vi.mock("@/lib/server/chain-port", () => ({ arrangerChain: () => ({ project: async (a: string) => project({ address: a, producer: onChainProducer }) }) }));
-const actions = await import("../src/app/farmer/actions");
+const actions = await import("../src/app/(app)/issuer/actions");
 
 const APP = { crop: "wheat", grade: "3", volumeT: 1000, tokenizedShareBps: 3000, requestedUsd: 200000, proposedCouponBps: 1200, season: 2027, elevator: "Demo elevator", lab: "Demo lab" };
 const pdf = () => {

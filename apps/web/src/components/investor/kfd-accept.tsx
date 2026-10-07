@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { acceptKfdAction } from "../../app/investor/actions";
+import { acceptKfdAction } from "../../app/(app)/invest/actions";
 import { Button } from "../ui/button";
 
 export function KfdAccept({ poolId }: { poolId: string }) {

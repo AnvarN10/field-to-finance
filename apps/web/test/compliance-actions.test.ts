@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { investorProfiles } from "../src/lib/db/schema";
 import { RequestError } from "../src/lib/errors";
-import { assertServiceRole } from "../src/lib/workflow/guards";
 import { testDb } from "./helpers/db";
 import { fakeChain, INVESTOR_WALLET, makeUser } from "./helpers/workflow";
 
@@ -12,23 +11,18 @@ const inv = await makeUser(db, "inv@example.com", ["investor"], INVESTOR_WALLET)
 await db.insert(investorProfiles).values({ userId: inv.id, category: "retail", kycStatus: "pending" });
 let actor: unknown = officer;
 const chain = fakeChain();
-vi.mock("@/lib/server/auth", () => ({
-  requireServiceAction: async (role: "compliance") => {
-    if (!actor) throw new RequestError("Your session expired. Sign in again.", 401);
-    return assertServiceRole(actor as never, role);
-  },
-}));
+vi.mock("@/lib/server/auth", async () => (await import("./helpers/auth-mock")).guardsFor(() => actor as never));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => db }));
 vi.mock("@/lib/server/chain-port", () => ({ arrangerChain: () => chain }));
 vi.mock("@/lib/server/context", () => ({ invalidateReads: () => {} }));
-const actions = await import("../src/app/compliance/actions");
+const actions = await import("../src/app/console/_actions/kyc");
 
 describe("compliance actions", () => {
   it("refuse a signed-out caller and a lab user; nothing goes on-chain", async () => {
     actor = null;
     expect(await actions.decideInvestorKycAction(inv.id, "approved", null)).toMatchObject({ ok: false, error: { title: "Your session expired. Sign in again." } });
     actor = lab;
-    expect(await actions.decideInvestorKycAction(inv.id, "approved", null)).toMatchObject({ ok: false, error: { title: "Your account does not have the compliance role." } });
+    expect(await actions.decideInvestorKycAction(inv.id, "approved", null)).toMatchObject({ ok: false, error: { title: "You do not have permission to decide KYC." } });
     expect(await actions.revokeInvestorKycAction(inv.id, "reason")).toMatchObject({ ok: false });
     expect(chain.calls).toEqual([]);
   });

@@ -15,7 +15,7 @@ const rows = [
 const onboardingStatusAction = vi.fn(async (..._a: unknown[]) => ({ ok: true as const, rows }));
 const uploadOnboardingDocumentAction = vi.fn(async (..._a: unknown[]) => ({ ok: true as const, rows: [{ ...rows[0], status: "provided", sha256: "ab".repeat(32) }, rows[1]] }));
 const saveFieldSetAction = vi.fn(async (..._a: unknown[]) => ({ ok: true as const, hash: "cd".repeat(32) }));
-vi.mock("../src/app/arranger/actions", () => ({
+vi.mock("../src/app/console/_actions/pools", () => ({
   electSettlementAction,
   recordDeliveryAction,
   adminMintUsdcAction,

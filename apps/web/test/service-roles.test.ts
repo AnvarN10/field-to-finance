@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { cabinetFor } from "../src/lib/auth/redirects";
 import { auditLog, notifications } from "../src/lib/db/schema";
 import { audit } from "../src/lib/workflow/audit";
-import { assertServiceRole } from "../src/lib/workflow/guards";
+import { assertPermission } from "../src/lib/workflow/guards";
 import { grantRoleByEmail, listUsersWithRoles } from "../src/lib/workflow/users";
 import { testDb } from "./helpers/db";
 import { makeUser } from "./helpers/workflow";
@@ -23,11 +23,11 @@ describe("service roles", () => {
     await expect(grantRoleByEmail(db, scas, "x@example.com", "compliance")).rejects.toMatchObject({ status: 403 });
   });
 
-  it("assertServiceRole: own role, arranger acting for any, other roles refused", () => {
-    expect(assertServiceRole(scas, "scas")).toMatchObject({ role: "scas", viaArranger: false });
-    expect(assertServiceRole(ops, "lab")).toMatchObject({ role: "lab", viaArranger: true });
-    expect(() => assertServiceRole(scas, "compliance")).toThrow(/compliance role/);
-    expect(() => assertServiceRole({ id: "x", email: "r@example.com", roles: ["regulator"] }, "elevator")).toThrow(/elevator role/);
+  it("assertPermission: own role, arranger holds every service permission, other roles refused", () => {
+    expect(assertPermission(scas, "verification.attest")).toMatchObject({ actingRole: "scas" });
+    expect(assertPermission(ops, "delivery.lab")).toMatchObject({ actingRole: "arranger" });
+    expect(() => assertPermission(scas, "kyc.decide")).toThrow(/decide KYC/);
+    expect(() => assertPermission({ id: "x", email: "r@example.com", roles: ["regulator"] }, "delivery.receipt")).toThrow(/elevator receipts/);
   });
 
   it("audit rows record the acting role", async () => {

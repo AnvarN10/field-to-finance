@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { RequestError } from "../src/lib/errors";
 import { MemoryStore } from "../src/lib/store";
-import { assertServiceRole } from "../src/lib/workflow/guards";
 import { testDb } from "./helpers/db";
 import { poolDetail } from "./helpers/pool";
 import { fakeChain, makeUser } from "./helpers/workflow";
@@ -13,16 +12,11 @@ const regulator = await makeUser(db, "reg@example.com", ["regulator"]);
 const store = new MemoryStore();
 let actor: unknown = elevator;
 const chain = fakeChain({ pool: async () => poolDetail() });
-vi.mock("@/lib/server/auth", () => ({
-  requireServiceAction: async (role: "elevator" | "lab") => {
-    if (!actor) throw new RequestError("Your session expired. Sign in again.", 401);
-    return assertServiceRole(actor as never, role);
-  },
-}));
+vi.mock("@/lib/server/auth", async () => (await import("./helpers/auth-mock")).guardsFor(() => actor as never));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => db }));
 vi.mock("@/lib/server/chain-port", () => ({ arrangerChain: () => chain }));
 vi.mock("@/lib/server/context", () => ({ invalidateReads: () => {}, getStore: () => store }));
-const actions = await import("../src/app/elevator/actions");
+const actions = await import("../src/app/console/_actions/delivery");
 
 const pdf = () => new File([new TextEncoder().encode(`%PDF-1.4 ${Math.random()}`)], "doc.pdf", { type: "application/pdf" });
 const form = (fields: Record<string, string | File>) => {
@@ -37,11 +31,11 @@ describe("elevator and lab actions", () => {
     actor = null;
     expect(await actions.recordReceiptAction("9", receipt())).toMatchObject({ ok: false, error: { title: "Your session expired. Sign in again." } });
     actor = regulator;
-    expect(await actions.recordReceiptAction("9", receipt())).toMatchObject({ ok: false, error: { title: "Your account does not have the elevator role." } });
+    expect(await actions.recordReceiptAction("9", receipt())).toMatchObject({ ok: false, error: { title: "You do not have permission to record elevator receipts." } });
     actor = lab;
     expect(await actions.recordReceiptAction("9", receipt())).toMatchObject({ ok: false });
     actor = elevator;
-    expect(await actions.recordLabAction("9", form({ protein: "15", file: pdf() }))).toMatchObject({ ok: false, error: { title: "Your account does not have the lab role." } });
+    expect(await actions.recordLabAction("9", form({ protein: "15", file: pdf() }))).toMatchObject({ ok: false, error: { title: "You do not have permission to record lab protocols." } });
     expect(chain.calls).toEqual([]);
   });
 

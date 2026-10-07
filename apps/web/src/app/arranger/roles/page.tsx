@@ -8,7 +8,7 @@ import { Panel, Section } from "@/components/cabinet/section";
 import { ErrorState } from "@/components/state";
 import { getDb } from "@/lib/server/db";
 import { listUsersWithRoles } from "@/lib/workflow/users";
-import { revokeRoleAction } from "../workflow-actions";
+import { revokeRoleAction } from "@/app/console/_actions/applications";
 
 export const metadata: Metadata = { title: "Roles", robots: { index: false } };
 export const dynamic = "force-dynamic";

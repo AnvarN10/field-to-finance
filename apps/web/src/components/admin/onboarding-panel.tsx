@@ -2,7 +2,7 @@
 
 import { CircleAlert, CircleCheck } from "lucide-react";
 import { useState, useTransition } from "react";
-import { onboardingStatusAction, uploadOnboardingDocumentAction, type OnboardingResult } from "../../app/arranger/actions";
+import { onboardingStatusAction, uploadOnboardingDocumentAction, type OnboardingResult } from "../../app/console/_actions/pools";
 import { shortKey } from "../../lib/format";
 import type { RequirementRow } from "../../lib/pilot-docs";
 import { Button } from "../ui/button";

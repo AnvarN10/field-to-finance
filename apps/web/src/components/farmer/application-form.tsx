@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { createApplicationAction } from "../../app/farmer/actions";
+import { createApplicationAction } from "../../app/(app)/issuer/actions";
 import { fieldErrors } from "../../lib/form-errors";
 import { TextField } from "../cabinet/text-field";
 import { Button } from "../ui/button";

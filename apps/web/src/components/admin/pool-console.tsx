@@ -6,7 +6,7 @@ import {
   fundRedemptionAction,
   openPoolAction,
   sweepAction,
-} from "../../app/arranger/actions";
+} from "../../app/console/_actions/pools";
 import { SETTLEMENT_LABELS } from "../../lib/chain/enums";
 import type { PoolDetail, ProjectWithFields } from "../../lib/chain/views";
 import { formatDateUtc, formatUsd, formatYield, relativeTime, shortKey } from "../../lib/format";

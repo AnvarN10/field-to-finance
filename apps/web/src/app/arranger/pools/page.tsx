@@ -18,7 +18,7 @@ import { EmptyState, ErrorState } from "@/components/state";
 import { nextPoolId } from "@/lib/chain/admin-ops";
 import { formatHa } from "@/lib/format";
 import { consoleData } from "@/lib/server/console-data";
-import { verifyAllFieldsAction } from "../actions";
+import { verifyAllFieldsAction } from "@/app/console/_actions/pools";
 
 export const metadata: Metadata = { title: "Live pools", robots: { index: false } };
 export const dynamic = "force-dynamic";

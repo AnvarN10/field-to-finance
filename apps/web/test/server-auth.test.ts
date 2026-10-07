@@ -32,22 +32,31 @@ beforeEach(() => {
   redirect.mockClear();
 });
 
-describe("requireActionRole", () => {
+describe("requirePermission", () => {
   it("refuses an expired or forged cookie with 401 and asks to sign in again", async () => {
     cookie = "stale";
-    await expect(auth.requireActionRole("arranger")).rejects.toMatchObject({ status: 401, message: "Your session expired. Sign in again." });
+    await expect(auth.requirePermission("audit.view")).rejects.toMatchObject({ status: 401, message: "Your session expired. Sign in again." });
     cookie = undefined;
-    await expect(auth.requireActionRole("arranger")).rejects.toMatchObject({ status: 401 });
+    await expect(auth.requirePermission("audit.view")).rejects.toMatchObject({ status: 401 });
   });
 
-  it("refuses a user without the role with 403", async () => {
+  it("refuses a user without the permission with 403", async () => {
     cookie = "inv";
-    await expect(auth.requireActionRole("arranger")).rejects.toMatchObject({ status: 403, message: "Your account does not have the arranger role." });
+    await expect(auth.requirePermission("audit.view")).rejects.toMatchObject({ status: 403, message: "You do not have permission to view the audit log." });
   });
 
-  it("returns the user with the role", async () => {
+  it("returns the actor with the acting role", async () => {
     cookie = "ops";
-    expect((await auth.requireActionRole("arranger")).email).toBe("ops@example.com");
+    expect(await auth.requirePermission("kyc.decide")).toMatchObject({ actingRole: "arranger", user: { email: "ops@example.com" } });
+  });
+});
+
+describe("requireAccount", () => {
+  it("refuses a user without the account kind and a signed-out caller", async () => {
+    cookie = "ops";
+    await expect(auth.requireAccount("investor")).rejects.toMatchObject({ status: 403, message: "This needs an investor account." });
+    cookie = undefined;
+    await expect(auth.requireAccount("investor")).rejects.toMatchObject({ status: 401 });
   });
 });
 
@@ -65,20 +74,6 @@ describe("requireRole", () => {
   it("returns the user when the role is held", async () => {
     cookie = "ops";
     expect(await auth.requireRole("arranger", "/arranger")).toMatchObject({ forbidden: false, user: { email: "ops@example.com" } });
-  });
-});
-
-describe("requireServiceAction", () => {
-  it("lets an arranger act for a service role and marks it", async () => {
-    cookie = "ops";
-    expect(await auth.requireServiceAction("compliance")).toMatchObject({ role: "compliance", viaArranger: true, user: { email: "ops@example.com" } });
-  });
-
-  it("refuses a user without the service role and asks a signed-out caller to sign in", async () => {
-    cookie = "inv";
-    await expect(auth.requireServiceAction("scas")).rejects.toMatchObject({ status: 403, message: "Your account does not have the scas role." });
-    cookie = undefined;
-    await expect(auth.requireServiceAction("scas")).rejects.toMatchObject({ status: 401 });
   });
 });
 

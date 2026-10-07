@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef } from "react";
-import { recordReceiptAction } from "../../app/elevator/actions";
+import { recordReceiptAction } from "../../app/console/_actions/delivery";
 import { ActionButton } from "../admin/action-button";
 import { Input } from "../ui/input";
 

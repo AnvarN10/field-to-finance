@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const attestAction = vi.fn(async (_p: string, _f: FormData) => ({ ok: true as const, message: "Attestation recorded for every field", signatures: ["s1"] }));
-vi.mock("../src/app/scas/actions", () => ({ attestAction: (p: string, f: FormData) => attestAction(p, f) }));
+vi.mock("../src/app/console/_actions/verification", () => ({ attestAction: (p: string, f: FormData) => attestAction(p, f) }));
 const { AttestForm } = await import("../src/components/scas/attest-form");
 
 describe("AttestForm", () => {

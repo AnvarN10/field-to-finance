@@ -4,7 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import bs58 from "bs58";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { linkPhantomAction } from "../../app/investor/actions";
+import { linkPhantomAction } from "../../app/(app)/invest/actions";
 import { walletLinkMessage } from "../../lib/wallet-link-message";
 import { Button } from "../ui/button";
 import { ConnectButton } from "../wallet/connect-button";

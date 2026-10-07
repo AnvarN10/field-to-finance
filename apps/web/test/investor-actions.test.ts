@@ -13,11 +13,11 @@ const db = await testDb();
 const investor = await makeUser(db, "demo+investor@example.com", ["investor"]);
 const POOL = { address: "Poo1A111111111111111111111111111111111111", poolId: "7", issuer: "Issuer11111111111111111111111111111111111", targetAmount: "1000000", yieldBps: 800, maturityTs: 1, subscriptionCloseTs: 1, instrument: { symbol: "D", name: "D" } };
 const approveKyc = vi.fn(async () => "sig");
-vi.mock("@/lib/server/auth", () => ({ requireActionRole: async () => investor }));
+vi.mock("@/lib/server/auth", async () => (await import("./helpers/auth-mock")).guardsFor(() => investor as never));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => db }));
 vi.mock("@/lib/server/chain-port", () => ({ arrangerChain: () => ({ approveKyc }) }));
 vi.mock("@/lib/server/context", () => ({ getReader: () => ({ getPool: async (id: string) => (id === "7" ? { pool: POOL, terms: null, arrangementFeeBps: 0, projects: [] } : null), fees: async () => null }) }));
-const actions = await import("../src/app/investor/actions");
+const actions = await import("../src/app/(app)/invest/actions");
 
 function signWith(kp: Keypair, message: string): string {
   const pkcs8 = Buffer.concat([Buffer.from("302e020100300506032b657004220420", "hex"), Buffer.from(kp.secretKey.slice(0, 32))]);

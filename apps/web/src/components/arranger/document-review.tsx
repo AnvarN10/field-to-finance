@@ -1,4 +1,4 @@
-import { reviewDocumentAction } from "../../app/arranger/workflow-actions";
+import { reviewDocumentAction } from "../../app/console/_actions/applications";
 import type { ChecklistRow } from "../../lib/workflow/documents";
 import { DocumentStatusBadge } from "../cabinet/badges";
 import { textLink } from "../cabinet/section";

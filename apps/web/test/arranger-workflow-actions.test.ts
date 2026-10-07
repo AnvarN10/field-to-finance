@@ -10,16 +10,11 @@ const inv = await makeUser(db, "inv@example.com", ["investor"], INVESTOR_WALLET)
 await db.insert(investorProfiles).values({ userId: inv.id, category: "retail", kycStatus: "pending" });
 let actor: unknown = ops;
 const chain = fakeChain();
-vi.mock("@/lib/server/auth", () => ({
-  requireActionRole: async () => {
-    if (!actor) throw new RequestError("Your session expired. Sign in again.", 401);
-    return actor;
-  },
-}));
+vi.mock("@/lib/server/auth", async () => (await import("./helpers/auth-mock")).guardsFor(() => actor as never));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => db }));
 vi.mock("@/lib/server/chain-port", () => ({ arrangerChain: () => chain }));
 vi.mock("@/lib/server/context", () => ({ invalidateReads: () => {} }));
-const actions = await import("../src/app/arranger/workflow-actions");
+const actions = await import("../src/app/console/_actions/applications");
 
 describe("arranger workflow actions", () => {
   it("refuse a signed-out caller", async () => {

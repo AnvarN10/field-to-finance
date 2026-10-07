@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { electSettlementAction, recordDeliveryAction } from "../../app/arranger/actions";
+import { electSettlementAction, recordDeliveryAction } from "../../app/console/_actions/pools";
 import type { InstrumentTermsView, PoolView } from "../../lib/chain/views";
 import { formatTonnes } from "../../lib/format";
 import { settlementStatus } from "../../lib/instrument-terms";

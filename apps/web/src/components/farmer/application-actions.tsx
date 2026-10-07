@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { submitApplicationAction, withdrawApplicationAction } from "../../app/farmer/actions";
+import { submitApplicationAction, withdrawApplicationAction } from "../../app/(app)/issuer/actions";
 import { Button } from "../ui/button";
 
 export function ApplicationActions({ applicationId, canSubmit, canWithdraw }: { applicationId: string; canSubmit: boolean; canWithdraw: boolean }) {

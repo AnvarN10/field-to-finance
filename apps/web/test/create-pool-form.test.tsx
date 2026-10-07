@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 const createPoolAction = vi.fn(async (_i: unknown) => ({ ok: true, message: "Pool 3 created as Draft", signatures: ["5s"] }));
-vi.mock("../src/app/arranger/actions", () => ({ createPoolAction }));
+vi.mock("../src/app/console/_actions/pools", () => ({ createPoolAction }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const { CreatePoolForm } = await import("../src/components/admin/create-pool-form");
 

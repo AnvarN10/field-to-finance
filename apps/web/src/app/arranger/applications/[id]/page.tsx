@@ -25,7 +25,7 @@ import { getDb } from "@/lib/server/db";
 import { serverEnv } from "@/lib/server/env";
 import { termDefaults } from "@/lib/term-defaults";
 import { applicationDetail } from "@/lib/workflow/arranger";
-import { advanceAction, publishAction } from "../../workflow-actions";
+import { advanceAction, publishAction } from "@/app/console/_actions/applications";
 
 export const metadata: Metadata = { title: "Application review", robots: { index: false } };
 export const dynamic = "force-dynamic";

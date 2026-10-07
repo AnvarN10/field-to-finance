@@ -21,7 +21,7 @@ import { getReader } from "@/lib/server/context";
 import { getDb } from "@/lib/server/db";
 import { serverEnv } from "@/lib/server/env";
 import { farmerChecklist, getOwnApplication } from "@/lib/workflow/farmer";
-import { uploadDocumentAction } from "../../actions";
+import { uploadDocumentAction } from "@/app/(app)/issuer/actions";
 import Link from "next/link";
 
 export const metadata: Metadata = { title: "Application", robots: { index: false } };

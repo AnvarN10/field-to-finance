@@ -1,17 +1,6 @@
 import type { SessionUser } from "../auth/session";
-import type { ServiceRole } from "../db/schema";
 import { RequestError } from "../errors";
 import { actingRoleFor, PERMISSION_VERB, type ConsoleRole, type Permission } from "../permissions";
-
-/** Who acts in a service cabinet, and as which role (recorded in `audit_log.acting_role`). */
-export type ServiceActor = { user: SessionUser; role: ServiceRole; viaArranger: boolean };
-
-/** A service action: the user holds `role`, or is an arranger acting for it (pilot fallback, ADR 0017). */
-export function assertServiceRole(user: SessionUser, role: ServiceRole): ServiceActor {
-  if (user.roles.includes(role)) return { user, role, viaArranger: false };
-  if (user.roles.includes("arranger")) return { user, role, viaArranger: true };
-  throw new RequestError(`Your account does not have the ${role} role.`, 403);
-}
 
 /** Who acts in the console, through which permission and as which role (recorded in `audit_log.acting_role`). */
 export type ConsoleActor = { user: SessionUser; permission: Permission; actingRole: ConsoleRole };

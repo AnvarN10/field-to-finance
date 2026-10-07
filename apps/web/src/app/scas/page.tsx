@@ -15,7 +15,7 @@ import { arrangerChain } from "@/lib/server/chain-port";
 import { getStore } from "@/lib/server/context";
 import { getDb } from "@/lib/server/db";
 import { scasPools, scasQueue } from "@/lib/workflow/scas";
-import { verifyFieldsAction } from "./actions";
+import { verifyFieldsAction } from "@/app/console/_actions/verification";
 
 export const metadata: Metadata = { title: "SCAS partner cabinet", robots: { index: false } };
 export const dynamic = "force-dynamic";

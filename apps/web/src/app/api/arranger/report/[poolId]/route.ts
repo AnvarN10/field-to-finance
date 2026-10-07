@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { toCsv } from "@/lib/csv";
 import { RequestError } from "@/lib/errors";
-import { requireActionRole } from "@/lib/server/auth";
+import { requirePermission } from "@/lib/server/auth";
 import { getDb } from "@/lib/server/db";
 import { regulatorData, regulatorEvents } from "@/lib/server/regulator-data";
 
@@ -13,7 +13,7 @@ const fail = (status: number, error: string) => Response.json({ error }, { statu
 /** Final report of one pool for the arranger: the registry entry, the holders and every event, in one CSV. */
 export async function GET(_req: Request, ctx: { params: Promise<{ poolId: string }> }) {
   try {
-    await requireActionRole("arranger");
+    await requirePermission("pools.view");
   } catch (e) {
     return fail(e instanceof RequestError ? e.status : 503, e instanceof Error ? e.message : "unavailable");
   }

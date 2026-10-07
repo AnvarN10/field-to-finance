@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { attachProjectAction } from "../../app/farmer/actions";
+import { attachProjectAction } from "../../app/(app)/issuer/actions";
 import { useAuth } from "../auth/auth-context";
 import { RegisterFields } from "./register-fields";
 

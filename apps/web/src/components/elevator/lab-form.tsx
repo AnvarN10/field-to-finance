@@ -3,7 +3,7 @@
 import type { QualitySpec } from "@f2f/sdk";
 import { CircleCheck, CircleDashed, CircleX } from "lucide-react";
 import { useId, useRef, useState } from "react";
-import { recordLabAction } from "../../app/elevator/actions";
+import { recordLabAction } from "../../app/console/_actions/delivery";
 import { evaluateLab } from "../../lib/lab-quality";
 import { ActionButton } from "../admin/action-button";
 import { Input } from "../ui/input";

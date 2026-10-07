@@ -2,12 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RequestError } from "../../src/lib/errors";
 
 let user: unknown = null;
-vi.mock("@/lib/server/auth", () => ({
-  requireActionRole: async () => {
-    if (!user) throw new RequestError("Your session expired. Sign in again.", 401);
-    return user;
-  },
-}));
+vi.mock("@/lib/server/auth", async () => (await import("../helpers/auth-mock")).guardsFor(() => user as never));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => ({}) }));
 vi.mock("@/lib/server/investor-data", () => ({
   investorPortfolio: async (_db: unknown, u: { id: string }) => ({

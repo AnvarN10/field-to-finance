@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Phase } from "../src/lib/lifecycle";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock("../src/app/arranger/actions", () => ({
+vi.mock("../src/app/console/_actions/pools", () => ({
   closeSubscriptionAction: vi.fn(),
   disburseAllAction: vi.fn(),
   recordSettlementAllAction: vi.fn(),

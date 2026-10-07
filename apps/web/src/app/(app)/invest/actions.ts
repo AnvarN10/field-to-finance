@@ -5,7 +5,7 @@ import type { SessionUser } from "@/lib/auth/session";
 import type { Db } from "@/lib/db/client";
 import { RequestError } from "@/lib/errors";
 import { buildKfd, kfdHash } from "@/lib/kfd";
-import { requireActionRole } from "@/lib/server/auth";
+import { requireAccount } from "@/lib/server/auth";
 import { arrangerChain } from "@/lib/server/chain-port";
 import { getReader } from "@/lib/server/context";
 import { getDb } from "@/lib/server/db";
@@ -16,7 +16,7 @@ export type InvestorResult = { ok: true } | { ok: false; error: string };
 
 async function act(fn: (user: SessionUser, db: Db) => Promise<unknown>): Promise<InvestorResult> {
   try {
-    const user = await requireActionRole("investor");
+    const user = await requireAccount("investor");
     await fn(user, await getDb());
     return { ok: true };
   } catch (e) {

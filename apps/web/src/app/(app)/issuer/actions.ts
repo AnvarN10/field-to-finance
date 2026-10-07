@@ -6,7 +6,7 @@ import type { Db } from "@/lib/db/client";
 import { DOCUMENT_KINDS, type DocumentKind } from "@/lib/db/schema";
 import { RequestError } from "@/lib/errors";
 import { storeDocument, storeFieldSet, type FieldSetEntry } from "@/lib/pilot-docs";
-import { requireActionRole } from "@/lib/server/auth";
+import { requireAccount } from "@/lib/server/auth";
 import { arrangerChain } from "@/lib/server/chain-port";
 import { getStore } from "@/lib/server/context";
 import { getDb } from "@/lib/server/db";
@@ -24,7 +24,7 @@ export type FarmerResult = { ok: true } | { ok: false; error: string };
 
 async function act<T extends object = object>(fn: (user: SessionUser, db: Db) => Promise<T | void>): Promise<({ ok: true } & T) | { ok: false; error: string }> {
   try {
-    const user = await requireActionRole("farmer");
+    const user = await requireAccount("farmer");
     const extra = await fn(user, await getDb());
     return { ok: true, ...(extra ?? ({} as T)) };
   } catch (e) {

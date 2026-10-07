@@ -1,14 +1,15 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import { and, eq, gte, isNotNull } from "drizzle-orm";
-import type { ActionResult } from "../../app/arranger/actions";
+import type { ActionResult } from "../action-result";
 import type { SessionUser } from "../auth/session";
 import { explainChainError } from "../chain/explain";
 import { ChainTxError } from "../chain/send";
 import type { Db } from "../db/client";
-import { auditLog, documents, type ServiceRole } from "../db/schema";
+import { auditLog, documents } from "../db/schema";
 import { RequestError } from "../errors";
-import { requireServiceAction } from "./auth";
+import type { Permission } from "../permissions";
+import { requirePermission } from "./auth";
 import { documentKey, storeDocument } from "../pilot-docs";
 import { getStore, invalidateReads } from "./context";
 import { getDb } from "./db";
@@ -31,13 +32,13 @@ export function actionError(e: unknown): ActionResult {
 }
 
 /**
- * A service cabinet action (ADR 0017): the role guard first (the role holder or an arranger acting for it), then the
- * workflow, which audits each step with the acting role; the result carries the signatures written meanwhile.
+ * A console action (ADR 0018): the permission check first, then the workflow, which re-checks its permission and audits
+ * each step with the acting role; the result carries the signatures written meanwhile.
  */
-export async function serviceAction(role: ServiceRole, message: string, fn: (user: SessionUser, db: Db) => Promise<unknown>): Promise<ActionResult> {
+export async function consoleAction(permission: Permission, message: string, fn: (user: SessionUser, db: Db) => Promise<unknown>): Promise<ActionResult> {
   const since = new Date(Date.now() - 1000);
   try {
-    const actor = await requireServiceAction(role);
+    const actor = await requirePermission(permission);
     const db = await getDb();
     await fn(actor.user, db);
     return { ok: true, message, signatures: await signaturesSince(db, actor.user.id, since) };

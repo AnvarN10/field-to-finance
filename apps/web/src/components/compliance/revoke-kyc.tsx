@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
-import type { ActionResult } from "../../app/arranger/actions";
+import type { ActionResult } from "../../app/console/_actions/pools";
 import { ActionResultView } from "../arranger/action-result";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";

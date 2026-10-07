@@ -1,14 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { RequestError } from "../../src/lib/errors";
-import { assertServiceRole } from "../../src/lib/workflow/guards";
 
 let actor: unknown = null;
-vi.mock("@/lib/server/auth", () => ({
-  requireServiceAction: async (role: "regulator") => {
-    if (!actor) throw new RequestError("Your session expired. Sign in again.", 401);
-    return assertServiceRole(actor as never, role);
-  },
-}));
+vi.mock("@/lib/server/auth", async () => (await import("../helpers/auth-mock")).guardsFor(() => actor as never));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => ({}) }));
 vi.mock("@/lib/server/regulator-data", () => ({
   regulatorData: async () => ({

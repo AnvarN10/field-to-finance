@@ -1,5 +1,5 @@
 import { CircleCheck, CircleDashed, CircleDot } from "lucide-react";
-import { closeSubscriptionAction, disburseAllAction, fundRedemptionAction, openPoolAction, recordSettlementAllAction, sweepAction } from "../../app/arranger/actions";
+import { closeSubscriptionAction, disburseAllAction, fundRedemptionAction, openPoolAction, recordSettlementAllAction, sweepAction } from "../../app/console/_actions/pools";
 import type { ArrangerStep, Phase, PhaseOwner } from "../../lib/lifecycle";
 import { ActionButton } from "../admin/action-button";
 

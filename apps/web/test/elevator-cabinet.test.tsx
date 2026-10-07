@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const recordLabAction = vi.fn(async (_p: string, _f: FormData) => ({ ok: true as const, message: "Lab protocol recorded", signatures: ["s"] }));
 const recordReceiptAction = vi.fn(async (_p: string, _f: FormData) => ({ ok: true as const, message: "Elevator receipt recorded", signatures: ["s"] }));
-vi.mock("../src/app/elevator/actions", () => ({ recordLabAction: (p: string, f: FormData) => recordLabAction(p, f), recordReceiptAction: (p: string, f: FormData) => recordReceiptAction(p, f) }));
+vi.mock("../src/app/console/_actions/delivery", () => ({ recordLabAction: (p: string, f: FormData) => recordLabAction(p, f), recordReceiptAction: (p: string, f: FormData) => recordReceiptAction(p, f) }));
 const { LabForm } = await import("../src/components/elevator/lab-form");
 const { ReceiptForm } = await import("../src/components/elevator/receipt-form");
 

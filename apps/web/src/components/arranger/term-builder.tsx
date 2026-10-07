@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { ActionResult } from "../../app/arranger/actions";
-import { structureAction } from "../../app/arranger/workflow-actions";
+import type { ActionResult } from "../../app/console/_actions/pools";
+import { structureAction } from "../../app/console/_actions/applications";
 import { formatUsd } from "../../lib/format";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
