@@ -211,6 +211,37 @@ export const notifications = pgTable(
   (t) => [index("notifications_user").on(t.userId), uniqueIndex("notifications_dedupe").on(t.dedupeKey).where(sql`"dedupe_key" is not null`)],
 );
 
+/** Roles that open the console (ADR 0018); `src/lib/permissions.ts` maps each to its permissions. */
+const INVITABLE_ROLES = ["arranger", ...SERVICE_ROLES] as const;
+type InvitableRole = (typeof INVITABLE_ROLES)[number];
+
+/**
+ * Console invitations (ADR 0018): only the SHA-256 of the 256-bit token is stored. One open invitation per email;
+ * acceptance requires the invited email, is single use and expires.
+ */
+export const consoleInvitations = pgTable(
+  "console_invitations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    roles: text("roles").array().$type<InvitableRole[]>().notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    invitedBy: uuid("invited_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    expiresAt: ts("expires_at").notNull(),
+    acceptedAt: ts("accepted_at"),
+    acceptedBy: uuid("accepted_by").references(() => users.id, { onDelete: "set null" }),
+    revokedAt: ts("revoked_at"),
+    revokedBy: uuid("revoked_by").references(() => users.id, { onDelete: "set null" }),
+  },
+  (t) => [
+    check("console_invitations_roles", sql.raw(`cardinality("roles") > 0 and "roles" <@ array[${INVITABLE_ROLES.map((r) => `'${r}'`).join(", ")}]::text[]`)),
+    check("console_invitations_email", sql`"email" = lower("email") and position('@' in "email") > 1`),
+    uniqueIndex("console_invitations_one_open").on(t.email).where(sql`"accepted_at" is null and "revoked_at" is null`),
+  ],
+);
+
+export type ConsoleInvitationRow = typeof consoleInvitations.$inferSelect;
 export type UserRow = typeof users.$inferSelect;
 export type ApplicationRow = typeof applications.$inferSelect;
 export type DocumentRow = typeof documents.$inferSelect;

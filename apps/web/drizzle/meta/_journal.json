@@ -22,6 +22,13 @@
       "when": 1791222143208,
       "tag": "0002_service_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791360243581,
+      "tag": "0003_console_invitations",
+      "breakpoints": true
     }
   ]
 }
