@@ -64,7 +64,7 @@ export default async function InvestOverview() {
         </div>
         <div className="flex flex-col gap-1 bg-card p-4">
           <dt className="text-xs text-muted-foreground">Next payment</dt>
-          <dd className="text-xl font-semibold">{s.next ? formatUsdDown(s.next.amount) : "–"}</dd>
+          <dd className="text-xl font-semibold">{s.next ? formatUsdDown(s.next.amount) : <span className="text-base font-normal text-muted-foreground">Not scheduled yet</span>}</dd>
           {s.next ? <dd className="text-xs text-muted-foreground">{formatDateUtc(s.next.ts)}</dd> : null}
         </div>
       </dl>

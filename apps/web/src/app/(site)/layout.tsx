@@ -3,7 +3,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { MAIN_ID } from "@/components/skip-link";
 
-/** Public pages and the doors: the public header (Pools, Get financing, Sign in, Start investing). */
+/** Public pages and the doors: the public header (Pools, Apply for financing, Sign in, Start investing). */
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <>

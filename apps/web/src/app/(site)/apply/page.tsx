@@ -4,17 +4,17 @@ import Link from "next/link";
 import { primaryLink } from "@/components/cabinet/section";
 import { FARMER_REQUIREMENTS } from "@/lib/pilot-docs";
 
-export const metadata: Metadata = { title: "Get financing", description: "Raise working capital against part of next season's harvest." };
+export const metadata: Metadata = { title: "Apply for financing", description: "Raise working capital against part of next season's harvest." };
 
 const STEPS = [
-  { title: "Open your issuer workspace", body: "Sign up with your email. Your company gets a secure wallet; it becomes the issuer of record of its pool." },
+  { title: "Sign up", body: "Sign up with your email. Your company gets a secure wallet; it becomes the issuer of record of its pool." },
   { title: "Company profile and issuer KYC", body: "Legal details and the KYC file. Compliance reviews them once." },
-  { title: "Application with documents and fields", body: "Crop, volume, the share to finance and the amount; one document per requirement below; field boundaries from your GeoJSON or KML export." },
+  { title: "Application with documents and fields", body: "Crop, volume, the share to finance and the amount; one document per item in What you need; field boundaries from your GeoJSON or KML export." },
   { title: "Review, verification and terms", body: "F2F reviews the documents, the SCAS partner verifies the fields by satellite, and the arranger builds the term sheet with you." },
   { title: "Investors subscribe, you receive the proceeds", body: "Once the pool is funded, the proceeds arrive in your wallet, net of the arrangement fee. At maturity you buy back or deliver grain." },
 ];
 
-/** The farmer door (ADR 0018): what F2F finances, what it needs, how long it takes, then "Start application". */
+/** The farmer door (ADR 0018): what F2F finances, what it needs, how long it takes, then "Apply for financing". */
 export default function ApplyPage() {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-12 py-6">
@@ -25,7 +25,7 @@ export default function ApplyPage() {
           Finance up to 30% of your expected harvest before you sow. Your verified fields become an instrument that investors buy with USDC; you repay at maturity in cash or in grain delivered to the elevator.
         </p>
         <Link href="/apply/start" className={primaryLink}>
-          Start application
+          Apply for financing
         </Link>
       </header>
 

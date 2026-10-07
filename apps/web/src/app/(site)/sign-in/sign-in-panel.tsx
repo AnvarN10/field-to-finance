@@ -77,7 +77,7 @@ export function SignInPanel({ next }: { next: string | null }) {
       <p className="text-sm text-muted-foreground">{`${auth.email ?? "This email"} has no Field-to-Finance account. Open one, or sign in with the email you used before. Team members join the console through their invitation link.`}</p>
       <div className="flex flex-wrap gap-3">
         <Link href="/invest/signup" className={outlineLink}>
-          Open an investor account
+          Start investing
         </Link>
         <Link href="/apply" className={outlineLink}>
           Apply for financing

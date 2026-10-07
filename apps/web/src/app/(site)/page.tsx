@@ -40,7 +40,7 @@ export default async function Home() {
                 Start investing
               </Link>
               <Link href="/apply" className={heroSecondaryCta}>
-                Get financing
+                Apply for financing
               </Link>
             </div>
           </div>

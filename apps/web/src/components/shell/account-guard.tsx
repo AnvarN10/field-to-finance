@@ -9,7 +9,7 @@ import { SignOutButton } from "../cabinet/sign-out-button";
 import { ErrorState } from "../state";
 
 const APP = {
-  investor: { title: "This app is for investors", door: "/invest/signup", doorLabel: "Open an investor account" },
+  investor: { title: "This app is for investors", door: "/invest/signup", doorLabel: "Start investing" },
   farmer: { title: "This workspace is for farmers raising financing", door: "/apply", doorLabel: "Apply for financing" },
 } as const;
 const HOME_NAME: Record<string, string> = { "/console": "console", "/issuer": "issuer workspace", "/invest": "investor app" };

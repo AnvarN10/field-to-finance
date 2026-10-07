@@ -41,7 +41,7 @@ describe("SignInPanel", () => {
     mount(session({ authenticated: true, email: "new@example.com", server: { state: "ready", roles: [] } }));
     expect(screen.queryByText(/I am a/)).toBeNull();
     expect(screen.getByRole("heading", { name: "No account for this email yet" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open an investor account" })).toHaveAttribute("href", "/invest/signup");
+    expect(screen.getByRole("link", { name: "Start investing" })).toHaveAttribute("href", "/invest/signup");
     expect(screen.getByRole("link", { name: "Apply for financing" })).toHaveAttribute("href", "/apply");
     expect(screen.getByRole("button", { name: "Use another email" })).toBeInTheDocument();
     expect(replace).not.toHaveBeenCalled();

@@ -28,6 +28,8 @@ export default async function TeamPage() {
   } catch {
     return <ErrorState level={1} title="This section is unavailable" body="The team could not be loaded. Try again in a minute." retryHref="/console/team" />;
   }
+  const open = invitations.filter((i) => !i.expired);
+  const expired = invitations.filter((i) => i.expired);
   return (
     <ConsolePage title="Team" description="Console members join by invitation and see only what their roles allow. Investors and farmers open their own accounts through the sign-up doors.">
       <Section title="Invite a member" description="The link works once, for the invited email only, for 7 days.">
@@ -36,16 +38,14 @@ export default async function TeamPage() {
         </div>
       </Section>
 
-      <Section title={`Open invitations (${invitations.length})`}>
-        {invitations.length ? (
+      <Section title={`Open invitations (${open.length})`}>
+        {open.length ? (
           <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
-            {invitations.map((i) => (
+            {open.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="break-all font-medium">{i.email}</span>
-                  <span className="tabular text-muted-foreground">
-                    {`${i.roles.map((r) => CONSOLE_ROLE_LABELS[r].name).join(", ")} · ${i.expired ? "expired" : `expires ${formatDateUtc(secs(i.expiresAt))}`}`}
-                  </span>
+                  <span className="tabular text-muted-foreground">{`${i.roles.map((r) => CONSOLE_ROLE_LABELS[r].name).join(", ")} · expires ${formatDateUtc(secs(i.expiresAt))}`}</span>
                 </div>
                 <ActionButton label="Withdraw" role="Platform" hideRole variant="outline" action={revokeInvitationAction.bind(null, i.id)} confirmText={`Withdraw the invitation for ${i.email}? The link stops working.`} />
               </li>
@@ -55,6 +55,19 @@ export default async function TeamPage() {
           <p className="text-sm text-muted-foreground">No open invitations.</p>
         )}
       </Section>
+
+      {expired.length ? (
+        <Section title={`Expired invitations (${expired.length})`} description="These links no longer work. Invite the email again to send a new link.">
+          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
+            {expired.map((i) => (
+              <li key={i.id} className="flex flex-col gap-0.5 p-4 text-sm">
+                <span className="break-all font-medium">{i.email}</span>
+                <span className="tabular text-muted-foreground">{`${i.roles.map((r) => CONSOLE_ROLE_LABELS[r].name).join(", ")} · expired ${formatDateUtc(secs(i.expiresAt))}`}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
 
       <Section title={`Members (${members.length})`}>
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">

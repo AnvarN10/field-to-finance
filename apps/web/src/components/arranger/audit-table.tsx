@@ -12,7 +12,7 @@ export function AuditTable({ rows, cluster, compact = false }: { rows: AuditView
     ) : r.signature ? (
       <ExplorerLink kind="tx" value={r.signature} cluster={cluster} />
     ) : (
-      <span className="text-muted-foreground" aria-label="No transaction">–</span>
+      <span className="text-muted-foreground">Off-chain</span>
     );
   // Compact (one application's page): on phones a stacked list, because five columns cannot fit 390px.
   const list = compact ? (

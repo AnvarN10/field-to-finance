@@ -8,12 +8,16 @@ import { LogoMark } from "./logo-mark";
 
 const NAV = [
   { href: "/pools", label: "Pools" },
-  { href: "/apply", label: "Get financing" },
+  { href: "/apply", label: "Apply for financing" },
 ];
 
 const isActive = (path: string, href: string) => path === href || path.startsWith(`${href}/`);
 const primary =
   "inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground transition-[background-color,scale] duration-150 ease-(--ease-out) active:scale-[0.98] motion-reduce:active:scale-100 [@media(hover:hover)]:hover:bg-primary-hover";
+/** On a door page the page owns the one wheat action; the header's investor door steps back to an outline. */
+const outline =
+  "inline-flex h-9 items-center rounded-md border border-input bg-card px-4 text-sm font-medium whitespace-nowrap text-foreground transition-colors duration-150 [@media(hover:hover)]:hover:border-muted-foreground";
+const DOOR_PAGES = ["/sign-in", "/apply", "/invite"];
 const quiet = "inline-flex h-9 items-center rounded-md px-3 text-sm whitespace-nowrap text-muted-foreground transition-colors duration-150 [@media(hover:hover)]:hover:bg-hover [@media(hover:hover)]:hover:text-foreground";
 
 /** Where a live session lands (GET /api/session), so a signed-in visitor sees one "Open app" link instead of the doors. */
@@ -32,7 +36,7 @@ function useHome(): string | null {
   return home;
 }
 
-/** Public header (ADR 0018): the catalogue, the farmer door, sign-in and the investor door as the one primary action. */
+/** Public header (ADR 0018): the catalogue, the farmer door, sign-in and the investor door (the one primary action except on door pages). */
 export function SiteHeader() {
   const path = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
@@ -50,9 +54,11 @@ export function SiteHeader() {
       <Link href="/sign-in" className={quiet}>
         Sign in
       </Link>
-      <Link href="/invest/signup" className={primary}>
-        Start investing
-      </Link>
+      {isActive(path, "/invest/signup") ? null : (
+        <Link href="/invest/signup" className={DOOR_PAGES.some((d) => isActive(path, d)) ? outline : primary}>
+          Start investing
+        </Link>
+      )}
     </>
   );
 

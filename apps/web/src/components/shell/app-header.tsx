@@ -2,16 +2,45 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import type { Role } from "../../lib/db/schema";
 import { NotificationBell } from "../cabinet/notification-bell";
 import { LogoMark } from "../logo-mark";
 import { AccountMenu } from "./account-menu";
 import { tabActive, type AppTab } from "./tabs";
 
-function Tabs({ tabs, label, className }: { tabs: AppTab[]; label: string; className: string }) {
+function Tabs({ tabs, label, className, scroller = false }: { tabs: AppTab[]; label: string; className: string; scroller?: boolean }) {
   const path = usePathname() ?? "";
+  const ref = useRef<HTMLElement>(null);
+  const [edge, setEdge] = useState({ start: false, end: false });
+
+  // In the phone row: bring the current tab into view and fade only the edges that hide more tabs.
+  useEffect(() => {
+    const nav = ref.current;
+    if (!scroller || !nav) return;
+    nav.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView?.({ inline: "nearest", block: "nearest" });
+    const update = () => setEdge({ start: nav.scrollLeft > 1, end: nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1 });
+    update();
+    nav.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      nav.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [scroller, path]);
+
+  const fade = scroller
+    ? edge.start && edge.end
+      ? "[mask-image:linear-gradient(to_right,transparent,black_2rem,black_calc(100%-2rem),transparent)]"
+      : edge.end
+        ? "[mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]"
+        : edge.start
+          ? "[mask-image:linear-gradient(to_right,transparent,black_2rem)]"
+          : ""
+    : "";
+
   return (
-    <nav aria-label={label} className={className}>
+    <nav ref={ref} aria-label={label} className={`${className} ${fade}`}>
       {tabs.map((t, i) => {
         const active = tabActive(tabs, i, path);
         return (
@@ -19,7 +48,7 @@ function Tabs({ tabs, label, className }: { tabs: AppTab[]; label: string; class
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={`flex h-14 shrink-0 items-center border-b-2 px-3 text-sm whitespace-nowrap transition-colors duration-150 ${
+            className={`flex h-14 shrink-0 items-center border-b-2 text-sm whitespace-nowrap transition-colors duration-150 ${scroller ? "px-2.5" : "px-3"} ${
               active ? "border-primary font-medium text-foreground" : "border-transparent text-muted-foreground [@media(hover:hover)]:hover:text-foreground"
             }`}
           >
@@ -53,7 +82,7 @@ export function AppHeader({ home, label, tabs, email, roles }: { home: string; l
           </div>
         ) : null}
       </div>
-      <Tabs tabs={tabs} label={label} className="-mb-px flex overflow-x-auto border-t border-border px-2 [scrollbar-width:none] md:hidden" />
+      <Tabs tabs={tabs} label={label} className="-mb-px flex overflow-x-auto border-t border-border px-2 [scrollbar-width:none] md:hidden" scroller />
     </header>
   );
 }

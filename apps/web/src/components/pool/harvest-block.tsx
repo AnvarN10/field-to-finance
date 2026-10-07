@@ -43,7 +43,7 @@ export function HarvestBlock({ elevator, lab, receipt, quality }: { elevator: st
                   <tr key={r.key} className="border-t border-border">
                     <td className="py-2 pr-3">{r.label}</td>
                     <td className="py-2 pr-3 whitespace-nowrap text-muted-foreground">{r.requirement}</td>
-                    <td className="py-2 pr-3">{r.measured ?? "–"}</td>
+                    <td className="py-2 pr-3">{r.measured ?? <span className="text-muted-foreground">Not measured</span>}</td>
                     <td className="py-2 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 ${r.pass === true ? "text-success" : r.pass === false ? "text-destructive" : "text-muted-foreground"}`}>
                         <Icon aria-hidden strokeWidth={1.5} className="size-4" />

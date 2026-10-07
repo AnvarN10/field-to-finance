@@ -50,18 +50,15 @@ export function RegistryTable({ rows }: { rows: RegistryRow[] }) {
                 {r.issuerLegalName ?? "Not in platform records"}
                 <span className="block font-mono text-xs text-muted-foreground">{shortKey(r.issuerWallet)}</span>
               </td>
-              <td className={td}>{r.issuerBin ?? "–"}</td>
+              <td className={td}>{r.issuerBin ?? <span className="text-muted-foreground">Not on file</span>}</td>
               <td className={`${td} text-right whitespace-nowrap`}>
                 {formatUsd(r.raised)}
                 <span className="block text-xs text-muted-foreground">{`of ${formatUsd(r.target)}`}</span>
               </td>
-              <td className={`${td} text-right`}>{r.couponBps !== null ? formatYield(r.couponBps) : "–"}</td>
+              <td className={`${td} text-right`}>{r.couponBps !== null ? formatYield(r.couponBps) : <span className="text-muted-foreground">Not set</span>}</td>
               <td className={`${td} whitespace-nowrap`}>{formatDateUtc(r.maturityTs)}</td>
               <td className={`${td} text-right`}>{r.holders !== null && !r.holdersComplete ? `at least ${r.holders}` : r.holders ?? (
-                  <>
-                    <span aria-hidden>–</span>
-                    <span className="sr-only">Not available right now</span>
-                  </>
+                  <span className="text-muted-foreground">Unavailable</span>
                 )}</td>
             </tr>
           ))}
@@ -92,7 +89,7 @@ export function HoldersTable({ rows }: { rows: HolderRow[] }) {
               </td>
               <td className={`${td} text-right`}>{formatUsd(h.balance)}</td>
               <td className={td}>{h.category ? CATEGORY[h.category] ?? h.category : "Not linked to an account"}</td>
-              <td className={td}>{h.iin ?? "–"}</td>
+              <td className={td}>{h.iin ?? <span className="text-muted-foreground">Not on file</span>}</td>
             </tr>
           ))}
         </tbody>
@@ -122,8 +119,8 @@ export function EventsTable({ rows }: { rows: EventRow[] }) {
                 {actionLabel(r.action)}
                 {r.detail ? <span className="block text-xs text-muted-foreground">{r.detail}</span> : null}
               </td>
-              <td className={td}>{r.actingRole ?? "–"}</td>
-              <td className={`${td} whitespace-nowrap`}>{r.signature ? <ExplorerLink kind="tx" value={r.signature} /> : "–"}</td>
+              <td className={td}>{r.actingRole ?? <span className="text-muted-foreground">None</span>}</td>
+              <td className={`${td} whitespace-nowrap`}>{r.signature ? <ExplorerLink kind="tx" value={r.signature} /> : <span className="text-muted-foreground">Off-chain</span>}</td>
             </tr>
           ))}
         </tbody>

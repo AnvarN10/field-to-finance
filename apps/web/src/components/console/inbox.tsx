@@ -33,14 +33,14 @@ export function Inbox({ queues, sections }: { queues: InboxQueue[]; sections: Co
         <p className="text-sm text-muted-foreground">{`${total} ${total === 1 ? "item waits" : "items wait"} for you across ${waiting.length} ${waiting.length === 1 ? "queue" : "queues"}.`}</p>
       )}
       {waiting.length ? (
-        <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
+        <div className="grid items-start gap-6 lg:grid-cols-2 [&>*]:min-w-0">
           {waiting.map((q) => (
             <section key={q.key} aria-labelledby={`q-${q.key}`} className="flex flex-col rounded-lg border border-border bg-card">
               <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                 <h2 id={`q-${q.key}`} className="text-base font-semibold">
                   {q.title}
                 </h2>
-                <span className="tabular rounded-full bg-raised px-2.5 py-0.5 text-xs font-medium">{q.unavailable ? "–" : q.count}</span>
+                <span className="tabular rounded-full bg-raised px-2.5 py-0.5 text-xs font-medium">{q.unavailable ? "Unknown" : q.count}</span>
               </div>
               {q.unavailable ? (
                 <p className="px-4 py-3 text-sm text-muted-foreground">Solana devnet did not answer; this queue is unknown right now.</p>

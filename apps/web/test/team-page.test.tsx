@@ -22,6 +22,7 @@ describe("InviteForm", () => {
     render(<InviteForm />);
     await userEvent.type(screen.getByLabelText("Email"), "partner@example.com");
     expect(screen.getByRole("button", { name: "Create invitation" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Create invitation" })).toHaveAccessibleDescription("Choose at least one role.");
     await userEvent.click(screen.getByRole("checkbox", { name: /Elevator/ }));
     await userEvent.click(screen.getByRole("button", { name: "Create invitation" }));
     expect(inviteAction).toHaveBeenCalledWith("partner@example.com", ["elevator"]);
@@ -48,6 +49,19 @@ describe("MemberRoles", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: /SCAS partner/ }));
     await userEvent.click(screen.getByRole("button", { name: "Save roles" }));
     expect(setMemberRolesAction).toHaveBeenCalledWith("u1", ["compliance", "scas"]);
+  });
+});
+
+describe("MemberRoles removal", () => {
+  it("asks before removing a member with no roles", async () => {
+    setMemberRolesAction.mockClear();
+    render(<MemberRoles userId="u2" email="el@example.com" roles={["elevator"]} />);
+    await userEvent.click(screen.getByRole("button", { name: "Edit roles for el@example.com" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Elevator/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove from console" }));
+    expect(setMemberRolesAction).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Yes, remove from console" }));
+    expect(setMemberRolesAction).toHaveBeenCalledWith("u2", []);
   });
 });
 

@@ -70,6 +70,8 @@ export function InviteForm() {
     );
   }
 
+  const missing = !email.trim() && roles.length === 0 ? "Enter an email and choose at least one role." : !email.trim() ? "Enter the member's email." : roles.length === 0 ? "Choose at least one role." : null;
+
   return (
     <form
       className="flex flex-col gap-5"
@@ -90,9 +92,16 @@ export function InviteForm() {
           {error}
         </p>
       ) : null}
-      <Button type="submit" className="self-start" disabled={pending || !email.trim() || roles.length === 0}>
-        {pending ? "Creating invitation" : "Create invitation"}
-      </Button>
+      <div className="flex flex-col items-start gap-2">
+        <Button type="submit" disabled={pending || !email.trim() || roles.length === 0} aria-describedby={missing ? "invite-missing" : undefined}>
+          {pending ? "Creating invitation" : "Create invitation"}
+        </Button>
+        {missing ? (
+          <p id="invite-missing" className="text-sm text-muted-foreground">
+            {missing}
+          </p>
+        ) : null}
+      </div>
     </form>
   );
 }

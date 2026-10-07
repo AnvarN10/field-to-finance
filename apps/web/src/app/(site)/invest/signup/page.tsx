@@ -6,7 +6,7 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { DoorSignup } from "@/components/doors/door-signup";
 import { currentUser } from "@/lib/server/auth";
 
-export const metadata: Metadata = { title: "Open an investor account" };
+export const metadata: Metadata = { title: "Start investing" };
 export const dynamic = "force-dynamic";
 
 const STEPS = [
@@ -43,7 +43,7 @@ export default async function InvestorSignup() {
       </div>
       <section aria-labelledby="signup" className="flex flex-col gap-5 self-start rounded-lg border border-border bg-card p-6">
         <h2 id="signup" className="text-xl font-semibold">
-          Open an investor account
+          Start investing
         </h2>
         <AuthProvider>
           <DoorSignup door="investor" />
@@ -55,7 +55,7 @@ export default async function InvestorSignup() {
           </Link>
           . Raising money for a farm?{" "}
           <Link href="/apply" className="font-medium text-foreground underline decoration-muted-foreground underline-offset-4">
-            Get financing
+            Apply for financing
           </Link>
           .
         </p>

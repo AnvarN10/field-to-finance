@@ -58,7 +58,7 @@ export default async function ArrangerHome({ searchParams }: { searchParams: Pro
       {rows.length ? (
         <PipelineBoard rows={rows} filter={filter} />
       ) : (
-        <p className="text-sm text-muted-foreground">No applications yet. Farmers apply through Get financing (/apply); a submitted application appears here.</p>
+        <p className="text-sm text-muted-foreground">No applications yet. Farmers apply through Apply for financing (/apply); a submitted application appears here.</p>
       )}
     </ConsolePage>
   );

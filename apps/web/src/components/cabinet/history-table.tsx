@@ -21,8 +21,8 @@ export function HistoryTable({ rows, empty, cluster }: { rows: HistoryRow[]; emp
             <tr key={r.id} className="border-t border-border first:border-t-0">
               <td className="px-3 py-3 text-muted-foreground">{r.at.toISOString().slice(0, 16).replace("T", " ")}</td>
               <td className="px-3 py-3">{r.label}</td>
-              <td className="px-3 py-3 text-right">{r.amount ?? "–"}</td>
-              <td className="px-3 py-3">{r.signature ? <ExplorerLink kind="tx" value={r.signature} cluster={cluster} /> : <span className="text-muted-foreground">–</span>}</td>
+              <td className="px-3 py-3 text-right">{r.amount ?? <span className="text-muted-foreground">None</span>}</td>
+              <td className="px-3 py-3">{r.signature ? <ExplorerLink kind="tx" value={r.signature} cluster={cluster} /> : <span className="text-muted-foreground">Off-chain</span>}</td>
             </tr>
           ))}
         </tbody>
