@@ -18,7 +18,7 @@ export function ApplicationList({ applications, canCreate }: { applications: App
         title="No applications yet"
         body={canCreate ? "An application describes the harvest you finance: crop, volume, amount, elevator and laboratory." : "Complete your company profile first, then start an application."}
         action={
-          <Link href={canCreate ? "/farmer/applications/new" : "/farmer/onboarding"} className={link}>
+          <Link href={canCreate ? "/issuer/applications/new" : "/issuer/company"} className={link}>
             {canCreate ? "Start your first application" : "Complete your profile"}
           </Link>
         }
@@ -39,7 +39,7 @@ export function ApplicationList({ applications, canCreate }: { applications: App
               </div>
               <p className="text-sm text-muted-foreground">{`${a.statusNote ?? info.next}${info.owner ? ` · ${OWNER[info.owner]}` : ""}`}</p>
             </div>
-            <Link href={`/farmer/applications/${a.id}`} className={link} aria-label={`Open ${a.crop} ${a.season}`}>
+            <Link href={`/issuer/applications/${a.id}`} className={link} aria-label={`Open ${a.crop} ${a.season}`}>
               Open
             </Link>
           </li>

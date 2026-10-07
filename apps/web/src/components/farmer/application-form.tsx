@@ -37,7 +37,7 @@ export function ApplicationForm() {
         };
         start(async () => {
           const r = await createApplicationAction(input);
-          if (r.ok) return router.push(`/farmer/applications/${r.id}`);
+          if (r.ok) return router.push(`/issuer/applications/${r.id}`);
           const p = fieldErrors(r.error);
           setErrors({ ...p.fields, sharePct: p.fields.tokenizedShareBps ?? "", couponPct: p.fields.proposedCouponBps ?? "" });
           setGeneral(p.rest);

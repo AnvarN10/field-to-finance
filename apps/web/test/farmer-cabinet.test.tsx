@@ -13,14 +13,14 @@ const app = { id: "a1", crop: "wheat", season: 2027, requestedUsd: 200000, statu
 describe("ApplicationList", () => {
   it("invites the first application when there is none", () => {
     render(<ApplicationList applications={[]} canCreate />);
-    expect(screen.getByRole("link", { name: "Start your first application" })).toHaveAttribute("href", "/farmer/applications/new");
+    expect(screen.getByRole("link", { name: "Start your first application" })).toHaveAttribute("href", "/issuer/applications/new");
   });
 
   it("shows status, next action and who owns it", () => {
     render(<ApplicationList applications={[app]} canCreate />);
     expect(screen.getByText("Document review")).toBeInTheDocument();
     expect(screen.getByText(/Accept or reject each document · Arranger/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Open wheat 2027/ })).toHaveAttribute("href", "/farmer/applications/a1");
+    expect(screen.getByRole("link", { name: /Open wheat 2027/ })).toHaveAttribute("href", "/issuer/applications/a1");
   });
 
   it("says You when the next step is the farmer's", () => {

@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { and, eq } from "drizzle-orm";
 import { KycStatusBadge } from "@/components/cabinet/badges";
-import { CabinetShell } from "@/components/cabinet/cabinet-shell";
+import { PageHeader } from "@/components/shell/page-header";
 import { FileUploadButton } from "@/components/cabinet/file-upload-button";
-import { guardCabinet } from "@/components/cabinet/guard";
+import { guardAccount } from "@/components/shell/account-guard";
 import { Panel, Section } from "@/components/cabinet/section";
 import { ExplorerLink } from "@/components/explorer-link";
 import { ProfileForm } from "@/components/farmer/profile-form";
-import { FARMER_TABS } from "@/components/farmer/tabs";
 import { ErrorState } from "@/components/state";
 import { wallets } from "@/lib/db/schema";
 import { getDb } from "@/lib/server/db";
@@ -16,7 +15,7 @@ import { DOCUMENT_LABELS, REQUIRED_KINDS } from "@/lib/workflow/documents";
 import { farmerKycDocument, farmerProfile, isProfileComplete } from "@/lib/workflow/farmer";
 import { uploadKycAction } from "@/app/(app)/issuer/actions";
 
-export const metadata: Metadata = { title: "Company and KYC", robots: { index: false } };
+export const metadata: Metadata = { title: "Company and KYC" };
 export const dynamic = "force-dynamic";
 
 const KYC_COPY = {
@@ -27,7 +26,7 @@ const KYC_COPY = {
 } as const;
 
 export default async function FarmerOnboarding() {
-  const g = await guardCabinet("farmer", "/farmer/onboarding");
+  const g = await guardAccount("farmer", "/issuer/company");
   if ("element" in g) return g.element;
   let profile, kycDoc, wallet;
   try {
@@ -38,12 +37,13 @@ export default async function FarmerOnboarding() {
       db.query.wallets.findFirst({ where: and(eq(wallets.userId, g.user.id), eq(wallets.kind, "privy-embedded")) }),
     ]);
   } catch {
-    return <ErrorState level={1} title="Your cabinet is unavailable" body="Your profile could not be loaded. Try again in a minute." retryHref="/farmer/onboarding" />;
+    return <ErrorState level={1} title="Your workspace is unavailable" body="Your profile could not be loaded. Try again in a minute." retryHref="/issuer/company" />;
   }
   const kyc = profile?.kycStatus ?? "not_started";
   const complete = isProfileComplete(profile);
   return (
-    <CabinetShell role="Farmer issuer" title="Company and KYC" email={g.user.email} tabs={FARMER_TABS}>
+    <div className="flex min-w-0 flex-col gap-8">
+      <PageHeader title="Company" />
       <Section id="profile" title="1. Company profile" description="Used for the term sheet and issuer KYC. Legal name and BIN stay in private storage and never go on-chain.">
         <Panel className="max-w-3xl">
           <ProfileForm initial={{ legalName: profile?.legalName ?? "", bin: profile?.bin ?? "", region: profile?.region ?? "", contact: profile?.contact ?? "" }} />
@@ -79,6 +79,6 @@ export default async function FarmerOnboarding() {
           </ol>
         </Panel>
       </Section>
-    </CabinetShell>
+    </div>
   );
 }

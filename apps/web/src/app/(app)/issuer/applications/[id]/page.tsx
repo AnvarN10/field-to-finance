@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ApplicationStatusBadge } from "@/components/cabinet/badges";
-import { CabinetShell } from "@/components/cabinet/cabinet-shell";
-import { guardCabinet } from "@/components/cabinet/guard";
+import { PageHeader } from "@/components/shell/page-header";
+import { guardAccount } from "@/components/shell/account-guard";
 import { Panel, Section, textLink } from "@/components/cabinet/section";
 import { StatusTimeline } from "@/components/cabinet/status-timeline";
 import { ExplorerLink } from "@/components/explorer-link";
@@ -10,7 +10,6 @@ import { ApplicationActions } from "@/components/farmer/application-actions";
 import { DocumentChecklist } from "@/components/farmer/document-checklist";
 import { FieldsSection } from "@/components/farmer/fields-section";
 import { Obligations } from "@/components/farmer/obligations";
-import { FARMER_TABS } from "@/components/farmer/tabs";
 import { ErrorState } from "@/components/state";
 import { canTransition } from "@/lib/application-status";
 import { RequestError } from "@/lib/errors";
@@ -24,12 +23,12 @@ import { farmerChecklist, getOwnApplication } from "@/lib/workflow/farmer";
 import { uploadDocumentAction } from "@/app/(app)/issuer/actions";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Application", robots: { index: false } };
+export const metadata: Metadata = { title: "Application" };
 export const dynamic = "force-dynamic";
 
 export default async function FarmerApplication({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const g = await guardCabinet("farmer", `/farmer/applications/${id}`);
+  const g = await guardAccount("farmer", `/issuer/applications/${id}`);
   if ("element" in g) return g.element;
   let app, checklist;
   try {
@@ -38,7 +37,7 @@ export default async function FarmerApplication({ params }: { params: Promise<{ 
     checklist = await farmerChecklist(db, id);
   } catch (e) {
     if (e instanceof RequestError && e.status === 404) notFound();
-    return <ErrorState level={1} title="Your cabinet is unavailable" body="This application could not be loaded. Try again in a minute." retryHref={`/farmer/applications/${id}`} />;
+    return <ErrorState level={1} title="Your workspace is unavailable" body="This application could not be loaded. Try again in a minute." retryHref={`/issuer/applications/${id}`} />;
   }
   const now = Math.floor(Date.now() / 1000);
   const [project, fees, obligation] = await Promise.all([
@@ -51,7 +50,8 @@ export default async function FarmerApplication({ params }: { params: Promise<{ 
   const usd = (whole: number) => formatUsd(BigInt(whole) * 1_000_000n);
 
   return (
-    <CabinetShell role="Farmer issuer" title={`${app.crop[0]?.toUpperCase()}${app.crop.slice(1)} ${app.season}`} email={g.user.email} tabs={FARMER_TABS}>
+    <div className="flex min-w-0 flex-col gap-8">
+      <PageHeader title={`${app.crop[0]?.toUpperCase()}${app.crop.slice(1)} ${app.season}`} />
       <Panel>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-base font-semibold">Status</h2>
@@ -118,6 +118,6 @@ export default async function FarmerApplication({ params }: { params: Promise<{ 
           <Obligations items={[obligation.item]} />
         </Section>
       ) : null}
-    </CabinetShell>
+    </div>
   );
 }

@@ -36,11 +36,11 @@ export default async function Home() {
               Investors earn a fixed yield in USDC, paid at maturity.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/pools" className={heroPrimaryCta}>
-                View open pools
+              <Link href="/invest/signup" className={heroPrimaryCta}>
+                Start investing
               </Link>
-              <Link href="/farmer" className={heroSecondaryCta}>
-                Register fields
+              <Link href="/apply" className={heroSecondaryCta}>
+                Get financing
               </Link>
             </div>
           </div>
@@ -142,9 +142,14 @@ export default async function Home() {
         {/* Close */}
         <section className="flex flex-col items-start gap-6 border-t border-border pt-24">
           <h2 className="max-w-[680px] text-2xl font-semibold text-balance sm:text-[40px]">Open a pool and read every attestation</h2>
-          <Link href="/pools" className={heroPrimaryCta}>
-            View open pools
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/pools" className={heroPrimaryCta}>
+              View open pools
+            </Link>
+            <Link href="/apply" className={heroSecondaryCta}>
+              Raise financing for your farm
+            </Link>
+          </div>
         </section>
       </div>
     </LandingMotion>
