@@ -23,7 +23,7 @@ describe("legacy cabinet redirects", () => {
     ["/regulator/pools/9", "/console/registry/pools/9"],
     ["/regulator/events", "/console/registry/events"],
     ["/investor", "/invest"],
-    ["/portfolio", "/invest"],
+    ["/portfolio", "/invest/portfolio"],
     ["/investor/onboarding", "/invest/account"],
     ["/investor/pools/7", "/invest/pools/7"],
     ["/farmer", "/issuer"],

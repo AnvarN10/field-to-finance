@@ -32,6 +32,19 @@ describe("scrubEvent and driver errors", () => {
   });
 });
 
+describe("scrubEvent and invitation links", () => {
+  it("hides the invitation token in the URL, transaction and breadcrumbs", () => {
+    const token = "A".repeat(43);
+    const e = scrubEvent({
+      request: { url: `https://f2f.example/invite/${token}` },
+      transaction: `/invite/${token}`,
+      breadcrumbs: [{ message: `GET /invite/${token}`, data: { from: "/", to: `/invite/${token}` } }],
+    });
+    expect(JSON.stringify(e)).not.toContain(token);
+    expect(e.request?.url).toBe("https://f2f.example/invite/[token]");
+  });
+});
+
 describe("posthogOptions", () => {
   it("targets the EU host, disables recordings and registers app_env", () => {
     const o = posthogOptions("prod", "https://eu.i.posthog.com");

@@ -22,14 +22,17 @@ export async function openAccount(db: Db, user: SessionUser, door: Door): Promis
   const current = await rolesOf(db, user.id);
   if (current.includes(kind)) return current;
   if (current.includes(other)) throw taken();
+  // Role, profile and audit row land together or not at all.
   try {
-    await db.insert(userRoles).values({ userId: user.id, role: kind, grantedBy: user.id });
+    await db.transaction(async (tx) => {
+      await tx.insert(userRoles).values({ userId: user.id, role: kind, grantedBy: user.id });
+      if (kind === "farmer") await tx.insert(farmerProfiles).values({ userId: user.id }).onConflictDoNothing();
+      else await tx.insert(investorProfiles).values({ userId: user.id }).onConflictDoNothing();
+      await audit(tx as unknown as Db, { actorUserId: user.id, action: "account.open", targetType: "user", targetId: user.id, payload: { door } });
+    });
   } catch (e) {
     if (isUniqueViolation(e)) throw taken();
     throw e;
   }
-  if (kind === "farmer") await db.insert(farmerProfiles).values({ userId: user.id }).onConflictDoNothing();
-  else await db.insert(investorProfiles).values({ userId: user.id }).onConflictDoNothing();
-  await audit(db, { actorUserId: user.id, action: "account.open", targetType: "user", targetId: user.id, payload: { door } });
   return rolesOf(db, user.id);
 }

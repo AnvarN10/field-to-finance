@@ -6,16 +6,27 @@ export interface SentryLikeEvent {
 
 const DROP_HEADERS = new Set(["cookie", "authorization", "x-forwarded-for", "x-real-ip"]);
 
+// Console invitation links carry their secret in the path (/invite/<token>).
+const INVITE = /\/invite\/[^/?#"\s]+/g;
+const hideInvite = (v: unknown) => (typeof v === "string" ? v.replace(INVITE, "/invite/[token]") : v);
+
 /** GlitchTip must never receive the admin cookie, KYC form values or wallet-identifying query strings. */
 export function scrubEvent<T extends SentryLikeEvent>(event: T): T {
   if (event.request) {
     const { url, headers } = event.request;
     event.request = {
-      ...(url ? { url: url.split("?")[0] } : {}),
+      ...(url ? { url: hideInvite(url.split("?")[0]) as string } : {}),
       ...(headers ? { headers: Object.fromEntries(Object.entries(headers).filter(([k]) => !DROP_HEADERS.has(k.toLowerCase()))) } : {}),
     };
   }
   delete event.user;
+  const e: SentryLikeEvent = event;
+  if (e.transaction) e.transaction = hideInvite(e.transaction);
+  const crumbs = event.breadcrumbs as { message?: unknown; data?: Record<string, unknown> }[] | undefined;
+  for (const b of Array.isArray(crumbs) ? crumbs : []) {
+    b.message = hideInvite(b.message);
+    if (b.data) for (const k of Object.keys(b.data)) b.data[k] = hideInvite(b.data[k]);
+  }
   // Driver errors (postgres-js) carry `query` and `parameters` (BIN, legal names, KYC answers); the
   // extra-error-data integration copies such properties into `extra` and mechanism data. Drop both.
   delete event.extra;

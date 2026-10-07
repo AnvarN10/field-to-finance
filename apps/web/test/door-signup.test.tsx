@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AuthContext, type AuthSession } from "../src/components/auth/auth-context";
 import { authSession } from "./helpers/auth-session";
@@ -38,5 +38,15 @@ describe("DoorSignup", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("already has an issuer account");
     expect(screen.getByRole("link", { name: "Go to your issuer workspace" })).toHaveAttribute("href", "/issuer");
     expect(screen.getByRole("button", { name: "Use another email" })).toBeInTheDocument();
+  });
+
+  it("asks a signed-in console member before opening an account", async () => {
+    openAccountAction.mockClear();
+    result = { ok: true, home: "/invest/account" };
+    mount(authSession({ authenticated: true, email: "co@example.com", server: { state: "ready", roles: ["compliance"] } }));
+    const yes = await screen.findByRole("button", { name: "Open investor account" });
+    expect(openAccountAction).not.toHaveBeenCalled();
+    fireEvent.click(yes);
+    await waitFor(() => expect(openAccountAction).toHaveBeenCalledWith("investor"));
   });
 });

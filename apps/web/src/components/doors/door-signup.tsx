@@ -24,10 +24,14 @@ export function DoorSignup({ door }: { door: Door }) {
   const [failure, setFailure] = useState<{ error: string; home: string | null } | null>(null);
   const started = useRef(false);
   const [attempt, setAttempt] = useState(0);
+  const [confirmed, setConfirmed] = useState(false);
   const ready = auth.server.state === "ready";
+  // A console member who merely opens a door while signed in must say yes first: the account cannot be undone.
+  const consoleMember = auth.server.state === "ready" && auth.server.roles.some((r) => r !== "investor" && r !== "farmer");
+  const go = ready && (confirmed || !consoleMember);
 
   useEffect(() => {
-    if (!ready || started.current) return;
+    if (!go || started.current) return;
     started.current = true;
     void (async () => {
       const r = await openAccountAction(door);
@@ -35,7 +39,7 @@ export function DoorSignup({ door }: { door: Door }) {
       await auth.resync();
       router.replace(r.home);
     })();
-  }, [ready, door, auth, router, attempt]);
+  }, [go, door, auth, router, attempt]);
 
   if (auth.mode === "unconfigured") return <p className="text-sm text-muted-foreground">Sign-up is not configured on this server: NEXT_PUBLIC_PRIVY_APP_ID is missing.</p>;
   if (!auth.ready) return <div className="skeleton-shimmer h-24 rounded-lg" role="status" aria-label="Loading sign-up" />;
@@ -73,6 +77,21 @@ export function DoorSignup({ door }: { door: Door }) {
               Try again
             </Button>
           ) : null}
+          <Button type="button" variant="ghost" onClick={() => void auth.logout()}>
+            Use another email
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  if (ready && !go) {
+    return (
+      <div className="flex flex-col items-start gap-3 text-sm">
+        <p>{`You are signed in to the console as ${auth.email ?? "this email"}. ${door === "investor" ? "Open an investor account" : "Open an issuer workspace"} for the same email? This cannot be undone.`}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" onClick={() => setConfirmed(true)}>
+            {door === "investor" ? "Open investor account" : "Open issuer workspace"}
+          </Button>
           <Button type="button" variant="ghost" onClick={() => void auth.logout()}>
             Use another email
           </Button>

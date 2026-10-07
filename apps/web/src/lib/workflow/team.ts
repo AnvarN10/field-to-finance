@@ -19,7 +19,7 @@ export const hashToken = (token: string) => createHash("sha256").update(token).d
 /** `alice@example.com` → `a***@example.com`: enough for the invitee to recognise, nothing for a bystander. */
 export function maskEmail(email: string): string {
   const [local = "", domain = ""] = email.split("@");
-  return `${local.slice(0, 1)}***@${domain}`;
+  return `${local.length > 1 ? local.slice(0, 1) : ""}***@${domain}`;
 }
 
 const rolesInput = z
@@ -171,6 +171,8 @@ export async function setMemberRoles(db: Db, actor: SessionUser, userId: string,
     const target = await tx.query.users.findFirst({ where: eq(users.id, userId) });
     if (!target) throw new RequestError("User not found", 404);
     const current = (await tx.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, userId))).map((r) => r.role).filter(isConsoleRole);
+    // Console roles are granted by invitation only (ADR 0018); this edits existing members, it never makes new ones.
+    if (!current.length) throw new RequestError("Not a console member. Invite them instead.", 409);
     const added = wanted.filter((r) => !current.includes(r));
     const removed = current.filter((r) => !wanted.includes(r));
     if (removed.includes("arranger")) {

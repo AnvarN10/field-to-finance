@@ -22,7 +22,7 @@ export const LEGACY_REDIRECTS: { source: string; destination: string }[] = [
   { source: "/regulator/pools/:id", destination: "/console/registry/pools/:id" },
   { source: "/regulator/events", destination: "/console/registry/events" },
   { source: "/investor", destination: "/invest" },
-  { source: "/portfolio", destination: "/invest" },
+  { source: "/portfolio", destination: "/invest/portfolio" },
   { source: "/investor/onboarding", destination: "/invest/account" },
   { source: "/investor/pools/:id", destination: "/invest/pools/:id" },
   { source: "/farmer", destination: "/issuer" },

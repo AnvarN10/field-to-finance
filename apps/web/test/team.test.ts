@@ -101,6 +101,11 @@ describe("members", () => {
     expect(await rolesOf(db, both.id)).toEqual(["investor", "lab"]);
     await setMemberRoles(db, ops, both.id, []);
     expect(await rolesOf(db, both.id)).toEqual(["investor"]);
+    // No longer a member: only an invitation brings them back.
+    await expect(setMemberRoles(db, ops, both.id, ["scas"])).rejects.toMatchObject({ status: 409 });
+    const investor = await makeUser(db, "only-investor@example.com", ["investor"]);
+    await expect(setMemberRoles(db, ops, investor.id, ["arranger"])).rejects.toMatchObject({ status: 409 });
+    expect(await rolesOf(db, investor.id)).toEqual(["investor"]);
     await expect(setMemberRoles(db, ops, ops.id, ["compliance"])).rejects.toMatchObject({ status: 409 });
     await expect(setMemberRoles(db, officer, both.id, ["lab"])).rejects.toMatchObject({ status: 403 });
     await expect(setMemberRoles(db, ops, both.id, ["farmer" as never])).rejects.toMatchObject({ status: 400 });
@@ -125,6 +130,6 @@ describe("members", () => {
 describe("maskEmail", () => {
   it("keeps the first letter and the domain", () => {
     expect(maskEmail("alice@example.com")).toBe("a***@example.com");
-    expect(maskEmail("x@y.kz")).toBe("x***@y.kz");
+    expect(maskEmail("x@y.kz")).toBe("***@y.kz");
   });
 });

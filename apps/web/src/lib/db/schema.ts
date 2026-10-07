@@ -201,7 +201,7 @@ export const notifications = pgTable(
     kind: text("kind").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
-    /** In-app path the notification opens, e.g. `/investor/pools/9`. */
+    /** In-app path the notification opens, e.g. `/invest/pools/9`. */
     link: text("link"),
     /** Set for notifications that must exist at most once (maturity reminders); unique when present. */
     dedupeKey: text("dedupe_key"),

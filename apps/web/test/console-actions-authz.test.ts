@@ -46,10 +46,10 @@ const form = () => {
 const ARGS = ["7", form(), "00000000-0000-4000-8000-000000000000"];
 const call = (fn: unknown) => (fn as (...a: unknown[]) => Promise<unknown>)(...ARGS);
 const all = Object.entries(MODULES).flatMap(([m, mod]) => Object.entries(mod).filter(([, v]) => typeof v === "function").map(([k, v]) => [`${m}.${k}`, v] as const));
-const refused = (r: unknown) => {
+const refused = (r: unknown, why = /permission/i) => {
   const x = r as { ok: boolean; error?: string | { title: string } };
   const msg = typeof x.error === "string" ? x.error : x.error?.title;
-  return x.ok === false && /permission|session expired/i.test(msg ?? "");
+  return x.ok === false && why.test(msg ?? "");
 };
 
 beforeEach(() => touched.mockClear());
@@ -73,7 +73,7 @@ describe("console actions refuse users without the permission", () => {
 
   it.each(all)("%s refuses a signed-out caller", async (_n, fn) => {
     cookie = undefined;
-    expect(refused(await call(fn))).toBe(true);
+    expect(refused(await call(fn), /permission|session expired/i)).toBe(true);
   });
 
   it("lets an SCAS partner past the guard of the verification actions only", async () => {
