@@ -90,7 +90,7 @@ calm, grounded, exact, trustworthy
 ## Assets
 - Imagery: real satellite basemap tiles on field pages; no stock photos of smiling farmers.
 - Icons: one outline set (Lucide), 1.5px stroke, tinted text or muted.
-- Logo: none yet; build a simple geometric field-row mark in Primary and Accent.
+- Logo: revised 2026-10-08 (user: "more interesting"). Mark = wheat rounded square, ink coin rising over furrows converging to the horizon ("field to finance"). One source: `components/logo-mark.tsx`, mirrored in `app/icon.svg` and `app/apple-icon.tsx`.
 
 ## Motion
 
