@@ -125,13 +125,13 @@ Anyone can open the public pages; no account is needed.
 
 The landing page (`/`) explains the problem (inputs are paid in spring, grain arrives in autumn), shows the featured open pool with its imagery, the seven steps of a deal and the investor protections (the 70% buffer, shortfall rules, frozen instrument accounts until KYC). The two calls to action are *Start investing* and *Apply for financing*.
 
-#shot("public-landing.png", [Landing page (production).], h: 21cm)
+#shot("public-landing.jpg", [Landing page (production).], h: 21cm)
 
 == Pools list
 
 *Pools* in the top bar (`/pools`) lists every listed pool with its status, fixed yield, amount raised against the target, crop and season, and maturity. Click a card to open the pool.
 
-#shot("public-pools.png", [Pools list.])
+#shot("public-pools.jpg", [Pools list.])
 
 == Pool page
 
@@ -145,9 +145,9 @@ The pool page (`/pools/<id>`) is the full term sheet:
 - *Commodity*: the 12-parameter quality spec; its hash is stored on-chain.
 - *Volume and delivery*, *Farmer requirements* (document checklist), *Farm projects* with fields and SCAS checks, *Fees*, *Risks* and the *Season* timeline with every attestation and its evidence.
 
-#shot("public-pool.png", [Public pool page with the term sheet (production).], h: 21cm)
+#shot("public-pool.jpg", [Public pool page with the term sheet (production).], h: 21cm)
 
-#pair("public-landing-390.png", [Landing on a phone.], "public-pool-390.png", [Pool page on a phone.], h: 12cm)
+#pair("public-landing-390.jpg", [Landing on a phone.], "public-pool-390.jpg", [Pool page on a phone.], h: 12cm)
 
 // =====================================================================
 = Investor
@@ -161,13 +161,13 @@ The pool page (`/pools/<id>`) is the full term sheet:
   [Your investor account opens straight away, with an embedded Solana wallet. You land in the investor app.],
 )
 
-#shot("invest-signup.png", [The investor door at `/invest/signup`.])
+#shot("invest-signup.jpg", [The investor door at `/invest/signup`.])
 
 == Sign in
 
 Returning users click *Sign in* and then *Continue with email*. After the code you land in your own app: investors in `/invest`, farmers in `/issuer`, console members in `/console`. An email with no account sees links to both doors.
 
-#shot("sign-in.png", [One sign-in page for all audiences.])
+#shot("sign-in.jpg", [One sign-in page for all audiences.])
 
 == Account and verification (KYC)
 
@@ -182,21 +182,21 @@ Open *Account* (`/invest/account`). Four steps must be done before you can subsc
 
 When compliance approves your KYC, every linked wallet receives the platform KYC record on-chain (`approve_investor`) and you get an update. Wallets linked later are approved when linked.
 
-#shot("invest-account-kyc.png", [Account: category saved, identity check waiting to be sent.], h: 19cm)
+#shot("invest-account-kyc.jpg", [Account: category saved, identity check waiting to be sent.], h: 19cm)
 
-#shot("invest-account.png", [Account after approval: onboarding complete, two linked wallets.], h: 18cm)
+#shot("invest-account.jpg", [Account after approval: onboarding complete, two linked wallets.], h: 18cm)
 
 == Overview
 
 *Overview* (`/invest`) shows the value of your positions at maturity, the coupon accrued to date, test USDC in your linked wallets, the next payment, upcoming payments by maturity date and updates (KYC decisions, new pools, confirmations).
 
-#shot("invest-overview.png", [Investor overview.])
+#shot("invest-overview.jpg", [Investor overview.])
 
 == Find a pool
 
 *Opportunities* lists pools open for subscription and, below, funded pools that are settling. Open a pool to read its key features and subscribe.
 
-#shot("invest-opportunities.png", [Opportunities.])
+#shot("invest-opportunities.jpg", [Opportunities.])
 
 == Buy (subscribe)
 
@@ -211,17 +211,17 @@ When compliance approves your KYC, every linked wallet receives the platform KYC
 
 The server checks before the wallet opens that the wallet is linked to an onboarded investor who accepted the key features; a wallet without KYC is rejected with a plain-language message. If your balance is too low, the panel offers test USDC.
 
-#shot("invest-pool-new.png", [Key features of a pool, seen before onboarding is complete.], h: 17cm)
+#shot("invest-pool-new.jpg", [Key features of a pool, seen before onboarding is complete.], h: 17cm)
 
-#shot("invest-pool.png", [Key features accepted; the Invest panel asks to connect a wallet.], h: 19cm)
+#shot("invest-pool.jpg", [Key features accepted; the Invest panel asks to connect a wallet.], h: 19cm)
 
-#shot("invest-pool-connect.png", [Connect wallet: a Solana wallet is required on devnet.])
+#shot("invest-pool-connect.jpg", [Connect wallet: a Solana wallet is required on devnet.])
 
 == Portfolio
 
 *Portfolio* (`/invest/portfolio`) lists positions across your linked wallets: tokens, nominal, accrued coupon (Act/360), value at maturity, maturity, settlement path, grain claim and the action available (*Claim grain* or *View pool*). Below are the maturity schedule and *Test funds*: each linked wallet can get 1,000 test USDC.
 
-#shot("invest-portfolio.png", [Portfolio with three positions on different settlement paths.])
+#shot("invest-portfolio.jpg", [Portfolio with three positions on different settlement paths.])
 
 == Redemption and grain claim
 
@@ -233,15 +233,15 @@ After maturity the Invest panel on the pool page offers the action that applies:
 
 Each action is a sponsored transaction you approve in your wallet.
 
-#shot("invest-pool-claim.png", [A delivery pool after maturity: grain delivery applies; connect the holding wallet to claim.], h: 19cm)
+#shot("invest-pool-claim.jpg", [A delivery pool after maturity: grain delivery applies; connect the holding wallet to claim.], h: 19cm)
 
 == Activity and statement
 
 *Activity* lists your subscriptions, refunds, redemptions and grain claims, each with its transaction. *Download statement (CSV)* exports them.
 
-#shot("invest-activity.png", [Activity (empty for this demo account).])
+#shot("invest-activity.jpg", [Activity (empty for this demo account).])
 
-#shot("invest-overview-390.png", [Investor overview on a phone.], h: 13cm)
+#shot("invest-overview-390.jpg", [Investor overview on a phone.], h: 13cm)
 
 // =====================================================================
 = Farmer / issuer
@@ -254,9 +254,9 @@ Each action is a sponsored transaction you approve in your wallet.
   [After the one-time code your issuer workspace opens. Your company gets a secure wallet with no seed phrase; it becomes the issuer wallet of your pool.],
 )
 
-#shot("apply.png", [What F2F finances and what you need.], h: 16cm)
+#shot("apply.jpg", [What F2F finances and what you need.], h: 16cm)
 
-#shot("apply-start.png", [Issuer sign-up.])
+#shot("apply-start.jpg", [Issuer sign-up.])
 
 == Company profile and issuer KYC
 
@@ -268,7 +268,7 @@ Open *Company* (`/issuer/company`):
   [*Your issuer wallet* is shown with an Explorer link. Issuer KYC approves exactly this wallet.],
 )
 
-#shot("issuer-company.png", [Company profile, issuer KYC waiting for review, term-sheet checklist.], h: 17cm)
+#shot("issuer-company.jpg", [Company profile, issuer KYC waiting for review, term-sheet checklist.], h: 17cm)
 
 == Create an application
 
@@ -278,7 +278,7 @@ Open *Company* (`/issuer/company`):
   [Click *Create application*. The application opens as a *Draft*.],
 )
 
-#shot("issuer-new.png", [New application.])
+#shot("issuer-new.jpg", [New application.])
 
 == Documents
 
@@ -288,23 +288,23 @@ Each requirement has its own row: click *Upload* for missing documents (PDF, ima
 
 In *Fields*, upload your field boundaries as GeoJSON or KML (up to the per-upload limit of fields; a MultiPolygon counts one field per part). Enter the cadastral number and declared area of each field; a difference of more than 5% from the measured area is flagged. Your wallet signs the sponsored registration (*Confirm sign-in* unlocks it). Registering costs the mint fee in test USDC; if your wallet is short, the page offers test USDC. Cadastral numbers stay in private storage; only polygon hashes and areas go on-chain.
 
-#shot("issuer-app-draft.png", [A draft: status timeline, requested terms, documents (three uploaded, three missing) and fields.], h: 19cm)
+#shot("issuer-app-draft.jpg", [A draft: status timeline, requested terms, documents (three uploaded, three missing) and fields.], h: 19cm)
 
 == Submit and follow the status
 
 When the profile is complete, all documents are uploaded and the fields are registered, click *Submit for review*. *Withdraw application* stops the process for good. The status timeline shows every step and who owns it: document review, issuer KYC, field verification, structuring, ready to publish, open for subscription, funded, disbursed, in season, harvest, settlement, closed. From *Open for subscription* on, statuses come from the chain.
 
-#shot("issuer-app-verif.png", [Submitted application waiting for field verification by the SCAS partner.], h: 19cm)
+#shot("issuer-app-verif.jpg", [Submitted application waiting for field verification by the SCAS partner.], h: 19cm)
 
 == Issuer workspace
 
 *Overview* (`/issuer`) shows one *Next step* in plain words and who owns it, your applications, your obligations and updates (document decisions, KYC decisions, status changes).
 
-#shot("issuer-overview-draft.png", [Overview of a company with a draft application.])
+#shot("issuer-overview-draft.jpg", [Overview of a company with a draft application.])
 
-#shot("issuer-overview.png", [Overview after disbursement: proceeds paid, obligation due at maturity.], h: 17cm)
+#shot("issuer-overview.jpg", [Overview after disbursement: proceeds paid, obligation due at maturity.], h: 17cm)
 
-#shot("issuer-applications.png", [Applications list.])
+#shot("issuer-applications.jpg", [Applications list.])
 
 == Settlement and buyback funding
 
@@ -318,7 +318,7 @@ When the profile is complete, all documents are uploaded and the fields are regi
 
 Only the issuer wallet of the pool can sign the election and the funding; the page asks you to sign in with that wallet otherwise.
 
-#shot("issuer-obligations.png", [Obligations: one pool on the delivery path, one buyback funded in full.], h: 15cm)
+#shot("issuer-obligations.jpg", [Obligations: one pool on the delivery path, one buyback funded in full.], h: 15cm)
 
 // =====================================================================
 = Console (F2F team and partners)
@@ -329,17 +329,17 @@ The console (`/console`) is one back office for the arranger, compliance, the SC
 
 Console access is by invitation only. A team manager sends you a link (`/invite/<token>`). Open it, click *Continue with email* and sign in with the invited address; the link works once, only for that email, and expires after 7 days. Someone signed in without console roles sees "The console is for invited team members".
 
-#pair("invite-anon.png", [An invitation link: roles and the masked email.], "console-not-member.png", [Signed in, but not a console member.], h: 6.2cm)
+#pair("invite-anon.jpg", [An invitation link: roles and the masked email.], "console-not-member.jpg", [Signed in, but not a console member.], h: 6.2cm)
 
 == Inbox
 
 The *Inbox* shows what waits for you in queues by permission: applications to review, issuer KYC, investor KYC, fields to verify, pool actions where the arranger acts next, elevator receipts and lab protocols. Each item links to the place where you act.
 
-#shot("console-inbox.png", [Arranger inbox: six queues.])
+#shot("console-inbox.jpg", [Arranger inbox: six queues.])
 
 #grid(columns: (1fr, 1.6fr), gutter: 14pt,
-  shot("console-inbox-390.png", [Console on a phone.], h: 11cm),
-  shot("console-inbox-scas.png", [The same inbox for the SCAS partner: one queue, one section.]),
+  shot("console-inbox-390.jpg", [Console on a phone.], h: 11cm),
+  shot("console-inbox-scas.jpg", [The same inbox for the SCAS partner: one queue, one section.]),
 )
 
 == Arranger #role("arranger")
@@ -348,7 +348,7 @@ The *Inbox* shows what waits for you in queues by permission: applications to re
 
 *Applications* shows the issuance pipeline by stage (Intake, Diligence, Structuring, Live, Closed) with filters by status. Open an application for its record: status timeline, the next step with its button, documents, activity log, issuer details and requested terms.
 
-#shot("console-applications.png", [Issuance pipeline.])
+#shot("console-applications.jpg", [Issuance pipeline.])
 
 === Review an application
 
@@ -361,9 +361,9 @@ The *Inbox* shows what waits for you in queues by permission: applications to re
   [*Reject application* is available at any stage after submission, with a reason.],
 )
 
-#shot("console-app-review.png", [Application record during document review.], h: 19cm)
+#shot("console-app-review.jpg", [Application record during document review.], h: 19cm)
 
-#shot("console-app-verif.png", [Field verification: the next step waits for the SCAS partner.], h: 21cm)
+#shot("console-app-verif.jpg", [Field verification: the next step waits for the SCAS partner.], h: 21cm)
 
 === Structure and publish
 
@@ -373,15 +373,15 @@ The *Inbox* shows what waits for you in queues by permission: applications to re
   [When the application is *Ready to publish*, click *Publish the pool*. It opens to investors and approved investors get an update.],
 )
 
-#shot("console-app-structuring.png", [Term builder in the structuring step.], h: 21cm)
+#shot("console-app-structuring.jpg", [Term builder in the structuring step.], h: 21cm)
 
 === Lifecycle board, disburse and close
 
 *Pools* lists every pool on devnet with its lifecycle (Subscription, Funding, Season, Harvest and delivery, Settlement, Closing), who acts next and your button when the step is yours. *Settlement* shows the pools at harvest, settlement or closing, earliest maturity first. Open a pool for its record, the *Final report (CSV)* and the manual pilot tools.
 
-#shot("console-pools.png", [Live pools: lifecycle board.], h: 20cm)
+#shot("console-pools.jpg", [Live pools: lifecycle board.], h: 20cm)
 
-#shot("console-pool10.png", [A pool record where the arranger acts next: record the settlement.])
+#shot("console-pool10.jpg", [A pool record where the arranger acts next: record the settlement.])
 
 The manual pilot tools ("for exceptions only") group every pool action with the key that signs it:
 
@@ -396,17 +396,17 @@ The manual pilot tools ("for exceptions only") group every pool action with the 
 
 Every action shows why it is unavailable (for example "Attest harvest first", "Needs a Redeeming pool"). Irreversible actions ask for an inline confirmation whose button names the consequence. Every decision and on-chain action is written to the audit log.
 
-#shot("console-pool9-tools.png", [Pool record with the manual pilot tools expanded.], h: 21cm)
+#shot("console-pool9-tools.jpg", [Pool record with the manual pilot tools expanded.], h: 21cm)
 
-#shot("console-settlement.png", [Settlement: pools at harvest, settlement or closing.], h: 17cm)
+#shot("console-settlement.jpg", [Settlement: pools at harvest, settlement or closing.], h: 17cm)
 
 === Audit and settings
 
 *Audit* lists every decision and on-chain action, newest first, with its transaction; failed attempts are kept with the error. *Settings* shows the platform fees (network fee per subscription, mint fee per project, arrangement fee cap), the treasury and its USDC, the gas sponsor and its SOL, and a form to mint test USDC for demo investors.
 
-#shot("console-audit.png", [Audit log.], h: 17cm)
+#shot("console-audit.jpg", [Audit log.], h: 17cm)
 
-#shot("console-settings.png", [Fees and treasury.])
+#shot("console-settings.jpg", [Fees and treasury.])
 
 == Compliance #role("compliance")
 
@@ -414,15 +414,15 @@ Every action shows why it is unavailable (for example "Attest harvest first", "N
 
 *Issuers* lists companies waiting for a decision with legal name, BIN, region, contact and account. Click *Download the KYC documents*, then *Approve issuer KYC* or *Reject* with a reason. Approval writes the platform KYC record on-chain for the company's issuer wallet, signed by the compliance key.
 
-#shot("console-issuers.png", [Issuer KYC queue.])
+#shot("console-issuers.jpg", [Issuer KYC queue.])
 
 === Investor KYC and retail limits
 
 *Investors* shows submissions waiting for a decision: category, net assets, experience, why they qualify, full name, country, IIN, risk acknowledgement and wallets. Check the category against the answers, then *Approve KYC* (writes the KYC record for every linked wallet) or *Reject*. Approved investors can be revoked with *Revoke KYC*, which clears the on-chain approval of every linked wallet and freezes its holdings. *Retail limits* monitors the AIFC exempt offer from confirmed subscriptions.
 
-#shot("console-investors.png", [Investor KYC: one waiting, one approved.], h: 15cm)
+#shot("console-investors.jpg", [Investor KYC: one waiting, one approved.], h: 15cm)
 
-#shot("console-limits.png", [Retail limits monitor.])
+#shot("console-limits.jpg", [Retail limits monitor.])
 
 == SCAS partner #role("SCAS")
 
@@ -434,9 +434,9 @@ Every action shows why it is unavailable (for example "Attest harvest first", "N
 
 Season attestations open only once the pool is Funded or Redeeming. The SCAS partner sees no company identity.
 
-#shot("console-verification.png", [Verification queue with the field map.])
+#shot("console-verification.jpg", [Verification queue with the field map.])
 
-#shot("console-verification-pool.png", [Recording a season attestation and the season timeline.])
+#shot("console-verification-pool.jpg", [Recording a season attestation and the season timeline.])
 
 == Elevator and laboratory #role("elevator") #role("lab")
 
@@ -445,23 +445,23 @@ Season attestations open only once the pool is Funded or Redeeming. The SCAS par
 - *Elevator*: for the selected pool enter the tonnes received, the receipt number, the date and the receipt file, then click *Record receipt*. Only a hash of the receipt number is stored; the file stays private.
 - *Laboratory*: enter the measured value of each of the 12 parameters (crop, class, gluten, protein, moisture, falling number, test weight, impurities, odour, gluten deformation index, vitreousness, pest infestation). Each row shows pass or fail against the pool's quality spec and the form shows a verdict. Attach the protocol file and click *Record lab protocol*.
 
-#shot("console-delivery-elevator.png", [Elevator receipt form.])
+#shot("console-delivery-elevator.jpg", [Elevator receipt form.])
 
-#shot("console-delivery-lab.png", [Laboratory: 12-parameter protocol against the quality spec.], h: 17cm)
+#shot("console-delivery-lab.jpg", [Laboratory: 12-parameter protocol against the quality spec.], h: 17cm)
 
 == Regulator #role("regulator")
 
 *Registry* is read-only: every published pool with its issuer, BIN, status, money raised, coupon, maturity and holders. Filter by status, pool, issuer BIN or investor IIN. *Export registry (CSV)*, *Holders CSV* and *Events CSV* download the data. Open a pool for its holders and events; *Events* lists the latest 1,000 decisions and on-chain actions with the role that acted. Review notes and personal data are left out.
 
-#shot("console-registry.png", [Registry of issues with CSV exports.], h: 15cm)
+#shot("console-registry.jpg", [Registry of issues with CSV exports.], h: 15cm)
 
-#shot("console-registry-pool.png", [A pool in the registry: holders and events.])
+#shot("console-registry-pool.jpg", [A pool in the registry: holders and events.])
 
-#shot("console-registry-events.png", [Platform events.], h: 15cm)
+#shot("console-registry-events.jpg", [Platform events.], h: 15cm)
 
 A section outside your roles shows "You do not have access to this section".
 
-#shot("console-forbidden.png", [The regulator opening Team.])
+#shot("console-forbidden.jpg", [The regulator opening Team.])
 
 == Team (invitations)
 
@@ -475,9 +475,9 @@ A section outside your roles shows "You do not have access to this section".
   [*What each role can do* is the permission matrix. Roles are bundles of permissions defined by the platform.],
 )
 
-#shot("console-team-invite.png", [A new invitation link, shown once.])
+#shot("console-team-invite.jpg", [A new invitation link, shown once.])
 
-#shot("console-team.png", [Team: invite form, open invitations, members and the permission matrix.], h: 21cm)
+#shot("console-team.jpg", [Team: invite form, open invitations, members and the permission matrix.], h: 21cm)
 
 // =====================================================================
 = FAQ and troubleshooting
