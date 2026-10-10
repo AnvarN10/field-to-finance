@@ -35,6 +35,10 @@ The first pilot term sheet is signed off for a real farmer, and the user approve
 - `apps/web/src/proxy.ts`, `apps/web/src/lib/basic-auth.ts`
 - `apps/web/test/basic-auth.test.ts`
 
+## Update 2026-10-10
+
+The user asked to open the platform. `BASIC_AUTH=off` disables the gate explicitly; without it the fail-closed rule above still holds.
+
 ## Related docs
 
 - [Web app](../../systems/web.md)

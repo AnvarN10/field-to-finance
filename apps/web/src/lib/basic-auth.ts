@@ -11,8 +11,9 @@ export const isPublicPath = (pathname: string) => PUBLIC_PATHS.has(pathname);
 
 export type BasicAuthMode = { kind: "on"; user: string; password: string } | { kind: "off" } | { kind: "locked" };
 
-/** Both variables set: on. Unset outside production: off (local dev, tests). Unset in production: locked, fail closed. */
+/** BASIC_AUTH=off: off (public launch). Both variables set: on. Unset outside production: off (local dev, tests). Unset in production: locked, fail closed. */
 export function basicAuthMode(env: NodeJS.ProcessEnv): BasicAuthMode {
+  if (env.BASIC_AUTH === "off") return { kind: "off" };
   const user = env.BASIC_AUTH_USER;
   const password = env.BASIC_AUTH_PASSWORD;
   if (user && password) return { kind: "on", user, password };

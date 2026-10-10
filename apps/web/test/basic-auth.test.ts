@@ -45,6 +45,13 @@ describe("basic auth mode", () => {
     expect(basicAuthMode(env({ BASIC_AUTH_USER: "u" }))).toEqual({ kind: "locked" });
     expect(basicAuthMode(env({ BASIC_AUTH_PASSWORD: "p" }))).toEqual({ kind: "locked" });
   });
+
+  it("is off in production only with the explicit BASIC_AUTH=off switch, even when credentials remain", () => {
+    expect(basicAuthMode(env({ BASIC_AUTH: "off" }))).toEqual({ kind: "off" });
+    expect(basicAuthMode(env({ BASIC_AUTH: "off", BASIC_AUTH_USER: "u", BASIC_AUTH_PASSWORD: "p" }))).toEqual({ kind: "off" });
+    expect(basicAuthMode(env({ BASIC_AUTH: "false" }))).toEqual({ kind: "locked" });
+    expect(basicAuthResponse(req("/pools"), env({ BASIC_AUTH: "off" })).status).toBe(200);
+  });
 });
 
 describe("public paths", () => {
