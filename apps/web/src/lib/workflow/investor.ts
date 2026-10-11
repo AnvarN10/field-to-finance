@@ -111,12 +111,17 @@ export async function hasKfd(db: Db, userId: string, poolAddress: string): Promi
   return row ? { documentHash: row.documentHash, acceptedAt: row.acceptedAt } : null;
 }
 
-export type KfdGate = null | "unlinked" | "onboarding" | "kfd";
+export type KfdGate = null | "unlinked" | "other_account" | "onboarding" | "kfd";
 
-/** Whether `wallet` may subscribe to `poolAddress`: linked to an account, onboarded (KYC approved, risk acknowledged), KFD accepted. */
-export async function kfdGate(db: Db, wallet: string, poolAddress: string): Promise<KfdGate> {
+/**
+ * Whether `wallet` may subscribe to `poolAddress`: linked to an account, onboarded (KYC approved, risk acknowledged), KFD
+ * accepted. With `sessionUserId` (someone is signed in) the wallet must also be linked to that account: otherwise a
+ * Phantom approved under one account would buy for whoever is signed in, and the position would land with its owner.
+ */
+export async function kfdGate(db: Db, wallet: string, poolAddress: string, sessionUserId: string | null = null): Promise<KfdGate> {
   const w = await db.query.wallets.findFirst({ where: eq(wallets.address, wallet) });
   if (!w) return "unlinked";
+  if (sessionUserId && w.userId !== sessionUserId) return "other_account";
   const p = await profileOf(db, w.userId);
   if (p?.kycStatus !== "approved" || !p.riskAckAt) return "onboarding";
   return (await hasKfd(db, w.userId, poolAddress)) ? null : "kfd";

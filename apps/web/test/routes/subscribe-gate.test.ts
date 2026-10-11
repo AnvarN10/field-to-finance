@@ -7,6 +7,8 @@ import { makeUser } from "../helpers/workflow";
 const db = await testDb();
 const POOL = Keypair.generate().publicKey.toBase58();
 let dbDown = false;
+let session: { id: string } | null = null;
+vi.mock("@/lib/server/auth", () => ({ currentUser: async () => session }));
 const buildUserTx = vi.fn(async () => ({ payer: Keypair.generate().publicKey, instructions: [], meta: {} }));
 vi.mock("@/lib/server/db", () => ({ getDb: async () => { if (dbDown) throw new Error("down"); return db; } }));
 vi.mock("@/lib/chain/user-tx", async (orig) => ({ ...(await orig<typeof import("../../src/lib/chain/user-tx")>()), buildUserTx: (...a: unknown[]) => buildUserTx(...(a as [])) }));
@@ -65,5 +67,24 @@ describe("subscribe gate (KFD before the first subscription)", () => {
     const res = await call("subscribe", { signer: Keypair.generate().publicKey.toBase58(), poolId: "rpc-down", amount: "1000000" });
     expect(res.status).toBe(503);
     expect(buildUserTx).not.toHaveBeenCalled();
+  });
+
+  it("refuses a wallet linked to another account than the signed-in one, though its owner is fully onboarded", async () => {
+    const owner = await makeUser(db, "owner@example.com", ["investor"]);
+    const signedIn = await makeUser(db, "new@example.com", ["investor"]);
+    const w = Keypair.generate().publicKey.toBase58();
+    await db.insert(wallets).values({ address: w, userId: owner.id, kind: "phantom" });
+    await db.insert(investorProfiles).values({ userId: owner.id, category: "professional", kycStatus: "approved", riskAckAt: new Date() });
+    await db.insert(kfdAcceptances).values({ investorUserId: owner.id, poolAddress: POOL, documentHash: "a".repeat(64) });
+    try {
+      session = { id: signedIn.id };
+      const res = await call("subscribe", { signer: w, poolId: "7", amount: "1000000" });
+      expect(res.status).toBe(403);
+      expect((await res.json()).error).toMatchObject({ code: "WalletOtherAccount", action: "none" });
+      session = { id: owner.id };
+      expect((await call("subscribe", { signer: w, poolId: "7", amount: "1000000" })).status).toBe(200);
+    } finally {
+      session = null;
+    }
   });
 });

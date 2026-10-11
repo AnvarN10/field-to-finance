@@ -1,6 +1,7 @@
 "use client";
 
 import { PrivyProvider, usePrivy } from "@privy-io/react-auth";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useSignTransaction, useWallets } from "@privy-io/react-auth/solana";
 import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import { VersionedTransaction } from "@solana/web3.js";
@@ -17,6 +18,7 @@ function Bridge({ children }: { children: ReactNode }) {
   const { ready, authenticated, login, logout, user, getAccessToken } = usePrivy();
   const { wallets } = useWallets();
   const { signTransaction } = useSignTransaction();
+  const adapter = useWallet();
   const wallet = wallets.find((w) => w.standardWallet.name === "Privy") ?? null;
   const [server, setServer] = useState<ServerSession>({ state: "idle" });
   const inFlight = useRef(false);
@@ -78,6 +80,8 @@ function Bridge({ children }: { children: ReactNode }) {
         },
         logout: async () => {
           await fetch("/api/session", { method: "DELETE" }).catch(() => null);
+          // Autoconnect would otherwise hand the next account on this browser the previous account's Phantom.
+          await adapter.disconnect().catch(() => null);
           await logout();
           setServer({ state: "idle" });
         },

@@ -72,4 +72,18 @@ describe("KFD gate", () => {
     expect(await kfdGate(db, INVESTOR_WALLET, P1)).toBeNull();
     expect(await kfdGate(db, INVESTOR_WALLET, P2)).toBe("kfd");
   });
+
+  it("refuses a wallet linked to another account than the one signed in", async () => {
+    const { db, investor, ops } = await setup();
+    const other = await makeUser(db, "other@example.com", ["investor"]);
+    await linkWallet(db, investor, { address: INVESTOR_WALLET, kind: "phantom" });
+    await saveQuestionnaire(db, investor, Q);
+    await submitInvestorKyc(db, investor, { fullName: "Demo Investor", country: "Kazakhstan" });
+    await decideInvestorKyc(db, ops, investor.id, "approved", null, fakeChain());
+    await acknowledgeRisk(db, investor);
+    await acceptKfd(db, investor, P1, "a".repeat(64));
+    expect(await kfdGate(db, INVESTOR_WALLET, P1, other.id)).toBe("other_account");
+    expect(await kfdGate(db, INVESTOR_WALLET, P1, investor.id)).toBeNull();
+    expect(await kfdGate(db, INVESTOR_WALLET, P1)).toBeNull();
+  });
 });

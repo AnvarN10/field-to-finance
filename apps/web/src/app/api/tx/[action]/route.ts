@@ -3,14 +3,16 @@ import { explainChainError } from "@/lib/chain/explain";
 import { buildV0, bytesToBase64, simulate } from "@/lib/chain/send";
 import { TX_ACTIONS, buildUserTx, type TxAction } from "@/lib/chain/user-tx";
 import { RequestError } from "@/lib/errors";
+import { currentUser } from "@/lib/server/auth";
 import { getDb } from "@/lib/server/db";
 import { kfdGate, type KfdGate } from "@/lib/workflow/investor";
 import { getBuildProgram, getConnection, getReader, getStore, getUsdcMint, sponsorPublicKey } from "@/lib/server/context";
 
 export const dynamic = "force-dynamic";
 
-const GATE: Record<Exclude<KfdGate, null>, [code: string, title: string, detail: string, action: "onboarding" | "kfd"]> = {
+const GATE: Record<Exclude<KfdGate, null>, [code: string, title: string, detail: string, action: "onboarding" | "kfd" | "none"]> = {
   unlinked: ["WalletNotLinked", "Link this wallet in your investor account", "Sign in, finish onboarding and link this wallet before subscribing.", "onboarding"],
+  other_account: ["WalletOtherAccount", "This wallet belongs to another account", "Disconnect it and pay from your email wallet, or sign in with the account it is linked to.", "none"],
   onboarding: ["OnboardingIncomplete", "Finish investor onboarding first", "KYC approval and the risk acknowledgement come before any subscription.", "onboarding"],
   kfd: ["KfdRequired", "Accept this pool's key features document", "Read the key features in the investor app; accepting takes one click.", "kfd"],
 };
@@ -29,7 +31,7 @@ async function subscribeGate(body: unknown): Promise<Response | null> {
   if (!detail) return null;
   let gate: KfdGate;
   try {
-    gate = await kfdGate(await getDb(), b.signer, detail.pool.address);
+    gate = await kfdGate(await getDb(), b.signer, detail.pool.address, (await currentUser())?.id ?? null);
   } catch {
     return fail(503, "AccountsUnavailable", "Subscriptions are paused", "Investor accounts are unavailable right now. Try again in a minute.");
   }

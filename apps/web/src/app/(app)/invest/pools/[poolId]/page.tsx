@@ -87,7 +87,7 @@ export default async function KfdPage({ params }: { params: Promise<{ poolId: st
       {/* Holders can always refund, redeem or claim; subscribing needs the current KFD (the server checks it too). */}
       {current || (detail.pool.status !== "Open" && onboarding.complete) ? (
         <div id="invest" className="max-w-md">
-          <CabinetInvest pool={detail.pool} networkFee={fees?.networkFee ?? null} />
+          <CabinetInvest pool={detail.pool} networkFee={fees?.networkFee ?? null} linkedWallets={onboarding.wallets.map((w) => w.address)} />
         </div>
       ) : null}
     </div>

@@ -21,7 +21,7 @@ Investor (Privy email login; Phantom or another Wallet Standard wallet optional)
 5. Wallet: the Privy email wallet is linked automatically. A Phantom wallet is linked by signing a message that names the wallet, the account and the time (valid for 10 minutes; no transaction, no fee). A wallet can belong to one account only.
 6. The arranger reviews the queue (`/console/investors`) and approves: compliance signs `approve_investor` for every linked wallet; wallets linked later are approved when linked.
 7. KFD: on `/invest/pools/<poolId>` the investor reads the key features (issuer of record, instrument type, nominal, issue size, coupon, grain behind the token, dates, settlement, fees, main risks) and accepts. The server computes the KFD's SHA-256 from the pool's on-chain terms and stores it in `kfd_acceptances`. Only fixed terms go into the document, so the hash changes only when the terms change.
-8. Subscribe on the same page (email wallet or connected Phantom) or on the public pool page (Phantom). `/api/tx/subscribe` checks, before building: the wallet is linked (`WalletNotLinked`), the owner is onboarded (`OnboardingIncomplete`), the KFD for this pool is accepted (`KfdRequired`). Then the [primary subscription](primary-subscription.md) runs.
+8. Subscribe on the same page or on the public pool page (Phantom). In the investor app a connected Phantom signs only when it is linked to the signed-in account; otherwise the email wallet signs and the panel says why. `/api/tx/subscribe` and the sponsor in `/api/tx/send` check, before building and before co-signing: the wallet is linked (`WalletNotLinked`), when someone is signed in it is linked to that account (`WalletOtherAccount`), the owner is onboarded (`OnboardingIncomplete`), the KFD for this pool is accepted (`KfdRequired`). Then the [primary subscription](primary-subscription.md) runs. Signing out also disconnects the adapter wallet, so autoconnect never hands the next account on the browser the previous account's Phantom.
 
 ## Data and state changes
 
@@ -58,7 +58,7 @@ Arranger KYC queue, audit log, the investor's onboarding page (step states).
 
 ## Testing notes
 
-`test/workflow-investor.test.ts`, `test/investor-actions.test.ts`, `test/routes/subscribe-gate.test.ts`, `test/kfd.test.ts`, `test/investor-cabinet.test.tsx`, `test/routes/statement.test.ts`.
+`test/workflow-investor.test.ts`, `test/investor-actions.test.ts`, `test/routes/subscribe-gate.test.ts`, `test/routes/send.test.ts`, `test/cabinet-invest.test.tsx`, `test/kfd.test.ts`, `test/investor-cabinet.test.tsx`, `test/routes/statement.test.ts`.
 
 ## Source map
 

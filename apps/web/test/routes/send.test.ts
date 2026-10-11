@@ -20,6 +20,8 @@ vi.mock("@/lib/server/tx-history", () => ({ recordUserTx: (...a: unknown[]) => r
 const gate = vi.fn(async (): Promise<string | null> => null);
 let dbDown = false;
 vi.mock("@/lib/server/db", () => ({ getDb: async () => { if (dbDown) throw new Error("down"); return {}; } }));
+let session: { id: string } | null = null;
+vi.mock("@/lib/server/auth", () => ({ currentUser: async () => session }));
 vi.mock("@/lib/workflow/investor", () => ({ kfdGate: (...a: unknown[]) => gate(...(a as [])) }));
 const { POST } = await import("../../src/app/api/tx/send/route");
 
@@ -107,7 +109,21 @@ describe("POST /api/tx/send", () => {
       runGate();
       const r = await POST(req({ action: "subscribe", tx: "AAAA" }, "7.7.7.1"));
       expect(r.status).toBe(403);
-      expect(gate).toHaveBeenCalledWith({}, "W9", "P9");
+      expect(gate).toHaveBeenCalledWith({}, "W9", "P9", null);
+    });
+
+    it("checks the wallet against the signed-in account and refuses another account's wallet", async () => {
+      session = { id: "u-new" };
+      gate.mockResolvedValueOnce("other_account");
+      runGate();
+      try {
+        const r = await POST(req({ action: "subscribe", tx: "AAAA" }, "7.7.7.4"));
+        expect(r.status).toBe(403);
+        expect((await r.json()).error.detail).toMatch(/linked to another account/);
+        expect(gate).toHaveBeenLastCalledWith({}, "W9", "P9", "u-new");
+      } finally {
+        session = null;
+      }
     });
 
     it("fails closed with 503 when Postgres is down", async () => {

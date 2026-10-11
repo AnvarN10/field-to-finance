@@ -5,6 +5,7 @@ import { cosignAndSend } from "@/lib/chain/sponsor";
 import { TX_ACTIONS } from "@/lib/chain/user-tx";
 import { RequestError } from "@/lib/errors";
 import { clientIp, createRateLimit, takeAll } from "@/lib/rate-limit";
+import { currentUser } from "@/lib/server/auth";
 import { getDb } from "@/lib/server/db";
 import { kfdGate } from "@/lib/workflow/investor";
 import { getConnection, getReader, getStore, roleKeypair, sponsorPolicy, sponsorPublicKey } from "@/lib/server/context";
@@ -31,11 +32,12 @@ async function subscribeAllowed(wallet: string, pool: string | null): Promise<vo
   if (!pool) throw new RequestError("subscribe: pool account is missing", 400);
   let gate;
   try {
-    gate = await kfdGate(await getDb(), wallet, pool);
+    gate = await kfdGate(await getDb(), wallet, pool, (await currentUser())?.id ?? null);
   } catch {
     throw new RequestError("Subscriptions are paused: investor accounts are unavailable right now. Try again in a minute.", 503);
   }
   if (gate === "unlinked") throw new RequestError("Link this wallet in your investor account before subscribing.", 403);
+  if (gate === "other_account") throw new RequestError("This wallet is linked to another account. Disconnect it and pay from your email wallet.", 403);
   if (gate === "onboarding") throw new RequestError("Finish investor onboarding (KYC and the risk acknowledgement) before subscribing.", 403);
   if (gate === "kfd") throw new RequestError("Accept this pool's key features document in the investor app before subscribing.", 403);
 }
